@@ -31,7 +31,7 @@
   },
   "scripts": {
     "start": "node dist/server",
-    "dev": "babel-node src/server",
+    "dev": "nodemon --exec babel-node -- src/server/index.js",
     "build": "npm run build:server",
     "test": "npm run test:server",
     "test:src": "TZ=UTC jest src/*",
@@ -67,11 +67,15 @@
     "eslint-plugin-node": "^7.0.1",
     "eslint-plugin-react": "^7.11.1",
     "jest": "23.6.0",
+    "nodemon": "^1.18.4",
     "prettier": "^1.14.2"
   },
   "config": {
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
     }
+  },
+  "nodemonConfig": {
+    "watch": ["src/server"]
   }
 }
