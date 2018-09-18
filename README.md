@@ -1,15 +1,9 @@
-# Open Collective Frontend
+# Open Collective Images
 
-[![Circle CI](https://circleci.com/gh/opencollective/opencollective-frontend/tree/master.svg?style=shield)](https://circleci.com/gh/opencollective/opencollective-frontend/tree/master)
+[![Circle CI](https://circleci.com/gh/opencollective/opencollective-images/tree/master.svg?style=shield)](https://circleci.com/gh/opencollective/opencollective-images/tree/master)
 [![Slack Status](https://slack.opencollective.org/badge.svg)](https://slack.opencollective.org)
-[![Dependency Status](https://david-dm.org/opencollective/opencollective-frontend/status.svg)](https://david-dm.org/opencollective/opencollective-frontend)
-[![Greenkeeper badge](https://badges.greenkeeper.io/opencollective/opencollective-frontend.svg)](https://greenkeeper.io/)
-
-<p align="center">
-  <a href="https://github.com/opencollective/opencollective-frontend">
-    <img width="525"src="http://res.cloudinary.com/opencollective/image/upload/c_scale,w_1050/v1536861775/opencollective-babel-2018-09-13_ue8yhg.png" alt="Babel - Open Collective">
-  </a>
-</p>
+[![Dependency Status](https://david-dm.org/opencollective/opencollective-images/status.svg)](https://david-dm.org/opencollective/opencollective-images)
+[![Greenkeeper badge](https://badges.greenkeeper.io/opencollective/opencollective-images.svg)](https://greenkeeper.io/)
 
 ## Foreword
 
@@ -20,18 +14,21 @@ If you see a step below that could be improved (or is outdated), please update t
 ### Prerequisite
 
 1. Make sure you have Node.js version >= 10.
-  - We recommend using [nvm](https://github.com/creationix/nvm): `nvm use`.
+
+- We recommend using [nvm](https://github.com/creationix/nvm): `nvm use`.
+
 2. Make sure you have [GraphicsMagick](http://www.graphicsmagick.org) installed.
-  - On Debian/Ubuntu: `sudo apt-get install graphicsmagick`
-  - On MacOS (with [Homebrew](https://brew.sh/)): `brew install graphicsmagick`
+
+- On Debian/Ubuntu: `sudo apt-get install graphicsmagick`
+- On MacOS (with [Homebrew](https://brew.sh/)): `brew install graphicsmagick`
 
 ### Install
 
 We recommend cloning the repository in a folder dedicated to `opencollective` projects.
 
 ```
-git clone git@github.com:opencollective/opencollective-frontend.git opencollective/frontend
-cd opencollective/frontend
+git clone git@github.com:opencollective/opencollective-images.git opencollective/images
+cd opencollective/images
 npm install
 ```
 
@@ -58,40 +55,26 @@ TL;DR: we use [Prettier](https://prettier.io/) and [ESLint](https://eslint.org/)
 
 ## Tests
 
-You can run the tests using `npm test` or more specifically:
-
-- `npm run test:src` for pages and components
-- `npm run test:server` for api and badges
-- `npm run test:e2e` for end-to-end tests using [Cypress](https://www.cypress.io/)
-
-To update the Jest snapshots, run `npm run test:src -- -u`
-
-## Localization
-
-To add a translation to a new language, copy paste the `en.json` from `src/lang` and rename the copy using the 2 or 4 letter code for your country/language (e.g. `fr-BE.json` or `fr.json`).
-
-You will also need to copy paste the last line in `scripts/translate.js`, and replace `ja` with your 2-4 letter locale code.
-
-```
-fs.writeFileSync(`${LANG_DIR}ja.json`, JSON.stringify(translatedMessages('ja'), null, 2));
-```
+You can run the tests using `npm test`.
 
 ## Deployment
 
 To deploy to staging or production, you need to be a core member of the Open Collective team.
 
-### Staging (heroku)
+### Staging (now)
 
 ```
-npm run deploy:staging
+now
+now alias opencollective-images-staging
 ```
 
-URL: https://staging.opencollective.com/
+URL: https://images-staging.opencollective.com/
 
-### Production (heroku)
+### Production (now)
 
 ```
-npm run deploy:production
+now
+now alias opencollective-images
 ```
 
-URL: https://opencollective.com/
+URL: https://images.opencollective.com/

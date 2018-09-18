@@ -1,7 +1,20 @@
 import { GraphQLClient } from 'graphql-request';
 import { uniqBy } from 'lodash';
 
-import { getGraphqlUrl } from '../../lib/utils';
+export const getBaseApiUrl = ({ internal } = {}) => {
+  if (process.browser) {
+    return '/api';
+  } else if (internal && process.env.INTERNAL_API_URL) {
+    return process.env.INTERNAL_API_URL;
+  } else {
+    return process.env.API_URL || 'https://api.opencollective.com';
+  }
+};
+
+export const getGraphqlUrl = () => {
+  const apiKey = !process.browser ? process.env.API_KEY : null;
+  return `${getBaseApiUrl()}/graphql${apiKey ? `?api_key=${apiKey}` : ''}`;
+};
 
 let client;
 
@@ -10,30 +23,6 @@ function getClient() {
     client = new GraphQLClient(getGraphqlUrl(), { headers: {} });
   }
   return client;
-}
-
-export async function fetchCollective(collectiveSlug) {
-  const query = `
-  query Collective($collectiveSlug: String) {
-    Collective(slug:$collectiveSlug) {
-      id
-      slug
-      image
-      currency
-      data
-      stats {
-        balance
-        backers {
-          all
-        }
-        yearlyBudget
-      }
-    }
-  }
-  `;
-
-  const result = await getClient().request(query, { collectiveSlug });
-  return result.Collective;
 }
 
 export async function fetchCollectiveImage(collectiveSlug) {
@@ -68,8 +57,10 @@ export async function fetchMembersStats(params) {
       }
     }
     `;
-    processResult = (res) => {
-      const count = (backerType.match(/sponsor/)) ? res.Collective.stats.backers.organizations : res.Collective.stats.backers.users;
+    processResult = res => {
+      const count = backerType.match(/sponsor/)
+        ? res.Collective.stats.backers.organizations
+        : res.Collective.stats.backers.users;
       return {
         name: backerType,
         count,
@@ -89,7 +80,7 @@ export async function fetchMembersStats(params) {
       }
     }
     `;
-    processResult = (res) => {
+    processResult = res => {
       return {
         count: res.Collective.tiers[0].stats.totalDistinctOrders,
         slug: res.Collective.tiers[0].slug,
@@ -102,7 +93,10 @@ export async function fetchMembersStats(params) {
   return count;
 }
 
-export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isActive }, options = {}) {
+export async function fetchMembers(
+  { collectiveSlug, tierSlug, backerType, isActive },
+  options = {},
+) {
   let query, processResult, type, role;
   if (backerType === 'contributors') {
     query = `
@@ -113,7 +107,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
       }
     }
     `;
-    processResult = (res) => {
+    processResult = res => {
       const users = res.Collective.data.githubContributors;
       return Object.keys(users).map(username => {
         const commits = users[username];
@@ -147,7 +141,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
       }
     }
     `;
-    processResult = (res) => uniqBy(res.allMembers.map(m => m.member), m => m.id);
+    processResult = res => uniqBy(res.allMembers.map(m => m.member), m => m.id);
   } else if (tierSlug) {
     query = `
     query Collective($collectiveSlug: String, $tierSlug: String!, $isActive: Boolean) {
@@ -169,122 +163,20 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
       }
     }
     `;
-    processResult = (res) => uniqBy(res.Collective.tiers[0].orders.map(o => o.fromCollective), m => m.id);
+    processResult = res =>
+      uniqBy(
+        res.Collective.tiers[0].orders.map(o => o.fromCollective),
+        m => m.id,
+      );
   }
 
-  const result = await (options.client || getClient()).request(query, { collectiveSlug, tierSlug, type, role, isActive });
+  const result = await (options.client || getClient()).request(query, {
+    collectiveSlug,
+    tierSlug,
+    type,
+    role,
+    isActive,
+  });
   const members = processResult(result);
   return members;
-}
-
-export async function fetchEvents(parentCollectiveSlug, options = { limit: 10 }) {
-  const query = `
-  query allEvents($slug: String!, $limit: Int) {
-    allEvents(slug:$slug, limit: $limit) {
-      id
-      name
-      description
-      slug
-      image
-      startsAt
-      endsAt
-      timezone
-      location {
-        name
-        address
-        lat
-        long
-      }
-    }
-  }
-  `;
-
-  const result = await getClient().request(query, { slug: parentCollectiveSlug, limit: options.limit || 10 });
-  return result.allEvents;
-}
-
-export async function fetchEvent(eventSlug) {
-  const query = `
-  query Collective($slug: String) {
-    Collective(slug:$slug) {
-      id
-      name
-      description
-      longDescription
-      slug
-      image
-      startsAt
-      endsAt
-      timezone
-      location {
-        name
-        address
-        lat
-        long
-      }
-      currency
-      tiers {
-        id
-        name
-        description
-        amount
-      }
-    }
-  }
-  `;
-
-  const result = await getClient().request(query, { slug: eventSlug });
-  return result.Collective;
-}
-
-export async function fetchInvoice(invoiceSlug, accessToken) {
-  const query = `
-  query Invoice($invoiceSlug: String!) {
-    Invoice(invoiceSlug:$invoiceSlug) {
-      slug
-      totalAmount
-      currency
-      year
-      month
-      host {
-        id
-        slug
-        name
-        image
-        website
-        settings
-        type
-        location {
-          name
-          address
-        }
-      }
-      fromCollective {
-        id
-        slug
-        name
-        currency
-        location {
-          name
-          address
-        }
-      }
-      transactions {
-        id
-        createdAt
-        description
-        amount
-        currency
-        collective {
-          id
-          slug
-          name
-        }
-      }
-    }
-  }
-  `;
-  const client = new GraphQLClient(getGraphqlUrl(), { headers: { authorization: `Bearer ${accessToken}` } });
-  const result = await client.request(query, { invoiceSlug });
-  return result.Invoice;
 }
