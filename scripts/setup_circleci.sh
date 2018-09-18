@@ -1,6 +1,5 @@
 #!/bin/bash
-# This script only runs on circleci, just before the e2e tests
-# first version cfr. https://discuss.circleci.com/t/add-ability-to-cache-apt-get-programs/598/6
+# This script only runs on circleci, just before the tests
 
 if [ "$NODE_ENV" = "circleci" ]; then
   echo "Performing circleci e2e setup because NODE_ENV is '${NODE_ENV}'";
@@ -8,8 +7,6 @@ else
   echo "Skipping circleci e2e setup because NODE_ENV is '${NODE_ENV}'";
   exit;
 fi
-
-sudo apt-get install GraphicsMagick
 
 mkdir -p ~/cache
 cd ~/cache
