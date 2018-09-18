@@ -1,7 +1,7 @@
 import fetch from 'node-fetch';
 
-const WEBSITE_URL =
-  process.env.WEBSITE_URL || 'https://staging.opencollective.com';
+const imagesUrl =
+  process.env.IMAGES_URL || 'https://staging.opencollective.com';
 
 const timeout = 30000;
 
@@ -11,7 +11,7 @@ const fetchResponse = path => {
   const pathWithCacheBurst = [path, cacheBurst].join(
     path.indexOf('?') === -1 ? '?' : '&',
   );
-  return fetch(`${WEBSITE_URL}${pathWithCacheBurst}`);
+  return fetch(`${imagesUrl}${pathWithCacheBurst}`);
 };
 
 const fetchText = path => fetchResponse(path).then(response => response.text());
@@ -71,18 +71,6 @@ describe('badge.routes.test.js', () => {
       },
       timeout,
     );
-
-    test(
-      'redirects to the website of the second backer',
-      async () => {
-        const res = await fetchResponse('/apex/backers/1/website');
-        expect(res.status).toEqual(200);
-        expect(res.url).toMatch(/utm_campaign=apex/);
-        expect(res.url).toMatch(/utm_medium=github/);
-        expect(res.url).toMatch(/utm_source=opencollective/);
-      },
-      timeout,
-    );
   });
 
   describe('custom tiers', () => {
@@ -98,7 +86,7 @@ describe('badge.routes.test.js', () => {
     test(
       'loads the banner (svg)',
       async () => {
-        const res = await fetchResponse(`/apex/tiers/backers.svg`);
+        const res = await fetchResponse('/apex/tiers/backers.svg');
         expect(res.status).toEqual(200);
       },
       timeout,
@@ -107,7 +95,7 @@ describe('badge.routes.test.js', () => {
     test.skip(
       'loads the banner (png)',
       async () => {
-        const res = await fetchResponse(`/apex/tiers/backers.png`);
+        const res = await fetchResponse('/apex/tiers/backers.png');
         expect(res.status).toEqual(200);
       },
       timeout,

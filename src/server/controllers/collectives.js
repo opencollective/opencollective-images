@@ -25,7 +25,7 @@ const cache = lruCache({
   maxAge: 1000 * 60 * 10,
 });
 
-const WEBSITE_URL = process.env.WEBSITE_URL || 'https://opencollective.com';
+const imagesUrl = process.env.IMAGES_URL || 'https://opencollective.com';
 
 const fetchText = path => fetch(path).then(response => response.text());
 
@@ -160,7 +160,7 @@ export async function banner(req, res) {
     selector === 'contributors' || selector == 'sponsors' ? false : true;
   const buttonImage =
     showBtn &&
-    `${WEBSITE_URL}/static/images/become_${
+    `${imagesUrl}/static/images/become_${
       selector.match(/sponsor/) ? 'sponsor' : 'backer'
     }.svg`;
   return generateSVGBannerForUsers(users, {
@@ -234,10 +234,6 @@ export async function avatar(req, res) {
     maxWidth = maxHeight * 3;
   }
 
-  // We only record a page view when loading the first avatar
-  if (position == 0) {
-    req.ga.pageview();
-  }
   const collectiveType = user.type === 'USER' ? 'user' : 'organization';
   let imageUrl = `/static/images/${collectiveType}.svg`;
   if (user.image && user.image.substr(0, 1) !== '/') {
