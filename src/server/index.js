@@ -1,5 +1,6 @@
 import './env';
 
+import path from 'path';
 import http from 'http';
 import express from 'express';
 
@@ -10,6 +11,8 @@ import { loadRoutes } from './routes';
 const port = process.env.PORT || 3000;
 
 const app = express();
+
+app.use('/static', express.static(path.join(__dirname, '..', 'static')));
 
 app.use(loggerMiddleware.logger);
 
