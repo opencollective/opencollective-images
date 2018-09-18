@@ -68,13 +68,15 @@ now
 now alias opencollective-images-staging
 ```
 
-URL: https://images-staging.opencollective.com/
+Now URL: https://opencollective-images.now.sh/
+Final URL: https://images-staging.opencollective.com/
 
 ### Production (now)
 
 ```
-now
+now -e API_KEY=@opencollective_api_key -e API_URL=https://api.opencollective.com
 now alias opencollective-images
 ```
 
-URL: https://images.opencollective.com/
+Now URL: https://opencollective-images.now.sh/
+Final URL: https://images.opencollective.com/

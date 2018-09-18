@@ -25,7 +25,7 @@ const cache = lruCache({
   maxAge: 1000 * 60 * 10,
 });
 
-const imagesUrl = process.env.IMAGES_URL || 'https://opencollective.com';
+const imagesUrl = process.env.IMAGES_URL || 'https://images.opencollective.com';
 
 const fetchText = path => fetch(path).then(response => response.text());
 

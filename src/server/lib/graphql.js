@@ -1,19 +1,10 @@
 import { GraphQLClient } from 'graphql-request';
 import { uniqBy } from 'lodash';
 
-export const getBaseApiUrl = ({ internal } = {}) => {
-  if (process.browser) {
-    return '/api';
-  } else if (internal && process.env.INTERNAL_API_URL) {
-    return process.env.INTERNAL_API_URL;
-  } else {
-    return process.env.API_URL || 'https://api.opencollective.com';
-  }
-};
-
 export const getGraphqlUrl = () => {
-  const apiKey = !process.browser ? process.env.API_KEY : null;
-  return `${getBaseApiUrl()}/graphql${apiKey ? `?api_key=${apiKey}` : ''}`;
+  const apiKey = process.env.API_KEY;
+  const baseApiUrl = process.env.API_URL || 'https://api.opencollective.com';
+  return `${baseApiUrl}/graphql${apiKey ? `?api_key=${apiKey}` : ''}`;
 };
 
 let client;
