@@ -5,6 +5,10 @@ import { logger } from './logger';
 import { getCloudinaryUrl } from './lib/utils';
 
 export const loadRoutes = app => {
+  app.get('/', (req, res) => {
+    res.send('This is the Open Collective images server.');
+  });
+
   /**
    * Proxy all images so that we can serve them from the opencollective.com domain
    * and we can cache them at cloudflare level (to reduce bandwidth at cloudinary level)
