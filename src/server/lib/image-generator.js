@@ -122,8 +122,8 @@ export function generateSVGBannerForUsers(users, options) {
       const promiseOptions = {
         url: image,
         encoding: null,
-        ttl: 60 * 60 * 24 * 30 * 1000,
-      }; // 30 days caching
+        ttl: 24 * 60 * 60 * 1000, // 1 day caching
+      };
       promises.push(requestPromise(promiseOptions));
     } else {
       promises.push(Promise.resolve());
@@ -134,7 +134,7 @@ export function generateSVGBannerForUsers(users, options) {
     const btn = {
       url: options.buttonImage,
       encoding: null,
-      ttl: 60 * 60 * 24 * 30 * 1000,
+      ttl: 24 * 60 * 60 * 1000, // 1 day caching
     };
 
     users.push({
