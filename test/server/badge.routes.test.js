@@ -1,7 +1,9 @@
+import '../../src/server/env';
+
 import fetch from 'node-fetch';
 
 const imagesUrl =
-  process.env.IMAGES_URL || 'https://staging.opencollective.com';
+  process.env.IMAGES_URL || 'https://images-staging.opencollective.com';
 
 const timeout = 30000;
 
@@ -40,7 +42,7 @@ describe('badge.routes.test.js', () => {
       'loads the sponsors badge',
       async () => {
         const resText = await fetchText('/apex/sponsors/badge.svg');
-        expect(resText).toMatch(/sponsors<\/text>/);
+        expect(resText).toMatch(/sponsors<\/text>/i);
       },
       timeout,
     );
@@ -78,7 +80,7 @@ describe('badge.routes.test.js', () => {
       'loads the badge (svg)',
       async () => {
         const resText = await fetchText('/apex/tiers/sponsors/badge.svg');
-        expect(resText).toMatch(/Sponsors<\/text>/);
+        expect(resText).toMatch(/sponsors<\/text>/i);
       },
       timeout,
     );
