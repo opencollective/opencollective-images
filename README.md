@@ -64,19 +64,17 @@ To deploy to staging or production, you need to be a core member of the Open Col
 ### Staging (now)
 
 ```
-now
-now alias opencollective-images-staging
+now -e API_KEY=09u624Pc9F47zoGLlkg1TBSbOl2ydSAq -e API_URL=https://api-staging.opencollective.com
+now alias images-staging.opencollective.com
 ```
 
-Now URL: https://opencollective-images.now.sh/
-Final URL: https://images-staging.opencollective.com/
+- URL: https://images-staging.opencollective.com/
 
 ### Production (now)
 
 ```
 now -e API_KEY=@opencollective_api_key -e API_URL=https://api.opencollective.com
-now alias opencollective-images
+now alias images.opencollective.com
 ```
 
-Now URL: https://opencollective-images.now.sh/
-Final URL: https://images.opencollective.com/
+- URL: https://images.opencollective.com/
