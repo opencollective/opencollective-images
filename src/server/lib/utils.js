@@ -8,7 +8,7 @@ export function getCloudinaryUrl(src, { width, height, query }) {
   if (
     src.substr(0, cloudinaryBaseUrl.length) === cloudinaryBaseUrl ||
     src.match(/\.gif$/) ||
-    (src.match(/\.svg/) && !query) ||
+    (src.match(/\.svg$/) && !query) ||
     src.match(/localhost:3000/)
   ) {
     return src;
