@@ -81,6 +81,9 @@ export async function logo(req, res, next) {
   let collective;
   try {
     collective = await fetchCollectiveImage(req.params.collectiveSlug);
+    if (!collective.image) {
+      return res.status(404).send('Not found (No collective image)');
+    }
   } catch (e) {
     if (e.message.match(/No collective found/)) {
       return res.status(404).send('Not found');
