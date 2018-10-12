@@ -30,14 +30,14 @@
     "winston": "^3.1.0"
   },
   "scripts": {
-    "start": "node dist/server",
+    "start": "NODE_ENV=production node dist/server",
     "dev": "nodemon --exec babel-node -- src/server/index.js",
-    "build": "npm run build:server",
+    "build": "npm run build:clean && npm run build:server",
+    "build:clean": "rm -rf dist",
+    "build:server": "babel --copy-files src --out-dir dist",
     "test": "npm run test:server",
-    "test:src": "TZ=UTC jest src/*",
     "test:circleci": "TZ=UTC ./scripts/run_circleci.sh",
     "test:server": "TZ=UTC jest test/server/*",
-    "build:server": "babel --copy-files ./src --out-dir ./dist",
     "postinstall": "if test \"$NODE_ENV\" = \"\" || test \"$NODE_ENV\" = \"development\" ; then echo \"Skipping postinstall build because NODE_ENV is '${NODE_ENV}'\" ; else npm run build ; fi",
     "lint": "eslint \"src/**/*.js\" \"test/**/*.js\"",
     "lint:fix": "npm run lint -- --fix",
