@@ -12,9 +12,12 @@ if [ "$NODE_ENV" = "circleci" ]; then
 fi
 
 echo ""
+echo "Waiting 10sec (give some time for servers to be up and running)"
+sleep 10
+echo ""
 
 echo "> Starting server jest tests"
-jest test/server/*
+npm run test:server
 RETURN_CODE=$?
 if [ $RETURN_CODE -ne 0 ]; then
   echo "Error with jest tests, exiting"
