@@ -108,7 +108,7 @@ export function generateSVGBannerForUsers(users, options) {
           query: `/c_thumb,g_face,h_${avatarHeight * 2},r_max,w_${avatarHeight *
             2},bo_3px_solid_white/c_thumb,h_${avatarHeight *
             2},r_max,w_${avatarHeight *
-            2},bo_2px_solid_rgb:66C71A/e_trim/f_auto/`,
+            2},bo_2px_solid_rgb:66C71A/e_trim/f_png/`,
         }
       : { width: avatarHeight * 2, height: avatarHeight * 2 };
 
