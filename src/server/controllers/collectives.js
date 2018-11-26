@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 import sizeOf from 'image-size';
 import request from 'request';
 import gm from 'gm';
-import lruCache from 'lru-cache';
+import LRUCache from 'lru-cache';
 
 import { logger } from '../logger';
 import { queryString, getCloudinaryUrl } from '../lib/utils';
@@ -20,7 +20,7 @@ import {
 } from '../lib/image-generator';
 
 // Cache the list of members of a collective to avoid requesting it for every single /:collectiveSlug/backers/:position/avatar
-const cache = lruCache({
+const cache = new LRUCache({
   max: 5000,
   maxAge: 1000 * 60 * 10,
 });
