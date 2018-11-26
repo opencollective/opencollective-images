@@ -6,7 +6,7 @@ if [ "$NODE_ENV" = "circleci" ]; then
   PG_DATABASE=opencollective_dvl npm start &
   API_PID=$!
   cd -
-  echo "> Starting frontend server"
+  echo "> Starting images server"
   npm start &
   FRONTEND_PID=$!
 fi

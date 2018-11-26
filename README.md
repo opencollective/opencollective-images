@@ -73,7 +73,7 @@ now alias images-staging.opencollective.com
 ### Production (now)
 
 ```
-now -e API_KEY=@opencollective_api_key -e API_URL=https://api.opencollective.com
+now
 now alias images.opencollective.com
 ```
 
