@@ -68,19 +68,13 @@ export function svg2png(svg) {
       .readFile(outputFile)
       .catch(() =>
         // Otherwise, generate a new png (slow)
-        convertSvgToPng
-          .convert(svg)
-          .then(png => fs.writeFile(outputFile, png).then(() => png)),
+        convertSvgToPng.convert(svg).then(png => fs.writeFile(outputFile, png).then(() => png)),
       )
   );
 }
 
 export function generateSVGBannerForUsers(users, options) {
-  logger.debug(
-    '>>> generateSVGBannerForUsers %d users, options: %j',
-    users.length,
-    options,
-  );
+  logger.debug('>>> generateSVGBannerForUsers %d users, options: %j', users.length, options);
 
   const { style, limit, collectiveSlug } = options;
 
@@ -106,8 +100,7 @@ export function generateSVGBannerForUsers(users, options) {
     style === 'rounded'
       ? {
           query: `/c_thumb,g_face,h_${avatarHeight * 2},r_max,w_${avatarHeight *
-            2},bo_3px_solid_white/c_thumb,h_${avatarHeight *
-            2},r_max,w_${avatarHeight *
+            2},bo_3px_solid_white/c_thumb,h_${avatarHeight * 2},r_max,w_${avatarHeight *
             2},bo_2px_solid_rgb:66C71A/e_trim/f_png/`,
         }
       : { width: avatarHeight * 2, height: avatarHeight * 2 };
@@ -159,25 +152,16 @@ export function generateSVGBannerForUsers(users, options) {
         if (!user) continue;
 
         const contentType = headers['content-type'];
-        const website =
-          options.linkToProfile || !user.website
-            ? `${WEBSITE_URL}/${user.slug}`
-            : user.website;
+        const website = options.linkToProfile || !user.website ? `${WEBSITE_URL}/${user.slug}` : user.website;
         const base64data = Buffer.from(rawData).toString('base64');
         let avatarWidth = avatarHeight;
         try {
           // We make sure the image loaded properly
           const dimensions = sizeOf(rawData);
-          avatarWidth = Math.round(
-            (dimensions.width / dimensions.height) * avatarHeight,
-          );
+          avatarWidth = Math.round((dimensions.width / dimensions.height) * avatarHeight);
         } catch (e) {
           // Otherwise, we skip it
-          logger.warn(
-            'Cannot get the dimensions of the avatar of %s.',
-            user.slug,
-            { image: user.image },
-          );
+          logger.warn('Cannot get the dimensions of the avatar of %s.', user.slug, { image: user.image });
           continue;
         }
 
@@ -189,9 +173,7 @@ export function generateSVGBannerForUsers(users, options) {
         const imageLink = `<a xlink:href="${website.replace(
           /&/g,
           '&amp;',
-        )}" class="opencollective-svg" target="_blank" id="${
-          user.slug
-        }">${image}</a>`;
+        )}" class="opencollective-svg" target="_blank" id="${user.slug}">${image}</a>`;
         images.push(imageLink);
         posX += avatarWidth + margin;
       }

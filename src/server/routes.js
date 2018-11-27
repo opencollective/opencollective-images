@@ -49,10 +49,7 @@ export const loadRoutes = app => {
 
   app.get('/:collectiveSlug/:backerType.svg', controllers.collectives.banner);
 
-  app.get(
-    '/:collectiveSlug/:backerType/badge.svg',
-    controllers.collectives.badge,
-  );
+  app.get('/:collectiveSlug/:backerType/badge.svg', controllers.collectives.badge);
 
   app.get(
     '/:collectiveSlug/:backerType/:position/avatar(.:format(png|jpg|svg))?',
@@ -60,15 +57,9 @@ export const loadRoutes = app => {
     controllers.collectives.avatar,
   );
 
-  app.get(
-    '/:collectiveSlug/tiers/:tierSlug.:format(png|jpg|svg)',
-    controllers.collectives.banner,
-  );
+  app.get('/:collectiveSlug/tiers/:tierSlug.:format(png|jpg|svg)', controllers.collectives.banner);
 
-  app.get(
-    '/:collectiveSlug/tiers/:tierSlug/badge.svg',
-    controllers.collectives.badge,
-  );
+  app.get('/:collectiveSlug/tiers/:tierSlug/badge.svg', controllers.collectives.badge);
 
   app.get(
     '/:collectiveSlug/tiers/:tierSlug/:position/avatar(.:format(png|jpg|svg))?',

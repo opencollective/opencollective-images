@@ -1,8 +1,7 @@
 import crypto from 'crypto';
 
 export function getCloudinaryUrl(src, { width, height, query }) {
-  const cloudinaryBaseUrl =
-    'https://res.cloudinary.com/opencollective/image/fetch';
+  const cloudinaryBaseUrl = 'https://res.cloudinary.com/opencollective/image/fetch';
 
   // We don't try to resize animated gif, svg or images already processed by cloudinary
   if (

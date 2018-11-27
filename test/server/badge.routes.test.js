@@ -2,17 +2,14 @@ import '../../src/server/env';
 
 import fetch from 'node-fetch';
 
-const imagesUrl =
-  process.env.IMAGES_URL || 'https://images-staging.opencollective.com';
+const imagesUrl = process.env.IMAGES_URL || 'https://images-staging.opencollective.com';
 
 const timeout = 30000;
 
 const cacheBurst = `cacheBurst=${Math.round(Math.random() * 100000)}`;
 
 const fetchResponse = path => {
-  const pathWithCacheBurst = [path, cacheBurst].join(
-    path.indexOf('?') === -1 ? '?' : '&',
-  );
+  const pathWithCacheBurst = [path, cacheBurst].join(path.indexOf('?') === -1 ? '?' : '&');
   return fetch(`${imagesUrl}${pathWithCacheBurst}`);
 };
 
@@ -106,9 +103,7 @@ describe('badge.routes.test.js', () => {
     test(
       'loads the first member avatar.svg',
       async () => {
-        const resText = await fetchText(
-          '/apex/tiers/sponsors/0/avatar.svg?isActive=false',
-        );
+        const resText = await fetchText('/apex/tiers/sponsors/0/avatar.svg?isActive=false');
         expect(resText).toMatch(/<image width="192" height="64"/);
       },
       timeout,
@@ -123,9 +118,7 @@ describe('badge.routes.test.js', () => {
         expect(res.status).toEqual(200);
         expect(res.headers.get('content-type')).toMatch('image/svg+xml');
         expect(res.headers.get('content-type')).toMatch('charset=utf-8');
-        expect(res.headers.get('cache-control')).toMatch(
-          /public, max-age=[1-9][0-9]{2,5}/,
-        );
+        expect(res.headers.get('cache-control')).toMatch(/public, max-age=[1-9][0-9]{2,5}/);
         const text = await res.text();
         expect(text.length).toBeGreaterThan(800000);
       },
@@ -139,12 +132,8 @@ describe('badge.routes.test.js', () => {
       async () => {
         const res = await fetchResponse('/railsgirlsatl/logo.txt');
         expect(res.status).toEqual(200);
-        expect(res.headers.get('content-type')).toEqual(
-          'text/plain; charset=utf-8',
-        );
-        expect(res.headers.get('cache-control')).toMatch(
-          /public, max-age=[1-9][0-9]{3,7}/,
-        );
+        expect(res.headers.get('content-type')).toEqual('text/plain; charset=utf-8');
+        expect(res.headers.get('cache-control')).toMatch(/public, max-age=[1-9][0-9]{3,7}/);
         const text = await res.text();
         expect(text.length).toBeGreaterThan(600);
         expect(text.length).toBeLessThan(1000);

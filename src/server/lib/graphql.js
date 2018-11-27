@@ -84,10 +84,7 @@ export async function fetchMembersStats(params) {
   return count;
 }
 
-export async function fetchMembers(
-  { collectiveSlug, tierSlug, backerType, isActive },
-  options = {},
-) {
+export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isActive }, options = {}) {
   let query, processResult, type, role;
   if (backerType === 'contributors') {
     query = `
@@ -154,11 +151,7 @@ export async function fetchMembers(
       }
     }
     `;
-    processResult = res =>
-      uniqBy(
-        res.Collective.tiers[0].orders.map(o => o.fromCollective),
-        m => m.id,
-      );
+    processResult = res => uniqBy(res.Collective.tiers[0].orders.map(o => o.fromCollective), m => m.id);
   }
 
   const result = await (options.client || getClient()).request(query, {

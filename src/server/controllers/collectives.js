@@ -7,17 +7,9 @@ import LRUCache from 'lru-cache';
 import { logger } from '../logger';
 import { queryString, getCloudinaryUrl } from '../lib/utils';
 
-import {
-  fetchCollectiveImage,
-  fetchMembersStats,
-  fetchMembers,
-} from '../lib/graphql';
+import { fetchCollectiveImage, fetchMembersStats, fetchMembers } from '../lib/graphql';
 
-import {
-  svg2png,
-  generateSVGBannerForUsers,
-  generateAsciiFromImage,
-} from '../lib/image-generator';
+import { svg2png, generateSVGBannerForUsers, generateAsciiFromImage } from '../lib/image-generator';
 
 // Cache the list of members of a collective to avoid requesting it for every single /:collectiveSlug/backers/:position/avatar
 const cache = new LRUCache({
@@ -40,9 +32,7 @@ export async function badge(req, res) {
     let imageUrl;
     try {
       const stats = await fetchMembersStats(req.params);
-      const filename = `${label || stats.name}-${
-        stats.count ? stats.count : 0
-      }-${color}.svg`;
+      const filename = `${label || stats.name}-${stats.count ? stats.count : 0}-${color}.svg`;
       imageUrl = `https://img.shields.io/badge/${filename}?style=${style}`;
     } catch (e) {
       return res.status(404).send('Not found');
@@ -54,23 +44,13 @@ export async function badge(req, res) {
       res.setHeader('cache-control', 'max-age=600');
       return res.send(imageRequest);
     } catch (e) {
-      logger.error(
-        '>>> collectives.badge: Error while fetching %s',
-        imageUrl,
-        e,
-      );
+      logger.error('>>> collectives.badge: Error while fetching %s', imageUrl, e);
       res.setHeader('cache-control', 'max-age=30');
       return res.status(500).send(`Unable to fetch ${imageUrl}`);
     }
   } catch (e) {
     logger.debug('>>> collectives.badge error', e);
-    return res
-      .status(500)
-      .send(
-        `Unable to generate badge for ${req.params.collectiveSlug}/${
-          req.params.backerType
-        }`,
-      );
+    return res.status(500).send(`Unable to generate badge for ${req.params.collectiveSlug}/${req.params.backerType}`);
   }
 }
 
@@ -122,9 +102,7 @@ export async function logo(req, res, next) {
           res.send(`${ascii}\n`);
         })
         .catch(() => {
-          return next(
-            new Error(`Unable to create an ASCII art for ${imagesrc}`),
-          );
+          return next(new Error(`Unable to create an ASCII art for ${imagesrc}`));
         });
       break;
 
@@ -159,13 +137,9 @@ export async function banner(req, res) {
   }
 
   const selector = tierSlug || backerType;
-  const linkToProfile =
-    selector === 'contributors' || selector == 'sponsors' ? false : true;
+  const linkToProfile = selector === 'contributors' || selector == 'sponsors' ? false : true;
   const buttonImage =
-    showBtn &&
-    `${imagesUrl}/static/images/become_${
-      selector.match(/sponsor/) ? 'sponsor' : 'backer'
-    }.svg`;
+    showBtn && `${imagesUrl}/static/images/become_${selector.match(/sponsor/) ? 'sponsor' : 'backer'}.svg`;
   return generateSVGBannerForUsers(users, {
     format,
     style,
@@ -201,9 +175,7 @@ export async function banner(req, res) {
 export async function avatar(req, res) {
   req.params.isActive = req.query.isActive === 'false' ? false : true;
   const { collectiveSlug, tierSlug, backerType, isActive } = req.params;
-  let users = cache.get(
-    queryString.stringify({ collectiveSlug, tierSlug, backerType, isActive }),
-  );
+  let users = cache.get(queryString.stringify({ collectiveSlug, tierSlug, backerType, isActive }));
   if (!users) {
     try {
       users = await fetchMembers(req.params);
@@ -275,15 +247,9 @@ export async function avatar(req, res) {
       if (selector.match(/sponsor/)) {
         try {
           const dimensions = sizeOf(data);
-          imageWidth = Math.round(
-            (dimensions.width / dimensions.height) * imageHeight,
-          );
+          imageWidth = Math.round((dimensions.width / dimensions.height) * imageHeight);
         } catch (e) {
-          logger.error(
-            '>>> collectives.avatar: Unable to get image dimensions for %s',
-            imageUrl,
-            e,
-          );
+          logger.error('>>> collectives.avatar: Unable to get image dimensions for %s', imageUrl, e);
           return res.status(500).send(`Unable to fetch ${imageUrl}`);
         }
       }
