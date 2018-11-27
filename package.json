@@ -44,7 +44,6 @@
     "lint:quiet": "npm run lint -- --quiet",
     "pretest": "npm run lint:quiet && npm run prettier:check",
     "commit": "git-cz",
-    "cypress": "TZ=UTC cypress run",
     "prettier": "prettier \"src/**/*.js\" \"test/**/*.js\"",
     "prettier:write": "npm run prettier -- --write",
     "prettier:check": "npm run prettier -- --list-different"
@@ -63,7 +62,6 @@
     "eslint": "^5.9.0",
     "eslint-config-opencollective": "^1.5.0",
     "eslint-plugin-babel": "^5.3.0",
-    "eslint-plugin-cypress": "^2.1.2",
     "eslint-plugin-import": "^2.14.0",
     "eslint-plugin-node": "^8.0.0",
     "eslint-plugin-react": "^7.11.1",
