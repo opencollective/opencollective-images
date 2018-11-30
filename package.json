@@ -69,7 +69,7 @@
     "jest": "23.6.0",
     "lint-staged": "^8.1.0",
     "nodemon": "^1.18.7",
-    "prettier": "1.15.2"
+    "prettier": "1.15.3"
   },
   "config": {
     "commitizen": {
