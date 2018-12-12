@@ -47,6 +47,8 @@ export const loadRoutes = app => {
     controllers.collectives.logo,
   );
 
+  app.get('/:collectiveSlug/background.:format(png|jpg)', maxAge(7200), controllers.collectives.background);
+
   app.get('/:collectiveSlug/:backerType.svg', controllers.collectives.banner);
 
   app.get('/:collectiveSlug/:backerType/badge.svg', controllers.collectives.badge);
