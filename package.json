@@ -21,7 +21,7 @@
     "fs-extra": "^7.0.1",
     "gm": "^1.23.1",
     "graphql-request": "^1.8.2",
-    "image-size": "^0.6.3",
+    "image-size": "^0.7.1",
     "image-to-ascii": "^3.0.11",
     "lru-cache": "^5.1.1",
     "node-fetch": "^2.3.0",
