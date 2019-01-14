@@ -53,11 +53,7 @@ export const loadRoutes = app => {
 
   app.get('/:collectiveSlug/:backerType/badge.svg', controllers.collectives.badge);
 
-  app.get(
-    '/:collectiveSlug/:backerType/:position/avatar(.:format(png|jpg|svg))?',
-    maxAge(7200),
-    controllers.collectives.avatar,
-  );
+  app.get('/:collectiveSlug/:backerType/:position/avatar(.:format(png|jpg|svg))?', maxAge(7200), controllers.avatar);
 
   app.get('/:collectiveSlug/tiers/:tierSlug.:format(png|jpg|svg)', controllers.collectives.banner);
 
@@ -66,6 +62,6 @@ export const loadRoutes = app => {
   app.get(
     '/:collectiveSlug/tiers/:tierSlug/:position/avatar(.:format(png|jpg|svg))?',
     maxAge(7200),
-    controllers.collectives.avatar,
+    controllers.avatar,
   );
 };
