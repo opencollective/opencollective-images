@@ -143,6 +143,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
               id
               type
               slug
+              name
               image
               website
               twitterHandle
