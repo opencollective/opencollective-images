@@ -1,3 +1,6 @@
+import Promise from 'bluebird';
+import fs from 'fs';
+import path from 'path';
 import sizeOf from 'image-size';
 import request from 'request';
 import cachedRequestLib from 'cached-request';
@@ -6,7 +9,7 @@ import cache from '../cache';
 import { logger } from '../logger';
 import { fetchMembers } from '../lib/graphql';
 import { svg2png } from '../lib/image-generator';
-import { queryString, getCloudinaryUrl } from '../lib/utils';
+import { queryString, getCloudinaryUrl, getInitials } from '../lib/utils';
 
 const cachedRequest = cachedRequestLib(request);
 cachedRequest.setCacheDirectory('/tmp');
@@ -15,6 +18,11 @@ const requestPromise = Promise.promisify(cachedRequest, { multiArgs: true });
 
 const websiteUrl = process.env.WEBSITE_URL || 'https://opencollective.com';
 const imagesUrl = process.env.IMAGES_URL || 'https://images.opencollective.com';
+
+const getSvg = svgPath => fs.readFileSync(path.join(__dirname, svgPath), { encoding: 'utf8' });
+
+const initialsSvg = getSvg('../../static/images/initials.svg');
+const anonymousSvg = getSvg('../../static/images/default-anonymous-logo.svg');
 
 export function generateSVGBannerForUsers(users, options) {
   logger.debug('>>> generateSVGBannerForUsers %d users, options: %j', users.length, options);
@@ -50,9 +58,13 @@ export function generateSVGBannerForUsers(users, options) {
 
   const promises = [];
   for (let i = 0; i < count; i++) {
-    let image = users[i].image;
+    const user = users[i];
+    let image = user.image;
+    // if (!image) {
+    //   image = `https://ui-avatars.com/api/?name=${user.name}&background=f2f3f5&color=c4c7cc`;
+    // }
     if (image) {
-      if (users[i].type === 'USER' || style === 'rounded') {
+      if (user.type === 'USER' || style === 'rounded') {
         image = getCloudinaryUrl(image, params);
       }
       const promiseOptions = {
@@ -61,11 +73,17 @@ export function generateSVGBannerForUsers(users, options) {
         ttl: 24 * 60 * 60 * 1000, // 1 day caching
       };
       promises.push(
-        requestPromise(promiseOptions).then((response, body) => {
+        requestPromise(promiseOptions).then(([response, body]) => {
           const contentType = response.headers['content-type'];
           return { type: 'rawImage', contentType, body };
         }),
       );
+      // } else if (!user.name || user.name === 'anonymous') {
+      //   // promises.push(Promise.resolve({ type: 'svg', body: anonymousSvg }));
+      //   promises.push(Promise.resolve());
+      // } else {
+      //   const svg = initialsSvg.replace('{INITIALS}', getInitials(user.name));
+      //   promises.push(Promise.resolve({ type: 'svg', body: svg }));
     } else {
       promises.push(Promise.resolve());
     }
@@ -118,6 +136,8 @@ export function generateSVGBannerForUsers(users, options) {
           image = `<image x="${posX}" y="${posY}" width="${avatarWidth}" height="${avatarHeight}" xlink:href="data:${
             response.contentType
           };base64,${base64data}"/>`;
+        } else if (response.type == 'svg') {
+          image = response.body;
         }
 
         if (imageWidth > 0 && posX + avatarWidth + margin > imageWidth) {

@@ -53,3 +53,6 @@ export const md5 = string =>
     .createHash('md5')
     .update(string)
     .digest('hex');
+
+export const getInitials = name =>
+  name.split(' ').reduce((result, value) => (result += value.slice(0, 1).toUpperCase()), '');

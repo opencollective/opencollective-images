@@ -76,7 +76,9 @@
     }
   },
   "nodemonConfig": {
-    "watch": ["src/server"]
+    "watch": [
+      "src/server"
+    ]
   },
   "husky": {
     "hooks": {
@@ -84,6 +86,9 @@
     }
   },
   "lint-staged": {
-    "*.js": ["prettier --write", "git add"]
+    "*.js": [
+      "prettier --write",
+      "git add"
+    ]
   }
 }

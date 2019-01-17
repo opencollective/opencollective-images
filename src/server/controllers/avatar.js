@@ -6,13 +6,13 @@ import sizeOf from 'image-size';
 import cache from '../cache';
 import { logger } from '../logger';
 import { fetchMembers } from '../lib/graphql';
-import { queryString, getCloudinaryUrl } from '../lib/utils';
+import { queryString, getCloudinaryUrl, getInitials } from '../lib/utils';
 
-const initialsSvg = fs.readFileSync(path.join(__dirname, '../../static/images/initials.svg'));
-const organizationSvg = fs.readFileSync(path.join(__dirname, '../../static/images/organization.svg'));
-const anonymousSvg = fs.readFileSync(path.join(__dirname, '../../static/images/default-anonymous-logo.svg'));
+const getSvg = svgPath => fs.readFileSync(path.join(__dirname, svgPath), { encoding: 'utf8' });
 
-const getInitials = name => name.split(' ').reduce((result, value) => (result += value.slice(0, 1).toUpperCase()), '');
+const initialsSvg = getSvg('../../static/images/initials.svg');
+const organizationSvg = getSvg('../../static/images/organization.svg');
+const anonymousSvg = getSvg('../../static/images/default-anonymous-logo.svg');
 
 const getImageData = imageUrl =>
   new Promise((resolve, reject) => {
