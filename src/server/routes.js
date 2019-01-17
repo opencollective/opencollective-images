@@ -49,13 +49,13 @@ export const loadRoutes = app => {
 
   app.get('/:collectiveSlug/background.:format(png|jpg)', maxAge(7200), controllers.collectives.background);
 
-  app.get('/:collectiveSlug/:backerType.svg', controllers.collectives.banner);
+  app.get('/:collectiveSlug/:backerType.svg', controllers.banner);
 
   app.get('/:collectiveSlug/:backerType/badge.svg', controllers.collectives.badge);
 
   app.get('/:collectiveSlug/:backerType/:position/avatar(.:format(png|jpg|svg))?', maxAge(7200), controllers.avatar);
 
-  app.get('/:collectiveSlug/tiers/:tierSlug.:format(png|jpg|svg)', controllers.collectives.banner);
+  app.get('/:collectiveSlug/tiers/:tierSlug.:format(png|jpg|svg)', controllers.banner);
 
   app.get('/:collectiveSlug/tiers/:tierSlug/badge.svg', controllers.collectives.badge);
 
