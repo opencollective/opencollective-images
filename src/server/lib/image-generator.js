@@ -96,22 +96,38 @@ export function generateSVGBannerForUsers(users, options) {
   const avatarHeight = Number(options.avatarHeight) || defaultAvatarHeight;
   const margin = Number(options.margin) || defaultMargin;
 
-  const params =
-    style === 'rounded'
-      ? {
-          query: `/c_thumb,g_face,h_${avatarHeight * 2},r_max,w_${avatarHeight *
-            2},bo_3px_solid_white/c_thumb,h_${avatarHeight * 2},r_max,w_${avatarHeight *
-            2},bo_2px_solid_rgb:66C71A/e_trim/f_png/`,
-        }
-      : { width: avatarHeight * 2, height: avatarHeight * 2 };
-
   const promises = [];
   for (let i = 0; i < count; i++) {
-    let image = users[i].image;
+    const user = users[i];
+    let image = user.image;
     if (image) {
-      if (users[i].type === 'USER' || style === 'rounded') {
-        image = getCloudinaryUrl(image, params);
+      const params =
+        user.type === 'USER' || style === 'rounded'
+          ? {
+              query: `/c_thumb,g_face,h_${avatarHeight * 2},r_max,w_${avatarHeight * 2}/c_thumb,h_${avatarHeight *
+                2},r_max,w_${avatarHeight * 2},bo_2px_solid_rgb:c4c7cc/e_trim/f_png/`,
+            }
+          : {
+              width: avatarHeight * 2,
+              height: avatarHeight * 2,
+            };
+      image = getCloudinaryUrl(user.image, params);
+    } else if (!user.name || user.name === 'anonymous') {
+      if (options.includeAnonymous) {
+        image = getCloudinaryUrl('https://opencollective.com/static/images/default-anonymous-logo.svg', {
+          width: avatarHeight * 2,
+          height: avatarHeight * 2,
+        });
+      } else {
+        image = null;
       }
+    } else {
+      image = `https://ui-avatars.com/api/?rounded=true&name=${
+        user.name
+      }}&background=f2f3f5&color=c4c7cc&size=${avatarHeight * 2}`;
+    }
+
+    if (image) {
       const promiseOptions = {
         url: image,
         encoding: null,
