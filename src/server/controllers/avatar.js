@@ -8,9 +8,11 @@ import { logger } from '../logger';
 import { fetchMembers } from '../lib/graphql';
 import { queryString, getCloudinaryUrl } from '../lib/utils';
 
-const initialsSvg = fs.readFileSync(path.join(__dirname, '../../static/images/initials.svg'));
-const organizationSvg = fs.readFileSync(path.join(__dirname, '../../static/images/organization.svg'));
-const anonymousSvg = fs.readFileSync(path.join(__dirname, '../../static/images/default-anonymous-logo.svg'));
+const getSvg = svgPath => fs.readFileSync(path.join(__dirname, svgPath), { encoding: 'utf8' });
+
+const initialsSvg = getSvg('../../static/images/initials.svg');
+const organizationSvg = getSvg('../../static/images/organization.svg');
+const anonymousSvg = getSvg('../../static/images/default-anonymous-logo.svg');
 
 const getInitials = name => name.split(' ').reduce((result, value) => (result += value.slice(0, 1).toUpperCase()), '');
 
@@ -138,8 +140,18 @@ export default async function avatar(req, res) {
       }
     }
 
-    // Default: Initials
-    return sendSvg(res, initialsSvg.replace('{INITIALS}', getInitials(user.name)));
+    // Default
+
+    // Initials with SVG
+    if (req.query.svgInitials && format === 'svg') {
+      return sendSvg(res, initialsSvg.replace('{INITIALS}', getInitials(user.name)));
+    }
+
+    // Initials with UI-Avatars
+    const imageUrl = `https://ui-avatars.com/api/?rounded=true&name=${
+      user.name
+    }}&background=f2f3f5&color=c4c7cc&size=${maxHeight}`;
+    return proxyImage(req, res, imageUrl);
   }
 
   // Default case (likely Organizations)
