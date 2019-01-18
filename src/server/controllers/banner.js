@@ -24,6 +24,13 @@ export default async function banner(req, res) {
     includeAnonymous = tierSlug ? true : false;
   }
 
+  // handle isActive default to true for tiers
+  if (req.query.isActive !== undefined) {
+    req.params.isActive = parseToBoolean(req.query.isActive);
+  } else {
+    req.params.isActive = tierSlug ? true : false;
+  }
+
   let users = cache.get(queryString.stringify(req.params));
   if (!users) {
     try {
