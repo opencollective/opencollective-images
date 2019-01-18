@@ -53,3 +53,15 @@ export const md5 = string =>
     .createHash('md5')
     .update(string)
     .digest('hex');
+
+export function parseToBoolean(value) {
+  let lowerValue = value;
+  // check whether it's string
+  if (lowerValue && (typeof lowerValue === 'string' || lowerValue instanceof String)) {
+    lowerValue = lowerValue.trim().toLowerCase();
+  }
+  if (['on', 'enabled', '1', 'true', 'yes', 1].includes(lowerValue)) {
+    return true;
+  }
+  return false;
+}

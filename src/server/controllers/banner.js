@@ -1,6 +1,6 @@
 import cache from '../cache';
 import { logger } from '../logger';
-import { queryString } from '../lib/utils';
+import { queryString, parseToBoolean } from '../lib/utils';
 import { fetchMembers } from '../lib/graphql';
 import { svg2png, generateSVGBannerForUsers } from '../lib/image-generator';
 
@@ -15,6 +15,14 @@ export default async function banner(req, res) {
   const height = Number(req.query.height) || 0;
   const { avatarHeight, margin } = req.query;
   const showBtn = req.query.button === 'false' ? false : true;
+
+  // handle includeAnonymous, default to true for tiers
+  let includeAnonymous;
+  if (req.query.includeAnonymous !== undefined) {
+    includeAnonymous = parseToBoolean(req.query.includeAnonymous);
+  } else {
+    includeAnonymous = tierSlug ? true : false;
+  }
 
   let users = cache.get(queryString.stringify(req.params));
   if (!users) {
@@ -42,6 +50,7 @@ export default async function banner(req, res) {
     margin,
     linkToProfile,
     collectiveSlug,
+    includeAnonymous,
   })
     .then(svg => {
       switch (format) {
