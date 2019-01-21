@@ -129,7 +129,7 @@ export default async function avatar(req, res) {
     // Normal image
     if (user.image) {
       const imageUrl = getCloudinaryUrl(user.image, {
-        query: `/c_thumb,g_face,h_${maxHeight},r_max,w_${maxHeight},bo_3px_solid_white/c_thumb,h_${maxHeight},r_max,w_${maxHeight},bo_2px_solid_rgb:66C71A/e_trim/f_auto/`,
+        query: `/c_thumb,g_face,h_${maxHeight},r_max,w_${maxHeight}/c_thumb,h_${maxHeight},r_max,w_${maxHeight},bo_2px_solid_rgb:c4c7cc/e_trim/f_auto/`,
       });
       try {
         if (format === 'svg') {
