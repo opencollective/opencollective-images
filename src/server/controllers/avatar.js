@@ -148,9 +148,10 @@ export default async function avatar(req, res) {
     }
 
     // Initials with UI-Avatars
+    const imageHeight = Math.round(maxHeight / 2);
     const imageUrl = `https://ui-avatars.com/api/?rounded=true&name=${
       user.name
-    }}&background=f2f3f5&color=c4c7cc&size=${maxHeight}`;
+    }}&background=f2f3f5&color=c4c7cc&size=${imageHeight}`;
     return proxyImage(req, res, imageUrl);
   }
 
