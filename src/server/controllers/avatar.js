@@ -119,7 +119,11 @@ export default async function avatar(req, res) {
   if (user.type === 'USER') {
     // Anonymous
     if (!user.name || user.name === 'anonymous') {
-      return sendSvg(res, anonymousSvg);
+      const imageHeight = Math.round(maxHeight / 2);
+      return sendSvg(
+        res,
+        anonymousSvg.replace('width="88"', `width="${imageHeight}"`).replace('height="88"', `height="${imageHeight}"`),
+      );
     }
 
     // Normal image
