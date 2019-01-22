@@ -6,7 +6,7 @@ import cachedRequestLib from 'cached-request';
 import request from 'request';
 import imageToAscii from 'image-to-ascii';
 
-import { getCloudinaryUrl, md5 } from './utils';
+import { getCloudinaryUrl, getUiAvatarUrl, md5 } from './utils';
 import { logger } from '../logger';
 
 const WEBSITE_URL = process.env.WEBSITE_URL || 'https://opencollective.com';
@@ -122,9 +122,8 @@ export function generateSVGBannerForUsers(users, options) {
         image = null;
       }
     } else {
-      image = `https://ui-avatars.com/api/?rounded=true&name=${
-        user.name
-      }}&background=f2f3f5&color=c4c7cc&size=${avatarHeight * 2}`;
+      // We ask here a double size quality for retina
+      image = getUiAvatarUrl(user.name, avatarHeight * 2);
     }
 
     if (image) {

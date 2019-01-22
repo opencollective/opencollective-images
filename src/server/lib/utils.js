@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { URL } from 'url';
 
 export function getCloudinaryUrl(src, { width, height, query }) {
   const cloudinaryBaseUrl = 'https://res.cloudinary.com/opencollective/image/fetch';
@@ -65,3 +66,15 @@ export function parseToBoolean(value) {
   }
   return false;
 }
+
+export const getUiAvatarUrl = (name, size) => {
+  const url = new URL('https://ui-avatars.com/api/');
+
+  url.searchParams.set('rounded', true);
+  url.searchParams.set('name', name);
+  url.searchParams.set('background', 'f2f3f5');
+  url.searchParams.set('background', 'c4c7cc');
+  url.searchParams.set('size', size);
+
+  return url.toString();
+};

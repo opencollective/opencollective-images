@@ -6,7 +6,7 @@ import sizeOf from 'image-size';
 import cache from '../cache';
 import { logger } from '../logger';
 import { fetchMembers } from '../lib/graphql';
-import { queryString, getCloudinaryUrl } from '../lib/utils';
+import { queryString, getCloudinaryUrl, getUiAvatarUrl } from '../lib/utils';
 
 const getSvg = svgPath => fs.readFileSync(path.join(__dirname, svgPath), { encoding: 'utf8' });
 
@@ -153,9 +153,7 @@ export default async function avatar(req, res) {
 
     // Initials with UI-Avatars
     const imageHeight = Math.round(maxHeight / 2);
-    const imageUrl = `https://ui-avatars.com/api/?rounded=true&name=${
-      user.name
-    }}&background=f2f3f5&color=c4c7cc&size=${imageHeight}`;
+    const imageUrl = getUiAvatarUrl(user.name, imageHeight);
     return proxyImage(req, res, imageUrl);
   }
 
