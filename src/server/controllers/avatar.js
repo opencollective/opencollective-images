@@ -71,7 +71,7 @@ const proxyImage = (req, res, imageUrl) => {
 
 export default async function avatar(req, res) {
   req.params.isActive = req.query.isActive === 'false' ? false : true;
-  const { collectiveSlug, tierSlug, backerType, isActive } = req.params;
+
   const cacheKey = `users_${md5(queryString.stringify(req.params))}`;
   let users = cache.get(cacheKey);
   if (!users) {
@@ -82,6 +82,8 @@ export default async function avatar(req, res) {
       return res.status(404).send('Not found');
     }
   }
+
+  const { tierSlug, backerType } = req.params;
 
   const format = req.params.format || 'svg';
   const selector = tierSlug || backerType;
