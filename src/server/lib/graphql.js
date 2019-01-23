@@ -1,5 +1,5 @@
 import { GraphQLClient } from 'graphql-request';
-import { uniqBy } from 'lodash';
+import { flatten, uniqBy } from 'lodash';
 
 export const getGraphqlUrl = () => {
   const apiKey = process.env.API_KEY;
@@ -133,10 +133,11 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
     `;
     processResult = res => uniqBy(res.allMembers.map(m => m.member), m => m.id);
   } else if (tierSlug) {
+    tierSlug = tierSlug.split(',');
     query = `
-    query Collective($collectiveSlug: String, $tierSlug: String!, $isActive: Boolean) {
+    query Collective($collectiveSlug: String, $tierSlug: [String], $isActive: Boolean) {
       Collective(slug:$collectiveSlug) {
-        tiers(slug: $tierSlug) {
+        tiers(slugs: $tierSlug) {
           orders(isActive: $isActive) {
             id
             createdAt
@@ -154,7 +155,11 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
       }
     }
     `;
-    processResult = res => uniqBy(res.Collective.tiers[0].orders.map(o => o.fromCollective), m => m.id);
+    processResult = res => {
+      const allOrders = flatten(res.Collective.tiers.map(t => t.orders));
+      const allCollectives = allOrders.map(o => o.fromCollective);
+      return uniqBy(allCollectives, c => c.id);
+    };
   }
 
   const result = await (options.client || getClient()).request(query, {
