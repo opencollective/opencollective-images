@@ -5,6 +5,7 @@ import convertSvgToPng from 'convert-svg-to-png';
 import cachedRequestLib from 'cached-request';
 import request from 'request';
 import imageToAscii from 'image-to-ascii';
+import { cloneDeep } from 'lodash';
 
 import { getCloudinaryUrl, getUiAvatarUrl, md5 } from './utils';
 import { logger } from '../logger';
@@ -73,7 +74,10 @@ export function svg2png(svg) {
   );
 }
 
-export function generateSVGBannerForUsers(users, options) {
+export function generateSVGBannerForUsers(usersList, options) {
+  // usersList might come from LRU-cache and we don't want to modify it
+  const users = cloneDeep(usersList);
+
   logger.debug('>>> generateSVGBannerForUsers %d users, options: %j', users.length, options);
 
   const { style, limit, collectiveSlug } = options;

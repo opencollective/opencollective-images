@@ -6,7 +6,7 @@ import sizeOf from 'image-size';
 import cache from '../cache';
 import { logger } from '../logger';
 import { fetchMembers } from '../lib/graphql';
-import { queryString, getCloudinaryUrl, getUiAvatarUrl } from '../lib/utils';
+import { queryString, getCloudinaryUrl, getUiAvatarUrl, md5 } from '../lib/utils';
 
 const getSvg = svgPath => fs.readFileSync(path.join(__dirname, svgPath), { encoding: 'utf8' });
 
@@ -72,19 +72,12 @@ const proxyImage = (req, res, imageUrl) => {
 export default async function avatar(req, res) {
   req.params.isActive = req.query.isActive === 'false' ? false : true;
   const { collectiveSlug, tierSlug, backerType, isActive } = req.params;
-  let users = cache.get(queryString.stringify({ collectiveSlug, tierSlug, backerType, isActive }));
+  const cacheKey = `users_${md5(queryString.stringify(req.params))}`;
+  let users = cache.get(cacheKey);
   if (!users) {
     try {
       users = await fetchMembers(req.params);
-      cache.set(
-        queryString.stringify({
-          collectiveSlug,
-          tierSlug,
-          backerType,
-          isActive,
-        }),
-        users,
-      );
+      cache.set(cacheKey, users);
     } catch (e) {
       return res.status(404).send('Not found');
     }

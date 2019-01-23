@@ -1,6 +1,6 @@
 import cache from '../cache';
 import { logger } from '../logger';
-import { queryString, parseToBoolean } from '../lib/utils';
+import { queryString, parseToBoolean, md5 } from '../lib/utils';
 import { fetchMembers } from '../lib/graphql';
 import { svg2png, generateSVGBannerForUsers } from '../lib/image-generator';
 
@@ -31,11 +31,12 @@ export default async function banner(req, res) {
     req.params.isActive = tierSlug ? true : false;
   }
 
-  let users = cache.get(queryString.stringify(req.params));
+  const cacheKey = `users_${md5(queryString.stringify(req.params))}`;
+  let users = cache.get(cacheKey);
   if (!users) {
     try {
       users = await fetchMembers(req.params);
-      cache.set(queryString.stringify(req.params), users);
+      cache.set(cacheKey, users);
     } catch (e) {
       logger.error('>>> collectives.banner: Error while fetching members', e);
       return res.status(404).send('Not found');
