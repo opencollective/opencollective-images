@@ -45,7 +45,9 @@
     "commit": "git-cz",
     "prettier": "prettier \"src/**/*.js\" \"test/**/*.js\"",
     "prettier:write": "npm run prettier -- --write",
-    "prettier:check": "npm run prettier -- --list-different"
+    "prettier:check": "npm run prettier -- --list-different",
+    "deploy:production": "./scripts/pre-deploy.sh production && git push production master",
+    "deploy:staging": "./scripts/pre-deploy.sh staging && git push staging master"
   },
   "devDependencies": {
     "@babel/cli": "^7.1.5",

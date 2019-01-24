@@ -61,20 +61,18 @@ You can run the tests using `npm test`.
 
 To deploy to staging or production, you need to be a core member of the Open Collective team.
 
-### Staging (now)
+### Staging (heroku)
 
 ```
-now -e API_KEY=09u624Pc9F47zoGLlkg1TBSbOl2ydSAq -e API_URL=https://api-staging.opencollective.com
-now alias images-staging.opencollective.com
+npm run deploy:staging
 ```
 
 - URL: https://images-staging.opencollective.com/
 
-### Production (now)
+### Production (heroku)
 
 ```
-now
-now alias images.opencollective.com
+npm run deploy:production
 ```
 
 - URL: https://images.opencollective.com/
