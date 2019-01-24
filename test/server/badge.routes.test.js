@@ -57,7 +57,7 @@ describe('badge.routes.test.js', () => {
       'loads the first backer avatar.svg',
       async () => {
         const resText = await fetchText('/apex/backers/0/avatar.svg');
-        expect(resText).toMatch(/<svg width="88" height="88"/);
+        expect(resText).toMatch(/<image width="64" height="64"/);
       },
       timeout,
     );
