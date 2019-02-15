@@ -7,8 +7,8 @@
   },
   "private": true,
   "engines": {
-    "node": ">10.0.0",
-    "npm": ">6.0.0"
+    "node": ">11.8.0",
+    "npm": ">6.5.0"
   },
   "dependencies": {
     "bluebird": "^3.5.3",
@@ -78,7 +78,9 @@
     }
   },
   "nodemonConfig": {
-    "watch": ["src/server"]
+    "watch": [
+      "src/server"
+    ]
   },
   "husky": {
     "hooks": {
@@ -86,6 +88,9 @@
     }
   },
   "lint-staged": {
-    "*.js": ["prettier --write", "git add"]
+    "*.js": [
+      "prettier --write",
+      "git add"
+    ]
   }
 }
