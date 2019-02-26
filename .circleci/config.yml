@@ -16,7 +16,8 @@ jobs:
       - run: sudo apt -y update
       - run: sudo apt -y install graphicsmagick
       - run: sudo apt -y install postgresql-client
-      - run: npm install
+      - run: npm ci
+      - run: npm run build
       - run: ./scripts/setup_circleci.sh
       - save_cache: # special step to save the dependency cache
           key: cache-{{ checksum "package.json" }}
