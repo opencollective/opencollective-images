@@ -15,7 +15,7 @@
     "cached-request": "^1.1.4",
     "convert-svg-to-png": "^0.5.0",
     "crypto": "^1.0.1",
-    "dotenv": "^6.1.0",
+    "dotenv": "^7.0.0",
     "express": "^4.16.4",
     "express-winston": "^3.0.1",
     "fs-extra": "^7.0.1",
