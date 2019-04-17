@@ -4,7 +4,7 @@ import { queryString, parseToBoolean, md5 } from '../lib/utils';
 import { fetchMembers } from '../lib/graphql';
 import { svg2png, generateSVGBannerForUsers } from '../lib/image-generator';
 
-const imagesUrl = process.env.IMAGES_URL || 'https://images.opencollective.com';
+const imagesUrl = process.env.IMAGES_URL;
 
 export default async function banner(req, res) {
   const { collectiveSlug, tierSlug, backerType } = req.params;

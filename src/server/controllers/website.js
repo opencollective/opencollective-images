@@ -4,7 +4,7 @@ import cache from '../cache';
 import { fetchMembers } from '../lib/graphql';
 import { queryString, md5 } from '../lib/utils';
 
-const websiteUrl = process.env.WEBSITE_URL || 'https://opencollective.com';
+const websiteUrl = process.env.WEBSITE_URL;
 
 export default async function website(req, res) {
   req.params.isActive = req.query.isActive === 'false' ? false : true;
