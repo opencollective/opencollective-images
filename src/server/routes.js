@@ -41,17 +41,13 @@ export const loadRoutes = app => {
     }
   });
 
-  app.get(
-    '/:collectiveSlug/:image(avatar|logo).:format(txt|png|jpg|gif|svg)',
-    maxAge(7200),
-    controllers.collectives.logo,
-  );
+  app.get('/:collectiveSlug/:image(avatar|logo).:format(txt|png|jpg|gif|svg)', maxAge(7200), controllers.logo);
 
-  app.get('/:collectiveSlug/background.:format(png|jpg)', maxAge(7200), controllers.collectives.background);
+  app.get('/:collectiveSlug/background.:format(png|jpg)', maxAge(7200), controllers.background);
 
   app.get('/:collectiveSlug/:backerType.svg', controllers.banner);
 
-  app.get('/:collectiveSlug/:backerType/badge.svg', controllers.collectives.badge);
+  app.get('/:collectiveSlug/:backerType/badge.svg', controllers.badge);
 
   app.get('/:collectiveSlug/:backerType/:position/website', controllers.website);
 
@@ -59,7 +55,7 @@ export const loadRoutes = app => {
 
   app.get('/:collectiveSlug/tiers/:tierSlug.:format(png|jpg|svg)', controllers.banner);
 
-  app.get('/:collectiveSlug/tiers/:tierSlug/badge.svg', controllers.collectives.badge);
+  app.get('/:collectiveSlug/tiers/:tierSlug/badge.svg', controllers.badge);
 
   app.get('/:collectiveSlug/tiers/:tierSlug/:position/website', controllers.website);
 
