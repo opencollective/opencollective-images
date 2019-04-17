@@ -10,9 +10,6 @@ import { getUiAvatarUrl } from '../lib/utils';
 const defaultHeight = 128;
 
 export default async function logo(req, res, next) {
-  // Keeping the resulting image for 60 days in the CDN cache (we purge that cache on deploy)
-  res.setHeader('Cache-Control', `public, max-age=${60 * 24 * 60 * 60}`);
-
   let collective;
   try {
     collective = await fetchCollectiveImage(req.params.collectiveSlug);
@@ -39,7 +36,12 @@ export default async function logo(req, res, next) {
 
   let imageUrl = collective.image;
   if (!imageUrl && collective.type === 'USER') {
-    imageUrl = getUiAvatarUrl(req.params.collectiveSlug, params.height || defaultHeight);
+    imageUrl = getUiAvatarUrl(req.params.collectiveSlug, params.height || defaultHeight, false);
+  }
+  // TODO: add clearbit handling for organizations here?
+
+  if (!imageUrl) {
+    return res.status(404).send('Not found');
   }
 
   switch (req.params.format) {
