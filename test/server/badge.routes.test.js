@@ -2,7 +2,7 @@ import '../../src/server/env';
 
 import fetch from 'node-fetch';
 
-const imagesUrl = process.env.IMAGES_URL || 'https://images-staging.opencollective.com';
+const imagesUrl = process.env.IMAGES_URL;
 
 const timeout = 30000;
 

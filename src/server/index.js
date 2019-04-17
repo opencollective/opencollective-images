@@ -8,7 +8,7 @@ import { loggerMiddleware, logger } from './logger';
 
 import { loadRoutes } from './routes';
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT;
 
 const app = express();
 
