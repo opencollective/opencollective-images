@@ -21,6 +21,8 @@ export async function fetchCollectiveImage(collectiveSlug) {
   query Collective($collectiveSlug: String) {
     Collective(slug:$collectiveSlug) {
       id
+      slug
+      type
       image
       backgroundImage
     }

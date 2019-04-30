@@ -41,9 +41,9 @@ export const loadRoutes = app => {
     }
   });
 
-  app.get('/:collectiveSlug/:image(avatar|logo).:format(txt|png|jpg|gif|svg)', maxAge(7200), controllers.logo);
+  app.get('/:collectiveSlug/:image(avatar|logo)/:height?.:format(txt|png|jpg|gif|svg)', maxAge(7200), controllers.logo);
 
-  app.get('/:collectiveSlug/background.:format(png|jpg)', maxAge(7200), controllers.background);
+  app.get('/:collectiveSlug/background/:height?.:format(png|jpg)', maxAge(7200), controllers.background);
 
   app.get('/:collectiveSlug/:backerType.svg', controllers.banner);
 

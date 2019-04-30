@@ -67,12 +67,11 @@ export function parseToBoolean(value) {
   return false;
 }
 
-export const getUiAvatarUrl = (name, size) => {
+export const getUiAvatarUrl = (name, size, rounded = true) => {
   const url = new URL('https://ui-avatars.com/api/');
 
-  url.searchParams.set('rounded', true);
+  url.searchParams.set('rounded', rounded);
   url.searchParams.set('name', name);
-  url.searchParams.set('background', 'f2f3f5');
   url.searchParams.set('background', 'c4c7cc');
   url.searchParams.set('size', size);
 
