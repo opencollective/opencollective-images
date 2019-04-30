@@ -3,7 +3,7 @@ import { flatten, uniqBy } from 'lodash';
 
 export const getGraphqlUrl = () => {
   const apiKey = process.env.API_KEY;
-  const baseApiUrl = process.env.API_URL || 'https://api.opencollective.com';
+  const baseApiUrl = process.env.API_URL;
   return `${baseApiUrl}/graphql${apiKey ? `?api_key=${apiKey}` : ''}`;
 };
 

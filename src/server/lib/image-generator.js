@@ -10,7 +10,7 @@ import { cloneDeep } from 'lodash';
 import { getCloudinaryUrl, getUiAvatarUrl, md5 } from './utils';
 import { logger } from '../logger';
 
-const WEBSITE_URL = process.env.WEBSITE_URL || 'https://opencollective.com';
+const WEBSITE_URL = process.env.WEBSITE_URL;
 
 const cachedRequest = cachedRequestLib(request);
 cachedRequest.setCacheDirectory('/tmp');
