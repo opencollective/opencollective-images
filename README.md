@@ -13,9 +13,9 @@ If you see a step below that could be improved (or is outdated), please update t
 
 ### Prerequisite
 
-1. Make sure you have Node.js version >= 11.
+1. Make sure you have Node.js version >= 10. We recommend using version 10, the one used in CI and production.
 
-- We recommend using [nvm](https://github.com/creationix/nvm): `nvm use`.
+- We recommend using [nvm](https://github.com/creationix/nvm): `nvm install && nvm use`.
 
 2. Make sure you have [GraphicsMagick](http://www.graphicsmagick.org) installed.
 
