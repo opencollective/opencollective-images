@@ -18,7 +18,7 @@
     "dotenv": "^8.0.0",
     "express": "^4.16.4",
     "express-winston": "^3.0.1",
-    "fs-extra": "^7.0.1",
+    "fs-extra": "^8.0.1",
     "gm": "^1.23.1",
     "graphql-request": "^1.8.2",
     "image-size": "^0.7.1",
