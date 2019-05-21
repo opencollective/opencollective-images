@@ -15,7 +15,7 @@ If you see a step below that could be improved (or is outdated), please update t
 
 1. Make sure you have Node.js version >= 10. We recommend using version 10, the one used in CI and production.
 
-- We recommend using [nvm](https://github.com/creationix/nvm): `nvm install && nvm use`.
+- We recommend using [nvm](https://github.com/creationix/nvm): `nvm install`.
 
 2. Make sure you have [GraphicsMagick](http://www.graphicsmagick.org) installed.
 
@@ -63,9 +63,19 @@ You can run the tests using `npm test`.
 
 To deploy to staging or production, you need to be a core member of the Open Collective team.
 
+We're currently relying on the following Heroku buildpacks:
+
+- https://github.com/heroku/heroku-buildpack-apt
+- https://github.com/bogini/heroku-buildpack-graphicsmagick
+- heroku/nodejs
+
 ### Staging (heroku)
 
 ```
+# Before first deployment, configure staging remote
+git remote add staging https://git.heroku.com/oc-staging-image-server.git
+
+# Then deploy master with
 npm run deploy:staging
 ```
 
@@ -74,6 +84,10 @@ npm run deploy:staging
 ### Production (heroku)
 
 ```
+# Before first deployment, configure production remote
+git remote add production https://git.heroku.com/oc-prod-image-server.git
+
+# Then deploy master with
 npm run deploy:production
 ```
 
