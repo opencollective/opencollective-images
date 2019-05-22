@@ -1,13 +1,11 @@
-import fs from 'fs-extra';
 import sizeOf from 'image-size';
 import Promise from 'bluebird';
-import convertSvgToPng from 'convert-svg-to-png';
 import cachedRequestLib from 'cached-request';
 import request from 'request';
 import imageToAscii from 'image-to-ascii';
 import { cloneDeep } from 'lodash';
 
-import { getCloudinaryUrl, getUiAvatarUrl, md5 } from './utils';
+import { getCloudinaryUrl, getUiAvatarUrl } from './utils';
 import { logger } from '../logger';
 
 const WEBSITE_URL = process.env.WEBSITE_URL;
@@ -50,28 +48,6 @@ export function generateAsciiFromImage(imgsrc, options) {
       return resolve(ascii);
     });
   });
-}
-
-/**
- * Converts an svg string into a PNG data blob
- * (returns a promise)
- */
-export function svg2png(svg) {
-  const outputDir = '/tmp';
-  const outputFile = `${outputDir}/${md5(svg)}.png`;
-
-  return (
-    fs
-      // If file exists, return it
-      // Note: because we generate a md5 fingerprint based on the content of the svg,
-      //       any change in the svg (margin, size, number of backers, etc.) will force
-      //       the creation of a new png :-)
-      .readFile(outputFile)
-      .catch(() =>
-        // Otherwise, generate a new png (slow)
-        convertSvgToPng.convert(svg).then(png => fs.writeFile(outputFile, png).then(() => png)),
-      )
-  );
 }
 
 export function generateSVGBannerForUsers(usersList, options) {
