@@ -81,7 +81,7 @@ export default async function logo(req, res, next) {
 
         image.body.pipe(transform).pipe(res);
       } catch (err) {
-        console.log(err);
+        logger.error(`Error processing ${imageUrl}: ${err.message}`);
         return res.status(500).send('Internal Server Error');
       }
 
