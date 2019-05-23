@@ -53,7 +53,7 @@ export const loadRoutes = app => {
 
   app.get('/:collectiveSlug/:backerType/:position/avatar(.:format(png|jpg|svg))?', maxAge(7200), controllers.avatar);
 
-  app.get('/:collectiveSlug/tiers/:tierSlug.:format(png|jpg|svg)', controllers.banner);
+  app.get('/:collectiveSlug/tiers/:tierSlug.svg', controllers.banner);
 
   app.get('/:collectiveSlug/tiers/:tierSlug/badge.svg', controllers.badge);
 
