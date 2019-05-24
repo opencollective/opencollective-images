@@ -70,6 +70,7 @@ export default async function logo(req, res, next) {
 
     default:
       try {
+        logger.info(`logo: processing ${imageUrl}`);
         const image = await fetch(imageUrl);
         if (!image.ok) {
           return res.status(image.status).send(image.statusText);
@@ -81,7 +82,7 @@ export default async function logo(req, res, next) {
 
         image.body.pipe(transform).pipe(res);
       } catch (err) {
-        logger.error(`Error processing ${imageUrl}: ${err.message}`);
+        logger.error(`logo: error processing ${imageUrl}: ${err.message}`);
         return res.status(500).send('Internal Server Error');
       }
 
