@@ -25,6 +25,7 @@
     "lru-cache": "^5.1.1",
     "mime-types": "^2.1.24",
     "node-fetch": "^2.6.0",
+    "redis": "^2.8.0",
     "request": "^2.88.0",
     "sharp": "^0.22.1",
     "winston": "^3.2.1"
