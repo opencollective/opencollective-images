@@ -1,5 +1,10 @@
+import fs from 'fs';
+import path from 'path';
+import { promisify } from 'util';
+
 import fetch from 'node-fetch';
 import sharp from 'sharp';
+import mime from 'mime-types';
 import { get } from 'lodash';
 
 import { logger } from '../logger';
@@ -8,6 +13,10 @@ import { generateAsciiFromImage } from '../lib/image-generator';
 import { getUiAvatarUrl } from '../lib/utils';
 
 const defaultHeight = 128;
+
+const readFile = promisify(fs.readFile);
+
+const staticImagesFolder = path.resolve(__dirname, '..', '..', 'static', 'images');
 
 export default async function logo(req, res, next) {
   let collective;
@@ -34,13 +43,19 @@ export default async function logo(req, res, next) {
     params['width'] = Number(width);
   }
 
+  let image;
   let imageUrl = collective.image;
-  if (!imageUrl && collective.type === 'USER') {
-    imageUrl = getUiAvatarUrl(req.params.collectiveSlug, params.height || defaultHeight, false);
+
+  if (!imageUrl) {
+    if (!collective.name || collective.name === 'anonymous') {
+      image = await readFile(path.resolve(staticImagesFolder, 'anonymous-logo-square.png'));
+    } else if (collective.type === 'USER') {
+      imageUrl = getUiAvatarUrl(collective.name, params.height || defaultHeight, false);
+    }
   }
   // TODO: add clearbit handling for organizations here?
 
-  if (!imageUrl) {
+  if (!image && !imageUrl) {
     return res.status(404).send('Not found');
   }
 
@@ -70,19 +85,26 @@ export default async function logo(req, res, next) {
 
     default:
       try {
-        logger.info(`logo: processing ${imageUrl}`);
-        const image = await fetch(imageUrl);
-        if (!image.ok) {
-          return res.status(image.status).send(image.statusText);
+        if (!image) {
+          logger.info(`logo: fetching ${imageUrl}`);
+          const response = await fetch(imageUrl);
+          if (!response.ok) {
+            return res.status(response.status).send(response.statusText);
+          }
+          image = await response.buffer();
+          if (image.byteLength === 0) {
+            return res.status(400).send('Invalid Image');
+          }
         }
 
-        const transform = sharp()
+        const resizedImage = await sharp(image)
           .resize(params.width, params.height || defaultHeight)
-          .toFormat(req.params.format);
+          .toFormat(req.params.format)
+          .toBuffer();
 
-        image.body.pipe(transform).pipe(res);
+        res.set('Content-Type', mime.lookup(req.params.format)).send(resizedImage);
       } catch (err) {
-        logger.error(`logo: error processing ${imageUrl}: ${err.message}`);
+        logger.error(`logo: ${err.message}`);
         return res.status(500).send('Internal Server Error');
       }
 

@@ -22,6 +22,7 @@ export async function fetchCollectiveImage(collectiveSlug) {
     Collective(slug:$collectiveSlug) {
       id
       slug
+      name
       type
       image
       backgroundImage
