@@ -14,7 +14,7 @@ let client;
 
 function getClient() {
   if (!client) {
-    client = new GraphQLClient(getGraphqlUrl(), { headers: {} });
+    client = new GraphQLClient(getGraphqlUrl());
   }
   return client;
 }
@@ -91,13 +91,18 @@ export async function fetchMembersStats(params) {
   return count;
 }
 
-export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isActive }, options = {}) {
+/*
+Used by:
+  - avatar.js: requires `type`, `name` and `image`
+  - website.js: requires `website`, `twitterHandle` and `slug`
+  - banner.js: requires `type`, `name`, `image`, `website` and `slug` (generateSVGBannerForUsers)
+*/
+export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isActive }) {
   let query, processResult, type, role;
   if (backerType === 'contributors') {
     query = `
     query Collective($collectiveSlug: String) {
       Collective(slug:$collectiveSlug) {
-        id
         data
       }
     }
@@ -105,13 +110,11 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
     processResult = res => {
       const users = res.Collective.data.githubContributors;
       return Object.keys(users).map(username => {
-        const commits = users[username];
         return {
           slug: username,
           type: 'USER',
           image: `https://avatars.githubusercontent.com/${username}?s=96`,
           website: `https://github.com/${username}`,
-          stats: { c: commits },
         };
       });
     };
@@ -123,10 +126,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
     query = `
     query allMembers($collectiveSlug: String!, $type: String!, $role: String!, $isActive: Boolean) {
       allMembers(collectiveSlug: $collectiveSlug, type: $type, role: $role, isActive: $isActive, orderBy: "totalDonations") {
-        id
-        createdAt
         member {
-          id
           type
           slug
           name
@@ -137,7 +137,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
       }
     }
     `;
-    processResult = res => uniqBy(res.allMembers.map(m => m.member), m => m.id);
+    processResult = res => uniqBy(res.allMembers.map(m => m.member), m => m.slug);
   } else if (tierSlug) {
     tierSlug = tierSlug.split(',');
     query = `
@@ -145,10 +145,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
       Collective(slug:$collectiveSlug) {
         tiers(slugs: $tierSlug) {
           orders(isActive: $isActive) {
-            id
-            createdAt
             fromCollective {
-              id
               type
               slug
               name
@@ -164,11 +161,11 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
     processResult = res => {
       const allOrders = flatten(res.Collective.tiers.map(t => t.orders));
       const allCollectives = allOrders.map(o => o.fromCollective);
-      return uniqBy(allCollectives, c => c.id);
+      return uniqBy(allCollectives, c => c.slug);
     };
   }
 
-  const result = await (options.client || getClient()).request(query, {
+  const result = await getClient().request(query, {
     collectiveSlug,
     tierSlug,
     type,
