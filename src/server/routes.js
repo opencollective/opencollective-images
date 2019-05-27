@@ -1,8 +1,9 @@
 import request from 'request';
+
 import controllers from './controllers';
 import { maxAge } from './middlewares';
 import { logger } from './logger';
-import { getCloudinaryUrl } from './lib/utils';
+import { getCloudinaryUrl, isValidUrl } from './lib/utils';
 
 export const loadRoutes = app => {
   app.get('/', (req, res) => {
@@ -16,6 +17,10 @@ export const loadRoutes = app => {
    */
   app.get('/proxy/images', maxAge(7200), (req, res) => {
     const { src, width, height, query } = req.query;
+
+    if (!isValidUrl(src)) {
+      return res.status(400).send(`Invalid parameter: "src"`);
+    }
 
     const url = getCloudinaryUrl(src, { width, height, query });
 
