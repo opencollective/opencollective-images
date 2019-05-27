@@ -1,6 +1,9 @@
 import { GraphQLClient } from 'graphql-request';
 import { flatten, uniqBy } from 'lodash';
 
+import cache from './cache';
+import { queryString, md5 } from './utils';
+
 export const getGraphqlUrl = () => {
   const apiKey = process.env.API_KEY;
   const baseApiUrl = process.env.API_URL;
@@ -174,4 +177,14 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
   });
   const members = processResult(result);
   return members;
+}
+
+export async function fetchMembersWithCache(params) {
+  const cacheKey = `users_${md5(queryString.stringify(params))}`;
+  let users = await cache.get(cacheKey);
+  if (!users) {
+    users = await fetchMembers(params);
+    cache.set(cacheKey, users);
+  }
+  return users;
 }

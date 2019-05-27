@@ -1,23 +1,17 @@
 import { URL } from 'url';
 
-import cache from '../cache';
-import { fetchMembers } from '../lib/graphql';
-import { queryString, md5 } from '../lib/utils';
+import { fetchMembersWithCache } from '../lib/graphql';
 
 const websiteUrl = process.env.WEBSITE_URL;
 
 export default async function website(req, res) {
   req.params.isActive = req.query.isActive === 'false' ? false : true;
 
-  const cacheKey = `users_${md5(queryString.stringify(req.params))}`;
-  let users = cache.get(cacheKey);
-  if (!users) {
-    try {
-      users = await fetchMembers(req.params);
-      cache.set(cacheKey, users);
-    } catch (e) {
-      return res.status(404).send('Not found');
-    }
+  let users;
+  try {
+    users = await fetchMembersWithCache(req.params);
+  } catch (e) {
+    return res.status(404).send('Not found');
   }
 
   const { collectiveSlug, tierSlug, backerType } = req.params;
