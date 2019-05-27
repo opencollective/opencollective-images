@@ -19,12 +19,15 @@ function getClient() {
   return client;
 }
 
-export async function fetchCollectiveImage(collectiveSlug) {
+/*
+Used by:
+  - logo.js: requires `type`, `name` and `image`
+  - background.js: requires `backgroundImage`
+*/
+export async function fetchCollective(collectiveSlug) {
   const query = `
   query Collective($collectiveSlug: String) {
     Collective(slug:$collectiveSlug) {
-      id
-      slug
       name
       type
       image
@@ -34,7 +37,18 @@ export async function fetchCollectiveImage(collectiveSlug) {
   `;
 
   const result = await getClient().request(query, { collectiveSlug });
+
   return result.Collective;
+}
+
+export async function fetchCollectiveWithCache(collectiveSlug) {
+  const cacheKey = `collective_${collectiveSlug}`;
+  let collective = await cache.get(cacheKey);
+  if (!collective) {
+    collective = await fetchCollective(collectiveSlug);
+    cache.set(cacheKey, collective);
+  }
+  return collective;
 }
 
 export async function fetchMembersStats(params) {
