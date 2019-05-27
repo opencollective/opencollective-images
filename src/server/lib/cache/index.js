@@ -18,7 +18,7 @@ export const getProvider = providerType => {
     case PROVIDER_TYPES.REDIS:
       return makeRedisProvider({ serverUrl: process.env.REDIS_URL });
     case PROVIDER_TYPES.MEMORY:
-      return makeMemoryProvider({ max: 5000, maxAge: 1000 * 60 * 10 });
+      return makeMemoryProvider({ max: 1000 });
     default:
       throw new Error(`Unsupported cache provider: ${providerType}`);
   }

@@ -4,6 +4,8 @@ import { flatten, uniqBy } from 'lodash';
 import cache from './cache';
 import { queryString, md5 } from './utils';
 
+const tenMinutesInSeconds = 10 * 60;
+
 export const getGraphqlUrl = () => {
   const apiKey = process.env.API_KEY;
   const baseApiUrl = process.env.API_URL;
@@ -46,7 +48,7 @@ export async function fetchCollectiveWithCache(collectiveSlug) {
   let collective = await cache.get(cacheKey);
   if (!collective) {
     collective = await fetchCollective(collectiveSlug);
-    cache.set(cacheKey, collective);
+    cache.set(cacheKey, collective, tenMinutesInSeconds);
   }
   return collective;
 }
@@ -195,7 +197,7 @@ export async function fetchMembersWithCache(params) {
   let users = await cache.get(cacheKey);
   if (!users) {
     users = await fetchMembers(params);
-    cache.set(cacheKey, users);
+    cache.set(cacheKey, users, tenMinutesInSeconds);
   }
   return users;
 }
