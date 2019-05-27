@@ -78,3 +78,12 @@ export const getUiAvatarUrl = (name, size, rounded = true) => {
 
   return url.toString();
 };
+
+export const isValidUrl = string => {
+  try {
+    new URL(string);
+    return true;
+  } catch (err) {
+    return false;
+  }
+};
