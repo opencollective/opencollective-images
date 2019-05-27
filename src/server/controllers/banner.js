@@ -1,7 +1,6 @@
-import cache from '../cache';
 import { logger } from '../logger';
-import { queryString, parseToBoolean, md5 } from '../lib/utils';
-import { fetchMembers } from '../lib/graphql';
+import { parseToBoolean } from '../lib/utils';
+import { fetchMembersWithCache } from '../lib/graphql';
 import { generateSVGBannerForUsers } from '../lib/image-generator';
 
 const imagesUrl = process.env.IMAGES_URL;
@@ -30,16 +29,11 @@ export default async function banner(req, res) {
     req.params.isActive = tierSlug ? true : false;
   }
 
-  const cacheKey = `users_${md5(queryString.stringify(req.params))}`;
-  let users = cache.get(cacheKey);
-  if (!users) {
-    try {
-      users = await fetchMembers(req.params);
-      cache.set(cacheKey, users);
-    } catch (e) {
-      logger.error('>>> collectives.banner: Error while fetching members', e);
-      return res.status(404).send('Not found');
-    }
+  let users;
+  try {
+    users = await fetchMembersWithCache(req.params);
+  } catch (e) {
+    return res.status(404).send('Not found');
   }
 
   const selector = tierSlug || backerType;

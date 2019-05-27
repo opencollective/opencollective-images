@@ -8,7 +8,7 @@ import mime from 'mime-types';
 import { get } from 'lodash';
 
 import { logger } from '../logger';
-import { fetchCollectiveImage } from '../lib/graphql';
+import { fetchCollectiveWithCache } from '../lib/graphql';
 import { generateAsciiFromImage } from '../lib/image-generator';
 import { getUiAvatarUrl } from '../lib/utils';
 
@@ -21,7 +21,7 @@ const staticImagesFolder = path.resolve(__dirname, '..', '..', 'static', 'images
 export default async function logo(req, res, next) {
   let collective;
   try {
-    collective = await fetchCollectiveImage(req.params.collectiveSlug);
+    collective = await fetchCollectiveWithCache(req.params.collectiveSlug);
   } catch (e) {
     if (e.message.match(/No collective found/)) {
       return res.status(404).send('Not found');
