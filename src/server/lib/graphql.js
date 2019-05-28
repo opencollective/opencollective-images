@@ -107,6 +107,16 @@ export async function fetchMembersStats(params) {
   return count;
 }
 
+export async function fetchMembersStatsWithCache(params) {
+  const cacheKey = `members_stats_${md5(queryString.stringify(params))}`;
+  let stats = await cache.get(cacheKey);
+  if (!stats) {
+    stats = await fetchMembersStats(params);
+    cache.set(cacheKey, stats, tenMinutesInSeconds);
+  }
+  return stats;
+}
+
 /*
 Used by:
   - avatar.js: requires `type`, `name` and `image`
