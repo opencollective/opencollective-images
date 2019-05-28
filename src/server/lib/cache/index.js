@@ -25,7 +25,7 @@ export const getProvider = providerType => {
 };
 
 const getDefaultProviderType = () => {
-  if (process.env.REDIS_URL) {
+  if (process.env.REDIS_URL && !process.env.REDIS_DISABLED) {
     return PROVIDER_TYPES.REDIS;
   } else {
     return PROVIDER_TYPES.MEMORY;
