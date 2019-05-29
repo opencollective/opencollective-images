@@ -61,6 +61,7 @@ export default async function logo(req, res, next) {
 
   switch (req.params.format) {
     case 'txt':
+      logger.warn(`logo: generating ascii from ${imageUrl}`);
       generateAsciiFromImage(imageUrl, {
         bg: req.query.bg === 'true' ? true : false,
         fg: req.query.fg === 'true' ? true : false,
