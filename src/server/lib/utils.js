@@ -1,11 +1,15 @@
 import crypto from 'crypto';
 import { URL } from 'url';
 
-export function getCloudinaryUrl(src, { width, height, query, style }) {
+export function getCloudinaryUrl(src, { width, height, query, style, format }) {
   const cloudinaryBaseUrl = 'https://res.cloudinary.com/opencollective/image/fetch';
 
+  if (!format) {
+    format = 'png';
+  }
+
   if (style == 'rounded') {
-    query = `/c_thumb,g_face,h_${height},r_max,w_${height}/c_thumb,h_${height},r_max,w_${height},bo_2px_solid_rgb:c4c7cc/e_trim/f_png/`;
+    query = `/c_thumb,g_face,h_${height},r_max,w_${height}/c_thumb,h_${height},r_max,w_${height},bo_2px_solid_rgb:c4c7cc/e_trim/f_${format}/`;
   }
 
   // We don't try to resize animated gif, svg or images already processed by cloudinary

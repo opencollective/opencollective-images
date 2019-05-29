@@ -32,11 +32,13 @@ export default async function logo(req, res, next) {
     return next(e);
   }
 
-  const params = {};
+  const format = req.params.format;
 
   const height = get(req.query, 'height', get(req.params, 'height'));
   const width = get(req.query, 'width', get(req.params, 'width'));
   const style = get(req.query, 'style', get(req.params, 'style'));
+
+  const params = {};
 
   if (Number(height)) {
     params['height'] = Number(height);
@@ -62,7 +64,7 @@ export default async function logo(req, res, next) {
     return res.status(404).send('Not found');
   }
 
-  switch (req.params.format) {
+  switch (format) {
     case 'txt':
       logger.warn(`logo: generating ascii for ${collectiveSlug} from ${imageUrl}`);
       generateAsciiLogo(imageUrl, {
@@ -111,10 +113,10 @@ export default async function logo(req, res, next) {
 
         const resizedImage = await sharp(image)
           .resize(params.width, params.height || defaultHeight)
-          .toFormat(req.params.format)
+          .toFormat(format)
           .toBuffer();
 
-        res.set('Content-Type', mime.lookup(req.params.format)).send(resizedImage);
+        res.set('Content-Type', mime.lookup(format)).send(resizedImage);
       } catch (err) {
         logger.error(`logo: ${err.message}`);
         return res.status(500).send('Internal Server Error');

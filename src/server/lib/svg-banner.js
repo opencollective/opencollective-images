@@ -1,32 +1,12 @@
-import sizeOf from 'image-size';
 import Promise from 'bluebird';
-import cachedRequestLib from 'cached-request';
-import request from 'request';
+import sizeOf from 'image-size';
 import { cloneDeep } from 'lodash';
 
+import { asyncRequest } from './request';
 import { getCloudinaryUrl, getUiAvatarUrl } from './utils';
 import { logger } from '../logger';
 
 const WEBSITE_URL = process.env.WEBSITE_URL;
-
-const oneWeekInMilliseconds = 7 * 24 * 60 * 60 * 1000;
-
-const cachedRequest = cachedRequestLib(request);
-cachedRequest.setCacheDirectory('/tmp');
-
-const cachedRequestPromise = Promise.promisify(cachedRequest, { multiArgs: true });
-
-const requestPromise = async options => {
-  return new Promise((resolve, reject) => {
-    request(options, (error, response, body) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve([response, body]);
-      }
-    });
-  });
-};
 
 export function generateSvgBanner(usersList, options) {
   // usersList might come from LRU-cache and we don't want to modify it
@@ -90,12 +70,7 @@ export function generateSvgBanner(usersList, options) {
     }
 
     if (image) {
-      const requestOptions = { url: image, encoding: null };
-      if (process.env.ENABLE_CACHED_REQUEST) {
-        promises.push(cachedRequestPromise({ ...requestOptions, ttl: oneWeekInMilliseconds }));
-      } else {
-        promises.push(requestPromise(requestOptions));
-      }
+      promises.push(asyncRequest({ url: image, encoding: null }));
     } else {
       promises.push(Promise.resolve());
     }
@@ -107,12 +82,7 @@ export function generateSvgBanner(usersList, options) {
       website: `${WEBSITE_URL}/${collectiveSlug}#support`,
     });
 
-    const requestOptions = { url: options.buttonImage, encoding: null };
-    if (process.env.ENABLE_CACHED_REQUEST) {
-      promises.push(cachedRequestPromise({ ...requestOptions, ttl: oneWeekInMilliseconds }));
-    } else {
-      promises.push(requestPromise(requestOptions));
-    }
+    promises.push(asyncRequest({ url: options.buttonImage, encoding: null }));
   }
 
   let posX = margin;
@@ -163,6 +133,6 @@ export function generateSvgBanner(usersList, options) {
       </svg>`;
     })
     .catch(e => {
-      logger.error('>>> Error in image-generator:generateSVGBannerForUsers', e);
+      logger.error('>>> Error in image-generator:generateSvgBanner', e);
     });
 }

@@ -53,7 +53,7 @@ export const loadRoutes = app => {
   app.get('/:collectiveSlug/:image(avatar|logo)/:style(rounded)/:height.:format(png)', maxAgeOneWeek, controllers.logo);
 
   app.get(
-    '/:collectiveSlug/:image(avatar|logo)/:style(rounded)?/:height?.:format(txt|png|jpg|gif|svg)',
+    '/:collectiveSlug/:image(avatar|logo)/:style(rounded)?/:height?.:format(txt|png|jpg|svg)',
     maxAgeTwoHours,
     controllers.logo,
   );
