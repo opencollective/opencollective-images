@@ -19,9 +19,11 @@ const readFile = promisify(fs.readFile);
 const staticImagesFolder = path.resolve(__dirname, '..', '..', 'static', 'images');
 
 export default async function logo(req, res, next) {
+  const collectiveSlug = req.params.collectiveSlug;
+
   let collective;
   try {
-    collective = await fetchCollectiveWithCache(req.params.collectiveSlug);
+    collective = await fetchCollectiveWithCache(collectiveSlug);
   } catch (e) {
     if (e.message.match(/No collective found/)) {
       return res.status(404).send('Not found');
@@ -61,7 +63,7 @@ export default async function logo(req, res, next) {
 
   switch (req.params.format) {
     case 'txt':
-      logger.warn(`logo: generating ascii from ${imageUrl}`);
+      logger.warn(`logo: generating ascii for ${collectiveSlug} from ${imageUrl}`);
       generateAsciiFromImage(imageUrl, {
         bg: req.query.bg === 'true' ? true : false,
         fg: req.query.fg === 'true' ? true : false,
@@ -80,7 +82,8 @@ export default async function logo(req, res, next) {
           res.send(`${ascii}\n`);
         })
         .catch(() => {
-          return next(new Error(`Unable to create an ASCII art for ${imageUrl}`));
+          logger.error(`logo: unable to generate ascii for ${collectiveSlug} from ${imageUrl}`);
+          return res.status(400).send(`Unable to create an ASCII art.`);
         });
       break;
 
