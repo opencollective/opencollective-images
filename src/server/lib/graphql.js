@@ -138,7 +138,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
       return Object.keys(users).map(username => {
         return {
           slug: username,
-          type: 'USER',
+          type: 'GITHUB_USER',
           image: `https://avatars.githubusercontent.com/${username}?s=96`,
           website: `https://github.com/${username}`,
         };

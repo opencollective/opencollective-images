@@ -5,6 +5,9 @@ import { maxAge } from './middlewares';
 import { logger } from './logger';
 import { getCloudinaryUrl, isValidUrl } from './lib/utils';
 
+const maxAgeOneWeek = maxAge(7 * 24 * 60 * 60);
+const maxAgeTwoHours = maxAge(2 * 60 * 60);
+
 export const loadRoutes = app => {
   app.get('/', (req, res) => {
     res.send('This is the Open Collective images server.');
@@ -46,9 +49,16 @@ export const loadRoutes = app => {
     }
   });
 
-  app.get('/:collectiveSlug/:image(avatar|logo)/:height?.:format(txt|png|jpg|gif|svg)', maxAge(7200), controllers.logo);
+  // Same as the following one but with agressive caching
+  app.get('/:collectiveSlug/:image(avatar|logo)/:style(rounded)/:height.:format(png)', maxAgeOneWeek, controllers.logo);
 
-  app.get('/:collectiveSlug/background/:height?.:format(png|jpg)', maxAge(7200), controllers.background);
+  app.get(
+    '/:collectiveSlug/:image(avatar|logo)/:style(rounded)?/:height?.:format(txt|png|jpg|gif|svg)',
+    maxAgeTwoHours,
+    controllers.logo,
+  );
+
+  app.get('/:collectiveSlug/background/:height?.:format(png|jpg)', maxAgeTwoHours, controllers.background);
 
   app.get('/:collectiveSlug/:backerType.svg', controllers.banner);
 
@@ -56,7 +66,7 @@ export const loadRoutes = app => {
 
   app.get('/:collectiveSlug/:backerType/:position/website', controllers.website);
 
-  app.get('/:collectiveSlug/:backerType/:position/avatar(.:format(png|jpg|svg))?', maxAge(7200), controllers.avatar);
+  app.get('/:collectiveSlug/:backerType/:position/avatar(.:format(png|jpg|svg))?', maxAgeTwoHours, controllers.avatar);
 
   app.get('/:collectiveSlug/tiers/:tierSlug.svg', controllers.banner);
 
@@ -66,7 +76,7 @@ export const loadRoutes = app => {
 
   app.get(
     '/:collectiveSlug/tiers/:tierSlug/:position/avatar(.:format(png|jpg|svg))?',
-    maxAge(7200),
+    maxAgeTwoHours,
     controllers.avatar,
   );
 };

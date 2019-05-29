@@ -14,7 +14,19 @@ const oneWeekInMilliseconds = 7 * 24 * 60 * 60 * 1000;
 const cachedRequest = cachedRequestLib(request);
 cachedRequest.setCacheDirectory('/tmp');
 
-const requestPromise = Promise.promisify(cachedRequest, { multiArgs: true });
+const cachedRequestPromise = Promise.promisify(cachedRequest, { multiArgs: true });
+
+const requestPromise = async options => {
+  return new Promise((resolve, reject) => {
+    request(options, (error, response, body) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve([response, body]);
+      }
+    });
+  });
+};
 
 export function generateSvgBanner(usersList, options) {
   // usersList might come from LRU-cache and we don't want to modify it
@@ -45,20 +57,24 @@ export function generateSvgBanner(usersList, options) {
   const promises = [];
   for (let i = 0; i < count; i++) {
     const user = users[i];
-    let image = user.image;
-    if (image) {
-      const params =
-        user.type === 'USER' || style === 'rounded'
-          ? {
-              query: `/c_thumb,g_face,h_${avatarHeight * 2},r_max,w_${avatarHeight * 2}/c_thumb,h_${avatarHeight *
-                2},r_max,w_${avatarHeight * 2},bo_2px_solid_rgb:c4c7cc/e_trim/f_png/`,
-            }
-          : {
-              width: avatarHeight * 2,
-              height: avatarHeight * 2,
-            };
-      image = getCloudinaryUrl(user.image, params);
-    } else if (!user.name || user.name === 'anonymous') {
+    let image;
+
+    // NOTE: we ask everywhere a double size quality for retina
+
+    // Normal case
+    if (user.image) {
+      if (user.type === 'USER' || style === 'rounded') {
+        image = `${process.env.IMAGES_URL}/${user.slug}/avatar/rounded/${avatarHeight * 2}.png`;
+      } else {
+        image = `${process.env.IMAGES_URL}/${user.slug}/avatar/${avatarHeight * 2}.png`;
+      }
+      // Use Cloudinary for GitHub or if internal images disabled
+      if (user.type === 'GITHUB_USER' || process.env.DISABLE_BANNER_INTERNAL_IMAGES) {
+        image = getCloudinaryUrl(user.image, { height: avatarHeight * 2, style: 'rounded' });
+      }
+    }
+    // Anonymous case
+    else if (!user.name || user.name === 'anonymous') {
       if (options.includeAnonymous) {
         image = getCloudinaryUrl('https://opencollective.com/static/images/default-anonymous-logo.svg', {
           width: avatarHeight * 2,
@@ -67,36 +83,36 @@ export function generateSvgBanner(usersList, options) {
       } else {
         image = null;
       }
-    } else {
-      // We ask here a double size quality for retina
+    }
+    // Fallback on initials
+    else {
       image = getUiAvatarUrl(user.name, avatarHeight * 2);
     }
 
     if (image) {
-      const promiseOptions = {
-        url: image,
-        encoding: null,
-        ttl: oneWeekInMilliseconds,
-      };
-      promises.push(requestPromise(promiseOptions));
+      const requestOptions = { url: image, encoding: null };
+      if (process.env.ENABLE_CACHED_REQUEST) {
+        promises.push(cachedRequestPromise({ ...requestOptions, ttl: oneWeekInMilliseconds }));
+      } else {
+        promises.push(requestPromise(requestOptions));
+      }
     } else {
       promises.push(Promise.resolve());
     }
   }
 
   if (options.buttonImage) {
-    const btn = {
-      url: options.buttonImage,
-      encoding: null,
-      ttl: oneWeekInMilliseconds,
-    };
-
     users.push({
       slug: collectiveSlug,
       website: `${WEBSITE_URL}/${collectiveSlug}#support`,
     });
 
-    promises.push(requestPromise(btn));
+    const requestOptions = { url: options.buttonImage, encoding: null };
+    if (process.env.ENABLE_CACHED_REQUEST) {
+      promises.push(cachedRequestPromise({ ...requestOptions, ttl: oneWeekInMilliseconds }));
+    } else {
+      promises.push(requestPromise(requestOptions));
+    }
   }
 
   let posX = margin;
@@ -107,6 +123,7 @@ export function generateSvgBanner(usersList, options) {
       const images = [];
       for (let i = 0; i < responses.length; i++) {
         if (!responses[i]) continue;
+
         const { headers } = responses[i][0];
         const rawData = responses[i][1];
         const user = users[i];
