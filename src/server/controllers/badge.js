@@ -1,7 +1,7 @@
 import fetch from 'node-fetch';
 
 import { logger } from '../logger';
-import { fetchMembersStats } from '../lib/graphql';
+import { fetchMembersStatsWithCache } from '../lib/graphql';
 
 const fetchText = path => fetch(path).then(response => response.text());
 
@@ -10,16 +10,26 @@ const fetchText = path => fetch(path).then(response => response.text());
  */
 export default async function badge(req, res) {
   try {
-    const { style, label } = req.query;
     const color = req.query.color || 'brightgreen';
+    const style = req.query.style || 'flat';
 
     let imageUrl;
-    try {
-      const stats = await fetchMembersStats(req.params);
-      const filename = `${label || stats.name}-${stats.count ? stats.count : 0}-${color}.svg`;
-      imageUrl = `https://img.shields.io/badge/${filename}?style=${style}`;
-    } catch (e) {
-      return res.status(404).send('Not found');
+
+    // Starting to move to shields.io matching URLs
+    if (process.env.SHIELDS_IO && req.params.backerType && !req.query.label) {
+      imageUrl = `https://img.shields.io/opencollective/${req.params.backerType}/${
+        req.params.collectiveSlug
+      }.svg?color=${color}&style=${style}`;
+    }
+
+    if (!imageUrl) {
+      try {
+        const stats = await fetchMembersStatsWithCache(req.params);
+        const filename = `${req.query.label || stats.name}-${stats.count ? stats.count : 0}-${color}.svg`;
+        imageUrl = `https://img.shields.io/badge/${filename}?style=${style}`;
+      } catch (e) {
+        return res.status(404).send('Not found');
+      }
     }
 
     try {
