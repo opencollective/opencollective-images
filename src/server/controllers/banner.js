@@ -3,7 +3,7 @@ import debug from 'debug';
 import { logger } from '../logger';
 import { parseToBoolean } from '../lib/utils';
 import { fetchMembersWithCache } from '../lib/graphql';
-import { generateSVGBannerForUsers } from '../lib/image-generator';
+import { generateSvgBanner } from '../lib/svg-banner';
 
 const imagesUrl = process.env.IMAGES_URL;
 
@@ -51,7 +51,7 @@ export default async function banner(req, res) {
     debugBanner(`generating for ${collectiveSlug} (tierSlug=${tierSlug})`);
   }
 
-  return generateSVGBannerForUsers(users, {
+  return generateSvgBanner(users, {
     style,
     limit,
     buttonImage,

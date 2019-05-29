@@ -2,7 +2,6 @@ import sizeOf from 'image-size';
 import Promise from 'bluebird';
 import cachedRequestLib from 'cached-request';
 import request from 'request';
-import imageToAscii from 'image-to-ascii';
 import { cloneDeep } from 'lodash';
 
 import { getCloudinaryUrl, getUiAvatarUrl } from './utils';
@@ -15,46 +14,11 @@ cachedRequest.setCacheDirectory('/tmp');
 
 const requestPromise = Promise.promisify(cachedRequest, { multiArgs: true });
 
-export function generateAsciiFromImage(imgsrc, options) {
-  const variants = {
-    solid: '█'.split(''),
-    variant1: ' .,:;i1tfLCG08@'.split(''),
-    variant2: '@%#*+=-:. '.split('').reverse(),
-    variant3: '#¥¥®®ØØ$$ø0oo°++=-,.    '.split('').reverse(),
-    variant4: '#WMBRXVYIti+=;:,. '.split('').reverse(),
-    'ultra-wide': (
-      'MMMMMMM@@@@@@@WWWWWWWWWBBBBBBBB000000008888888ZZZZZZZZZaZaaaaaa2222222SSS' +
-      'SSSSXXXXXXXXXXX7777777rrrrrrr;;;;;;;;iiiiiiiii:::::::,:,,,,,,.........    '
-    )
-      .split('')
-      .reverse(),
-    wide: '@@@@@@@######MMMBBHHHAAAA&&GGhh9933XXX222255SSSiiiissssrrrrrrr;;;;;;;;:::::::,,,,,,,........        '.split(
-      '',
-    ),
-    hatching: '##XXxxx+++===---;;,,...    '.split('').reverse(),
-    bits: '# '.split('').reverse(),
-    binary: '01 '.split('').reverse(),
-    greyscale: ' ▤▦▩█'.split(''),
-    blocks: ' ▖▚▜█'.split(''),
-  };
-
-  return new Promise((resolve, reject) => {
-    options.pixels = variants[options.variant || 'wide'];
-    imageToAscii(imgsrc, options, (err, ascii) => {
-      if (err) return reject(err);
-      if (options.trim) {
-        ascii = ascii.replace(/\n^\s*$/gm, '');
-      }
-      return resolve(ascii);
-    });
-  });
-}
-
-export function generateSVGBannerForUsers(usersList, options) {
+export function generateSvgBanner(usersList, options) {
   // usersList might come from LRU-cache and we don't want to modify it
   const users = cloneDeep(usersList);
 
-  logger.debug('>>> generateSVGBannerForUsers %d users, options: %j', users.length, options);
+  logger.debug('>>> generateSvgBanner %d users, options: %j', users.length, options);
 
   const { style, limit, collectiveSlug } = options;
 

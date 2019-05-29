@@ -9,7 +9,7 @@ import { get } from 'lodash';
 
 import { logger } from '../logger';
 import { fetchCollectiveWithCache } from '../lib/graphql';
-import { generateAsciiFromImage } from '../lib/image-generator';
+import { generateAsciiLogo } from '../lib/ascii-logo';
 import { getUiAvatarUrl } from '../lib/utils';
 
 const defaultHeight = 128;
@@ -64,7 +64,7 @@ export default async function logo(req, res, next) {
   switch (req.params.format) {
     case 'txt':
       logger.warn(`logo: generating ascii for ${collectiveSlug} from ${imageUrl}`);
-      generateAsciiFromImage(imageUrl, {
+      generateAsciiLogo(imageUrl, {
         bg: req.query.bg === 'true' ? true : false,
         fg: req.query.fg === 'true' ? true : false,
         white_bg: req.query.white_bg === 'false' ? false : true,
