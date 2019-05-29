@@ -9,6 +9,8 @@ import { logger } from '../logger';
 
 const WEBSITE_URL = process.env.WEBSITE_URL;
 
+const oneWeekInMilliseconds = 7 * 24 * 60 * 60 * 1000;
+
 const cachedRequest = cachedRequestLib(request);
 cachedRequest.setCacheDirectory('/tmp');
 
@@ -74,7 +76,7 @@ export function generateSvgBanner(usersList, options) {
       const promiseOptions = {
         url: image,
         encoding: null,
-        ttl: 24 * 60 * 60 * 1000, // 1 day caching
+        ttl: oneWeekInMilliseconds,
       };
       promises.push(requestPromise(promiseOptions));
     } else {
@@ -86,7 +88,7 @@ export function generateSvgBanner(usersList, options) {
     const btn = {
       url: options.buttonImage,
       encoding: null,
-      ttl: 24 * 60 * 60 * 1000, // 1 day caching
+      ttl: oneWeekInMilliseconds,
     };
 
     users.push({
