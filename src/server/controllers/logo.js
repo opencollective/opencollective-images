@@ -10,7 +10,7 @@ import { get } from 'lodash';
 import { logger } from '../logger';
 import { fetchCollectiveWithCache } from '../lib/graphql';
 import { generateAsciiLogo } from '../lib/ascii-logo';
-import { getUiAvatarUrl } from '../lib/utils';
+import { getCloudinaryUrl, getUiAvatarUrl } from '../lib/utils';
 
 const defaultHeight = 128;
 
@@ -36,6 +36,7 @@ export default async function logo(req, res, next) {
 
   const height = get(req.query, 'height', get(req.params, 'height'));
   const width = get(req.query, 'width', get(req.params, 'width'));
+  const style = get(req.query, 'style', get(req.params, 'style'));
 
   if (Number(height)) {
     params['height'] = Number(height);
@@ -90,7 +91,14 @@ export default async function logo(req, res, next) {
     default:
       try {
         if (!image) {
+          // Today, we apply the rounded style through Cloudinary
+          if (style === 'rounded') {
+            const height = params.height || defaultHeight;
+            imageUrl = getCloudinaryUrl(imageUrl, { height, style });
+          }
+
           logger.info(`logo: fetching ${imageUrl}`);
+
           const response = await fetch(imageUrl);
           if (!response.ok) {
             return res.status(response.status).send(response.statusText);

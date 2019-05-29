@@ -1,8 +1,12 @@
 import crypto from 'crypto';
 import { URL } from 'url';
 
-export function getCloudinaryUrl(src, { width, height, query }) {
+export function getCloudinaryUrl(src, { width, height, query, style }) {
   const cloudinaryBaseUrl = 'https://res.cloudinary.com/opencollective/image/fetch';
+
+  if (style == 'rounded') {
+    query = `/c_thumb,g_face,h_${height},r_max,w_${height}/c_thumb,h_${height},r_max,w_${height},bo_2px_solid_rgb:c4c7cc/e_trim/f_png/`;
+  }
 
   // We don't try to resize animated gif, svg or images already processed by cloudinary
   if (
@@ -14,16 +18,18 @@ export function getCloudinaryUrl(src, { width, height, query }) {
     return src;
   }
 
-  let size = '';
-  if (width) size += `w_${width},`;
-  if (height) size += `h_${height},`;
-  if (size === '') size = 'w_320,';
+  if (!query) {
+    let size = '';
+    if (width) size += `w_${width},`;
+    if (height) size += `h_${height},`;
+    if (size === '') size = 'w_320,';
 
-  const format = src.match(/\.png$/) ? 'png' : 'jpg';
+    const format = src.match(/\.png$/) ? 'png' : 'jpg';
 
-  const queryurl = query || `/${size}c_pad,f_${format}/`;
+    query = `/${size}c_pad,f_${format}/`;
+  }
 
-  return `${cloudinaryBaseUrl}${queryurl}${encodeURIComponent(src)}`;
+  return `${cloudinaryBaseUrl}${query}${encodeURIComponent(src)}`;
 }
 
 export const queryString = {
