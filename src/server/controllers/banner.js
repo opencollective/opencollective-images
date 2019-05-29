@@ -1,9 +1,13 @@
+import debug from 'debug';
+
 import { logger } from '../logger';
 import { parseToBoolean } from '../lib/utils';
 import { fetchMembersWithCache } from '../lib/graphql';
 import { generateSVGBannerForUsers } from '../lib/image-generator';
 
 const imagesUrl = process.env.IMAGES_URL;
+
+const debugBanner = debug('banner');
 
 export default async function banner(req, res) {
   const { collectiveSlug, tierSlug, backerType } = req.params;
@@ -40,6 +44,13 @@ export default async function banner(req, res) {
   const linkToProfile = selector === 'contributors' || selector == 'sponsors' ? false : true;
   const buttonImage =
     showBtn && `${imagesUrl}/static/images/become_${selector.match(/sponsor/) ? 'sponsor' : 'backer'}.svg`;
+
+  if (backerType) {
+    debugBanner(`generating for ${collectiveSlug} (backerType=${backerType})`);
+  } else if (tierSlug) {
+    debugBanner(`generating for ${collectiveSlug} (tierSlug=${tierSlug})`);
+  }
+
   return generateSVGBannerForUsers(users, {
     style,
     limit,
