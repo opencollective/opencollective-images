@@ -1,7 +1,7 @@
 import debug from 'debug';
 
 import { logger } from '../logger';
-import { parseToBoolean } from '../lib/utils';
+import { parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
 import { fetchMembersWithCache } from '../lib/graphql';
 import { generateSvgBanner } from '../lib/svg-banner';
 
@@ -15,19 +15,19 @@ export default async function banner(req, res) {
   const width = Number(req.query.width) || 0;
   const height = Number(req.query.height) || 0;
   const { avatarHeight, margin } = req.query;
-  const showBtn = req.query.button === 'false' ? false : true;
+  const showBtn = parseToBooleanDefaultTrue(req.query.button);
 
   // handle includeAnonymous, default to true for tiers
   let includeAnonymous;
   if (req.query.includeAnonymous !== undefined) {
-    includeAnonymous = parseToBoolean(req.query.includeAnonymous);
+    includeAnonymous = parseToBooleanDefaultFalse(req.query.includeAnonymous);
   } else {
     includeAnonymous = tierSlug ? true : false;
   }
 
   // handle isActive default to true for tiers
   if (req.query.isActive !== undefined) {
-    req.params.isActive = parseToBoolean(req.query.isActive);
+    req.params.isActive = parseToBooleanDefaultFalse(req.query.isActive);
   } else {
     req.params.isActive = tierSlug ? true : false;
   }

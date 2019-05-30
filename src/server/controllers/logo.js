@@ -10,7 +10,7 @@ import { get } from 'lodash';
 import { logger } from '../logger';
 import { fetchCollectiveWithCache } from '../lib/graphql';
 import { generateAsciiLogo } from '../lib/ascii-logo';
-import { getCloudinaryUrl, getUiAvatarUrl, parseToBoolean } from '../lib/utils';
+import { getCloudinaryUrl, getUiAvatarUrl, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
 
 const defaultHeight = 128;
 
@@ -78,17 +78,17 @@ export default async function logo(req, res) {
     case 'txt':
       logger.warn(`logo: generating ascii for ${collectiveSlug} from ${imageUrl}`);
       generateAsciiLogo(imageUrl, {
-        bg: req.query.bg === 'true' ? true : false,
-        fg: req.query.fg === 'true' ? true : false,
-        white_bg: req.query.white_bg === 'false' ? false : true,
-        colored: req.query.colored === 'false' ? false : true,
+        bg: parseToBooleanDefaultFalse(req.query.bg),
+        fg: parseToBooleanDefaultFalse(req.query.fg),
+        white_bg: parseToBooleanDefaultTrue(req.query.white_bg),
+        colored: parseToBooleanDefaultTrue(req.query.colored),
         size: {
           height: params.height || 20,
           width: params.width,
         },
         variant: req.query.variant || 'wide',
-        trim: req.query.trim !== 'false',
-        reverse: req.query.reverse === 'true' ? true : false,
+        trim: parseToBooleanDefaultTrue(req.query.trim),
+        reverse: parseToBooleanDefaultFalse(req.query.reverse),
       })
         .then(ascii => {
           res.setHeader('content-type', 'text/plain; charset=us-ascii');

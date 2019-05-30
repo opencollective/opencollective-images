@@ -65,17 +65,21 @@ export const md5 = string =>
     .update(string)
     .digest('hex');
 
-export function parseToBoolean(value) {
-  let lowerValue = value;
-  // check whether it's string
-  if (lowerValue && (typeof lowerValue === 'string' || lowerValue instanceof String)) {
-    lowerValue = lowerValue.trim().toLowerCase();
-  }
-  if (['on', 'enabled', '1', 'true', 'yes', 1].includes(lowerValue)) {
-    return true;
-  }
-  return false;
-}
+export const parseToBooleanDefaultFalse = value => {
+  const string = value
+    .toString()
+    .trim()
+    .toLowerCase();
+  return ['on', 'enabled', '1', 'true', 'yes', 1].includes(string);
+};
+
+export const parseToBooleanDefaultTrue = value => {
+  const string = value
+    .toString()
+    .trim()
+    .toLowerCase();
+  return !['off', 'disabled', '0', 'false', 'no', 0].includes(string);
+};
 
 export const getUiAvatarUrl = (name, size, rounded = true) => {
   const url = new URL('https://ui-avatars.com/api/');
