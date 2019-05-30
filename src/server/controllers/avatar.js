@@ -14,11 +14,8 @@ const debugAvatar = debug('avatar');
 
 const getSvg = svgPath => fs.readFileSync(path.join(__dirname, svgPath), { encoding: 'utf8' });
 
-const initialsSvg = getSvg('../../static/images/initials.svg');
 const organizationSvg = getSvg('../../static/images/organization.svg');
 const anonymousSvg = getSvg('../../static/images/default-anonymous-logo.svg');
-
-const getInitials = name => name.split(' ').reduce((result, value) => (result += value.slice(0, 1).toUpperCase()), '');
 
 const getImageData = url => asyncRequest({ url, encoding: null }).then(result => result[1]);
 
@@ -132,14 +129,7 @@ export default async function avatar(req, res) {
       }
     }
 
-    // Default
-
-    // Initials with SVG
-    if (req.query.svgInitials && format === 'svg') {
-      return sendSvg(res, initialsSvg.replace('{INITIALS}', getInitials(user.name)));
-    }
-
-    // Initials with UI-Avatars
+    // Default for USER, initials with UI Avatars
     const imageHeight = Math.round(maxHeight / 2);
     const imageUrl = getUiAvatarUrl(user.name, imageHeight);
     return proxyImage(req, res, imageUrl);
@@ -148,7 +138,7 @@ export default async function avatar(req, res) {
   // Default case (likely Organizations)
   if (user.image) {
     const imageformat = format === 'jpg' ? format : 'png';
-    let imageUrl = `${process.env.IMAGES_URL}/${user.slug}/avatar/${maxHeight}.${imageformat}`;
+    let imageUrl = `${process.env.IMAGES_URL}/${user.slug}/logo/square/${maxHeight}/${maxWidth}.${imageformat}`;
     // Use Cloudinary directly if internal images disabled
     if (process.env.DISABLE_BANNER_INTERNAL_IMAGES) {
       imageUrl = getCloudinaryUrl(user.image, { height: maxHeight, width: maxWidth, format: imageformat });

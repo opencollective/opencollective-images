@@ -58,14 +58,14 @@ export const loadRoutes = app => {
 
   // Same as the following one but with agressive caching
   app.get(
-    '/:collectiveSlug/:image(avatar|logo)/:style(rounded|square)/:height.:format(png)',
+    '/:collectiveSlug/:image(avatar|logo)/:style(rounded|square)/:height/:width?.:format(png)',
     maxAgeOneWeek,
     controllers.logo,
   );
 
   // Route for user avatars or organization logos
   app.get(
-    '/:collectiveSlug/:image(avatar|logo)/:style(rounded|square)?/:height?.:format(txt|png|jpg|svg)',
+    '/:collectiveSlug/:image(avatar|logo)/:style(rounded|square)?/:height?/:width?.:format(txt|png|jpg|svg)',
     maxAgeTwoHours,
     controllers.logo,
   );

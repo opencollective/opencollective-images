@@ -138,7 +138,7 @@ export default async function logo(req, res) {
         }
 
         const resizedImage = await sharp(image)
-          .resize(width, height)
+          .resize(width, height, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
           .toFormat(format)
           .toBuffer();
 
