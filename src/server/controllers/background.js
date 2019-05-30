@@ -1,8 +1,12 @@
-import request from 'request';
-import graphicsMagick from 'gm';
+import sharp from 'sharp';
+import mime from 'mime-types';
+import { get } from 'lodash';
 
 import { logger } from '../logger';
+import { asyncRequest } from '../lib/request';
 import { fetchCollectiveWithCache } from '../lib/graphql';
+
+const getImageData = url => asyncRequest({ url, encoding: null }).then(result => result[1]);
 
 export default async function background(req, res, next) {
   let collective;
@@ -19,8 +23,13 @@ export default async function background(req, res, next) {
     return next(e);
   }
 
+  const format = req.params.format;
+
+  const height = get(req.query, 'height', get(req.params, 'height'));
+  const width = get(req.query, 'width', get(req.params, 'width'));
+
   const params = {};
-  const { width, height } = req.query;
+
   if (Number(width)) {
     params['width'] = Number(width);
   }
@@ -28,8 +37,12 @@ export default async function background(req, res, next) {
     params['height'] = Number(height);
   }
 
-  graphicsMagick(request(collective.backgroundImage))
+  const image = await getImageData(collective.backgroundImage);
+
+  const resizedImage = await sharp(image)
     .resize(params.width, params.height)
-    .stream(req.params.format)
-    .pipe(res);
+    .toFormat(format)
+    .toBuffer();
+
+  res.set('Content-Type', mime.lookup(format)).send(resizedImage);
 }

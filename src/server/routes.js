@@ -70,7 +70,7 @@ export const loadRoutes = app => {
     controllers.logo,
   );
 
-  app.get('/:collectiveSlug/background/:height?.:format(png|jpg)', maxAgeTwoHours, controllers.background);
+  app.get('/:collectiveSlug/background/:height?/:width?.:format(png|jpg)', maxAgeTwoHours, controllers.background);
 
   app.get('/:collectiveSlug/:backerType.svg', controllers.banner);
 
