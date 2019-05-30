@@ -66,6 +66,9 @@ export const md5 = string =>
     .digest('hex');
 
 export const parseToBooleanDefaultFalse = value => {
+  if (value === null || value === undefined || value === '') {
+    return false;
+  }
   const string = value
     .toString()
     .trim()
@@ -74,6 +77,9 @@ export const parseToBooleanDefaultFalse = value => {
 };
 
 export const parseToBooleanDefaultTrue = value => {
+  if (value === null || value === undefined || value === '') {
+    return true;
+  }
   const string = value
     .toString()
     .trim()
