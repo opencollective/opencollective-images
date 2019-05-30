@@ -10,27 +10,37 @@ import { get } from 'lodash';
 import { logger } from '../logger';
 import { fetchCollectiveWithCache } from '../lib/graphql';
 import { generateAsciiLogo } from '../lib/ascii-logo';
-import { getCloudinaryUrl, getUiAvatarUrl } from '../lib/utils';
+import { getCloudinaryUrl, getUiAvatarUrl, parseToBoolean } from '../lib/utils';
 
 const defaultHeight = 128;
 
 const readFile = promisify(fs.readFile);
 
-const staticImagesFolder = path.resolve(__dirname, '..', '..', 'static', 'images');
+const staticFolder = path.resolve(__dirname, '..', '..', 'static');
 
-export default async function logo(req, res, next) {
-  const collectiveSlug = req.params.collectiveSlug;
+const getCollectiveImageUrl = async (collectiveSlug, height = defaultHeight) => {
+  const collective = await fetchCollectiveWithCache(collectiveSlug);
 
-  let collective;
-  try {
-    collective = await fetchCollectiveWithCache(collectiveSlug);
-  } catch (e) {
-    if (e.message.match(/No collective found/)) {
-      return res.status(404).send('Not found');
-    }
-    logger.debug('>>> collectives.logo error', e);
-    return next(e);
+  if (!collective.name || collective.name === 'anonymous') {
+    return `/images/anonymous-logo-square.png`;
   }
+
+  if (collective.image) {
+    return collective.image;
+  }
+
+  if (collective.type === 'USER') {
+    return getUiAvatarUrl(collective.name, height, false);
+  }
+};
+
+const getGithubImageUrl = async (githubUsername, height = defaultHeight) => {
+  return `https://avatars.githubusercontent.com/${githubUsername}?s=${height}`;
+};
+
+export default async function logo(req, res) {
+  const collectiveSlug = req.params.collectiveSlug;
+  const githubUsername = req.params.githubUsername;
 
   const format = req.params.format;
 
@@ -48,19 +58,19 @@ export default async function logo(req, res, next) {
     params['width'] = Number(width);
   }
 
-  let image;
-  let imageUrl = collective.image;
-
-  if (!imageUrl) {
-    if (!collective.name || collective.name === 'anonymous') {
-      image = await readFile(path.resolve(staticImagesFolder, 'anonymous-logo-square.png'));
-    } else if (collective.type === 'USER') {
-      imageUrl = getUiAvatarUrl(collective.name, params.height || defaultHeight, false);
+  let imageUrl;
+  try {
+    if (collectiveSlug) {
+      imageUrl = await getCollectiveImageUrl(collectiveSlug, params.height || defaultHeight);
+    } else if (githubUsername) {
+      imageUrl = await getGithubImageUrl(githubUsername, params.height || defaultHeight);
+    }
+  } catch (err) {
+    if (!err.message.match(/No collective found/)) {
+      logger.error(`logo: ${err.message}`);
     }
   }
-  // TODO: add clearbit handling for organizations here?
-
-  if (!image && !imageUrl) {
+  if (!imageUrl) {
     return res.status(404).send('Not found');
   }
 
@@ -92,15 +102,31 @@ export default async function logo(req, res, next) {
 
     default:
       try {
-        if (!image) {
-          // Today, we apply the rounded style through Cloudinary
-          if (style === 'rounded') {
-            const height = params.height || defaultHeight;
+        const height = params.height || defaultHeight;
+        const width = params.width;
+
+        if (style === 'rounded') {
+          // For anonymous, we have it already rounded
+          if (imageUrl.includes('anonymous-logo-square')) {
+            imageUrl = imageUrl.replace('anonymous-logo-square', 'anonymous-logo-rounded');
+          }
+          // We apply the rounded style through UI Avatars (no border for now)
+          else if (imageUrl.includes('rounded=false')) {
+            imageUrl = imageUrl.replace('rounded=false', 'rounded=true');
+          }
+          // We apply the rounded style through Cloudinary
+          else {
             imageUrl = getCloudinaryUrl(imageUrl, { height, style });
           }
+        }
 
+        let image;
+        if (!imageUrl.includes('https://')) {
+          image = await readFile(path.join(staticFolder, imageUrl));
+        }
+
+        if (!image) {
           logger.info(`logo: fetching ${imageUrl}`);
-
           const response = await fetch(imageUrl);
           if (!response.ok) {
             return res.status(response.status).send(response.statusText);
@@ -112,7 +138,7 @@ export default async function logo(req, res, next) {
         }
 
         const resizedImage = await sharp(image)
-          .resize(params.width, params.height || defaultHeight)
+          .resize(width, height)
           .toFormat(format)
           .toBuffer();
 

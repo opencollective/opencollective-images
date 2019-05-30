@@ -1,12 +1,31 @@
 import Promise from 'bluebird';
+import debug from 'debug';
 import sizeOf from 'image-size';
 import { cloneDeep } from 'lodash';
 
 import { asyncRequest } from './request';
-import { getCloudinaryUrl, getUiAvatarUrl } from './utils';
+import { getCloudinaryUrl } from './utils';
 import { logger } from '../logger';
 
+const debugBanner = debug('banner');
+
 const WEBSITE_URL = process.env.WEBSITE_URL;
+
+const getImageForUser = (user, height, options) => {
+  if (!user.image && (!user.name || user.name === 'anonymous') && !options.includeAnonymous) {
+    return null;
+  }
+
+  if (user.image && process.env.DISABLE_BANNER_INTERNAL_IMAGES) {
+    return getCloudinaryUrl(user.image, { height, style: 'rounded' });
+  }
+
+  if (user.type === 'GITHUB_USER') {
+    return `${process.env.IMAGES_URL}/github/${user.slug}/avatar/rounded/${height}.png`;
+  }
+
+  return `${process.env.IMAGES_URL}/${user.slug}/avatar/rounded/${height}.png`;
+};
 
 export function generateSvgBanner(usersList, options) {
   // usersList might come from LRU-cache and we don't want to modify it
@@ -14,7 +33,7 @@ export function generateSvgBanner(usersList, options) {
 
   logger.debug('>>> generateSvgBanner %d users, options: %j', users.length, options);
 
-  const { style, limit, collectiveSlug } = options;
+  const { limit, collectiveSlug } = options;
 
   const imageWidth = options.width;
   const imageHeight = options.height;
@@ -37,37 +56,11 @@ export function generateSvgBanner(usersList, options) {
   const promises = [];
   for (let i = 0; i < count; i++) {
     const user = users[i];
-    let image;
 
     // NOTE: we ask everywhere a double size quality for retina
+    const image = getImageForUser(user, avatarHeight * 2, options);
 
-    // Normal case
-    if (user.image) {
-      if (user.type === 'USER' || style === 'rounded') {
-        image = `${process.env.IMAGES_URL}/${user.slug}/avatar/rounded/${avatarHeight * 2}.png`;
-      } else {
-        image = `${process.env.IMAGES_URL}/${user.slug}/avatar/${avatarHeight * 2}.png`;
-      }
-      // Use Cloudinary for GitHub or if internal images disabled
-      if (user.type === 'GITHUB_USER' || process.env.DISABLE_BANNER_INTERNAL_IMAGES) {
-        image = getCloudinaryUrl(user.image, { height: avatarHeight * 2, style: 'rounded' });
-      }
-    }
-    // Anonymous case
-    else if (!user.name || user.name === 'anonymous') {
-      if (options.includeAnonymous) {
-        image = getCloudinaryUrl('https://opencollective.com/static/images/default-anonymous-logo.svg', {
-          width: avatarHeight * 2,
-          height: avatarHeight * 2,
-        });
-      } else {
-        image = null;
-      }
-    }
-    // Fallback on initials
-    else {
-      image = getUiAvatarUrl(user.name, avatarHeight * 2);
-    }
+    debugBanner(`Pushing ${image}`);
 
     if (image) {
       promises.push(asyncRequest({ url: image, encoding: null }));

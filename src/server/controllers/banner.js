@@ -11,7 +11,6 @@ const debugBanner = debug('banner');
 
 export default async function banner(req, res) {
   const { collectiveSlug, tierSlug, backerType } = req.params;
-  const style = req.query.style || 'rounded';
   const limit = Number(req.query.limit) || Infinity;
   const width = Number(req.query.width) || 0;
   const height = Number(req.query.height) || 0;
@@ -52,7 +51,6 @@ export default async function banner(req, res) {
   }
 
   return generateSvgBanner(users, {
-    style,
     limit,
     buttonImage,
     width,

@@ -9,7 +9,7 @@ export function getCloudinaryUrl(src, { width, height, query, style, format }) {
   }
 
   if (style == 'rounded') {
-    query = `/c_thumb,g_face,h_${height},r_max,w_${height}/c_thumb,h_${height},r_max,w_${height},bo_2px_solid_rgb:c4c7cc/e_trim/f_${format}/`;
+    query = `/c_thumb,r_max,h_${height},w_${height},bo_2px_solid_rgb:c4c7cc,f_${format}/`;
   }
 
   // We don't try to resize animated gif, svg or images already processed by cloudinary
