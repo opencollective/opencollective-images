@@ -7,14 +7,13 @@ import mime from 'mime-types';
 
 import { logger } from '../logger';
 import { fetchMembersWithCache } from '../lib/graphql';
-import { getCloudinaryUrl, getUiAvatarUrl } from '../lib/utils';
+import { getCloudinaryUrl } from '../lib/utils';
 import { asyncRequest } from '../lib/request';
 
 const debugAvatar = debug('avatar');
 
 const getSvg = svgPath => fs.readFileSync(path.join(__dirname, svgPath), { encoding: 'utf8' });
 
-const organizationSvg = getSvg('../../static/images/organization.svg');
 const anonymousSvg = getSvg('../../static/images/default-anonymous-logo.svg');
 
 const getImageData = url => asyncRequest({ url, encoding: null }).then(result => result[1]);
@@ -96,6 +95,8 @@ export default async function avatar(req, res) {
     maxWidth = maxHeight * 3;
   }
 
+  const imageformat = format === 'jpg' ? format : 'png';
+
   // Special cases for USER
   if (user.type === 'USER') {
     // Anonymous
@@ -108,42 +109,12 @@ export default async function avatar(req, res) {
     }
 
     // Normal image
-    if (user.image) {
-      const imageformat = format === 'jpg' ? format : 'png';
-      let imageUrl = `${process.env.IMAGES_URL}/${user.slug}/avatar/rounded/${maxHeight}.${imageformat}`;
-      // Use Cloudinary directly if internal images disabled
-      if (process.env.DISABLE_BANNER_INTERNAL_IMAGES) {
-        imageUrl = getCloudinaryUrl(user.image, { height: maxHeight, style: 'rounded', format: imageformat });
-      }
-      debugAvatar(`Serving ${imageUrl} for ${user.slug}  (type=USER)`);
-      try {
-        if (format === 'svg') {
-          const data = await getImageData(imageUrl);
-          return sendSvg(res, imageAsSvg(data, { selector, maxHeight, imageformat }));
-        } else {
-          return proxyImage(req, res, imageUrl);
-        }
-      } catch (err) {
-        // Ignore error, will default to initials
-        logger.error('>>> collectives.avatar: Error while fetching image %s', imageUrl, err);
-      }
-    }
-
-    // Default for USER, initials with UI Avatars
-    const imageHeight = Math.round(maxHeight / 2);
-    const imageUrl = getUiAvatarUrl(user.name, imageHeight);
-    return proxyImage(req, res, imageUrl);
-  }
-
-  // Default case (likely Organizations)
-  if (user.image) {
-    const imageformat = format === 'jpg' ? format : 'png';
-    let imageUrl = `${process.env.IMAGES_URL}/${user.slug}/logo/square/${maxHeight}/${maxWidth}.${imageformat}`;
+    let imageUrl = `${process.env.IMAGES_URL}/${user.slug}/avatar/rounded/${maxHeight}.${imageformat}`;
     // Use Cloudinary directly if internal images disabled
     if (process.env.DISABLE_BANNER_INTERNAL_IMAGES) {
-      imageUrl = getCloudinaryUrl(user.image, { height: maxHeight, width: maxWidth, format: imageformat });
+      imageUrl = getCloudinaryUrl(user.image, { height: maxHeight, style: 'rounded', format: imageformat });
     }
-    debugAvatar(`Serving ${imageUrl} for ${user.slug} (default)`);
+    debugAvatar(`Serving ${imageUrl} for ${user.slug} (type=USER)`);
     try {
       if (format === 'svg') {
         const data = await getImageData(imageUrl);
@@ -152,15 +123,27 @@ export default async function avatar(req, res) {
         return proxyImage(req, res, imageUrl);
       }
     } catch (err) {
-      // Ignore error, will default to organization SVG
-      logger.error('>>> collectives.avatar: Error while fetching image %s', imageUrl, err);
+      logger.error(`avatar: unable to serve ${imageUrl} for ${user.slug}: ${err.message}`);
+      return res.status(400).send(`Unable to fetch image.`);
     }
   }
 
-  // Default
-  if (format == 'svg') {
-    return sendSvg(res, organizationSvg);
-  } else {
-    return res.redirect('/static/images/organization.svg');
+  // Default case (likely Organizations)
+  let imageUrl = `${process.env.IMAGES_URL}/${user.slug}/logo/square/${maxHeight}/${maxWidth}.${imageformat}`;
+  // Use Cloudinary directly if internal images disabled
+  if (process.env.DISABLE_BANNER_INTERNAL_IMAGES) {
+    imageUrl = getCloudinaryUrl(user.image, { height: maxHeight, width: maxWidth, format: imageformat });
+  }
+  debugAvatar(`Serving ${imageUrl} for ${user.slug} (default)`);
+  try {
+    if (format === 'svg') {
+      const data = await getImageData(imageUrl);
+      return sendSvg(res, imageAsSvg(data, { selector, maxHeight, imageformat }));
+    } else {
+      return proxyImage(req, res, imageUrl);
+    }
+  } catch (err) {
+    logger.error(`avatar: unable to serve ${imageUrl} for ${user.slug}: ${err.message}`);
+    return res.status(400).send(`Unable to fetch image.`);
   }
 }
