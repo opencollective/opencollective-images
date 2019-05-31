@@ -119,9 +119,9 @@ export async function fetchMembersStatsWithCache(params) {
 
 /*
 Used by:
-  - avatar.js: requires `type`, `name` and `image`
+  - avatar.js: requires `type`, `name`, `image` and `slug`
   - website.js: requires `website`, `twitterHandle` and `slug`
-  - banner.js: requires `type`, `name`, `image`, `website` and `slug` (generateSVGBannerForUsers)
+  - banner.js: requires `type`, `name`, `image`, `website` and `slug` (generateSvgBanner)
 */
 export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isActive }) {
   let query, processResult, type, role;

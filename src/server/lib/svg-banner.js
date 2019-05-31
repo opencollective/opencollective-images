@@ -1,31 +1,30 @@
-import sizeOf from 'image-size';
 import Promise from 'bluebird';
-import cachedRequestLib from 'cached-request';
-import request from 'request';
+import debug from 'debug';
+import sizeOf from 'image-size';
 import { cloneDeep } from 'lodash';
 
-import { getCloudinaryUrl, getUiAvatarUrl } from './utils';
+import { asyncRequest } from './request';
+import { getCloudinaryUrl } from './utils';
 import { logger } from '../logger';
+
+const debugBanner = debug('banner');
 
 const WEBSITE_URL = process.env.WEBSITE_URL;
 
-const oneWeekInMilliseconds = 7 * 24 * 60 * 60 * 1000;
+const getImageForUser = (user, height, options) => {
+  if (!user.image && (!user.name || user.name === 'anonymous') && !options.includeAnonymous) {
+    return null;
+  }
 
-const cachedRequest = cachedRequestLib(request);
-cachedRequest.setCacheDirectory('/tmp');
+  if (user.image && process.env.DISABLE_BANNER_INTERNAL_IMAGES) {
+    return getCloudinaryUrl(user.image, { height, style: 'rounded' });
+  }
 
-const cachedRequestPromise = Promise.promisify(cachedRequest, { multiArgs: true });
+  if (user.type === 'GITHUB_USER') {
+    return `${process.env.IMAGES_URL}/github/${user.slug}/avatar/rounded/${height}.png`;
+  }
 
-const requestPromise = async options => {
-  return new Promise((resolve, reject) => {
-    request(options, (error, response, body) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve([response, body]);
-      }
-    });
-  });
+  return `${process.env.IMAGES_URL}/${user.slug}/avatar/rounded/${height}.png`;
 };
 
 export function generateSvgBanner(usersList, options) {
@@ -34,7 +33,7 @@ export function generateSvgBanner(usersList, options) {
 
   logger.debug('>>> generateSvgBanner %d users, options: %j', users.length, options);
 
-  const { style, limit, collectiveSlug } = options;
+  const { limit, collectiveSlug } = options;
 
   const imageWidth = options.width;
   const imageHeight = options.height;
@@ -57,45 +56,14 @@ export function generateSvgBanner(usersList, options) {
   const promises = [];
   for (let i = 0; i < count; i++) {
     const user = users[i];
-    let image;
 
     // NOTE: we ask everywhere a double size quality for retina
+    const image = getImageForUser(user, avatarHeight * 2, options);
 
-    // Normal case
-    if (user.image) {
-      if (user.type === 'USER' || style === 'rounded') {
-        image = `${process.env.IMAGES_URL}/${user.slug}/avatar/rounded/${avatarHeight * 2}.png`;
-      } else {
-        image = `${process.env.IMAGES_URL}/${user.slug}/avatar/${avatarHeight * 2}.png`;
-      }
-      // Use Cloudinary for GitHub or if internal images disabled
-      if (user.type === 'GITHUB_USER' || process.env.DISABLE_BANNER_INTERNAL_IMAGES) {
-        image = getCloudinaryUrl(user.image, { height: avatarHeight * 2, style: 'rounded' });
-      }
-    }
-    // Anonymous case
-    else if (!user.name || user.name === 'anonymous') {
-      if (options.includeAnonymous) {
-        image = getCloudinaryUrl('https://opencollective.com/static/images/default-anonymous-logo.svg', {
-          width: avatarHeight * 2,
-          height: avatarHeight * 2,
-        });
-      } else {
-        image = null;
-      }
-    }
-    // Fallback on initials
-    else {
-      image = getUiAvatarUrl(user.name, avatarHeight * 2);
-    }
+    debugBanner(`Pushing ${image}`);
 
     if (image) {
-      const requestOptions = { url: image, encoding: null };
-      if (process.env.ENABLE_CACHED_REQUEST) {
-        promises.push(cachedRequestPromise({ ...requestOptions, ttl: oneWeekInMilliseconds }));
-      } else {
-        promises.push(requestPromise(requestOptions));
-      }
+      promises.push(asyncRequest({ url: image, encoding: null }));
     } else {
       promises.push(Promise.resolve());
     }
@@ -107,12 +75,7 @@ export function generateSvgBanner(usersList, options) {
       website: `${WEBSITE_URL}/${collectiveSlug}#support`,
     });
 
-    const requestOptions = { url: options.buttonImage, encoding: null };
-    if (process.env.ENABLE_CACHED_REQUEST) {
-      promises.push(cachedRequestPromise({ ...requestOptions, ttl: oneWeekInMilliseconds }));
-    } else {
-      promises.push(requestPromise(requestOptions));
-    }
+    promises.push(asyncRequest({ url: options.buttonImage, encoding: null }));
   }
 
   let posX = margin;
@@ -163,6 +126,6 @@ export function generateSvgBanner(usersList, options) {
       </svg>`;
     })
     .catch(e => {
-      logger.error('>>> Error in image-generator:generateSVGBannerForUsers', e);
+      logger.error('>>> Error in image-generator:generateSvgBanner', e);
     });
 }

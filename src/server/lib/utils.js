@@ -1,11 +1,15 @@
 import crypto from 'crypto';
 import { URL } from 'url';
 
-export function getCloudinaryUrl(src, { width, height, query, style }) {
+export function getCloudinaryUrl(src, { width, height, query, style, format }) {
   const cloudinaryBaseUrl = 'https://res.cloudinary.com/opencollective/image/fetch';
 
+  if (!format) {
+    format = 'png';
+  }
+
   if (style == 'rounded') {
-    query = `/c_thumb,g_face,h_${height},r_max,w_${height}/c_thumb,h_${height},r_max,w_${height},bo_2px_solid_rgb:c4c7cc/e_trim/f_png/`;
+    query = `/c_thumb,r_max,h_${height},w_${height},bo_2px_solid_rgb:c4c7cc,f_${format}/`;
   }
 
   // We don't try to resize animated gif, svg or images already processed by cloudinary
@@ -61,17 +65,27 @@ export const md5 = string =>
     .update(string)
     .digest('hex');
 
-export function parseToBoolean(value) {
-  let lowerValue = value;
-  // check whether it's string
-  if (lowerValue && (typeof lowerValue === 'string' || lowerValue instanceof String)) {
-    lowerValue = lowerValue.trim().toLowerCase();
+export const parseToBooleanDefaultFalse = value => {
+  if (value === null || value === undefined || value === '') {
+    return false;
   }
-  if (['on', 'enabled', '1', 'true', 'yes', 1].includes(lowerValue)) {
+  const string = value
+    .toString()
+    .trim()
+    .toLowerCase();
+  return ['on', 'enabled', '1', 'true', 'yes', 1].includes(string);
+};
+
+export const parseToBooleanDefaultTrue = value => {
+  if (value === null || value === undefined || value === '') {
     return true;
   }
-  return false;
-}
+  const string = value
+    .toString()
+    .trim()
+    .toLowerCase();
+  return !['off', 'disabled', '0', 'false', 'no', 0].includes(string);
+};
 
 export const getUiAvatarUrl = (name, size, rounded = true) => {
   const url = new URL('https://ui-avatars.com/api/');

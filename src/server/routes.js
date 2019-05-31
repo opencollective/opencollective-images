@@ -49,11 +49,23 @@ export const loadRoutes = app => {
     }
   });
 
-  // Same as the following one but with agressive caching
-  app.get('/:collectiveSlug/:image(avatar|logo)/:style(rounded)/:height.:format(png)', maxAgeOneWeek, controllers.logo);
-
+  // Special route for GitHub avatars
   app.get(
-    '/:collectiveSlug/:image(avatar|logo)/:style(rounded)?/:height?.:format(txt|png|jpg|gif|svg)',
+    '/github/:githubUsername/:image(avatar)/:style(rounded|square)?/:height?.:format(png)',
+    maxAgeOneWeek,
+    controllers.logo,
+  );
+
+  // Same as the following one but with agressive caching
+  app.get(
+    '/:collectiveSlug/:image(avatar|logo)/:style(rounded|square)/:height/:width?.:format(png)',
+    maxAgeOneWeek,
+    controllers.logo,
+  );
+
+  // Route for user avatars or organization logos
+  app.get(
+    '/:collectiveSlug/:image(avatar|logo)/:style(rounded|square)?/:height?/:width?.:format(txt|png|jpg|svg)',
     maxAgeTwoHours,
     controllers.logo,
   );

@@ -10,33 +10,45 @@ import { get } from 'lodash';
 import { logger } from '../logger';
 import { fetchCollectiveWithCache } from '../lib/graphql';
 import { generateAsciiLogo } from '../lib/ascii-logo';
-import { getCloudinaryUrl, getUiAvatarUrl } from '../lib/utils';
+import { getCloudinaryUrl, getUiAvatarUrl, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
 
 const defaultHeight = 128;
 
 const readFile = promisify(fs.readFile);
 
-const staticImagesFolder = path.resolve(__dirname, '..', '..', 'static', 'images');
+const staticFolder = path.resolve(__dirname, '..', '..', 'static');
 
-export default async function logo(req, res, next) {
-  const collectiveSlug = req.params.collectiveSlug;
+const getCollectiveImageUrl = async (collectiveSlug, height = defaultHeight) => {
+  const collective = await fetchCollectiveWithCache(collectiveSlug);
 
-  let collective;
-  try {
-    collective = await fetchCollectiveWithCache(collectiveSlug);
-  } catch (e) {
-    if (e.message.match(/No collective found/)) {
-      return res.status(404).send('Not found');
-    }
-    logger.debug('>>> collectives.logo error', e);
-    return next(e);
+  if (!collective.name || collective.name === 'anonymous') {
+    return `/images/anonymous-logo-square.png`;
   }
 
-  const params = {};
+  if (collective.image) {
+    return collective.image;
+  }
+
+  if (collective.type === 'USER') {
+    return getUiAvatarUrl(collective.name, height, false);
+  }
+};
+
+const getGithubImageUrl = async (githubUsername, height = defaultHeight) => {
+  return `https://avatars.githubusercontent.com/${githubUsername}?s=${height}`;
+};
+
+export default async function logo(req, res) {
+  const collectiveSlug = req.params.collectiveSlug;
+  const githubUsername = req.params.githubUsername;
+
+  const format = req.params.format;
 
   const height = get(req.query, 'height', get(req.params, 'height'));
   const width = get(req.query, 'width', get(req.params, 'width'));
   const style = get(req.query, 'style', get(req.params, 'style'));
+
+  const params = {};
 
   if (Number(height)) {
     params['height'] = Number(height);
@@ -46,37 +58,37 @@ export default async function logo(req, res, next) {
     params['width'] = Number(width);
   }
 
-  let image;
-  let imageUrl = collective.image;
-
-  if (!imageUrl) {
-    if (!collective.name || collective.name === 'anonymous') {
-      image = await readFile(path.resolve(staticImagesFolder, 'anonymous-logo-square.png'));
-    } else if (collective.type === 'USER') {
-      imageUrl = getUiAvatarUrl(collective.name, params.height || defaultHeight, false);
+  let imageUrl;
+  try {
+    if (collectiveSlug) {
+      imageUrl = await getCollectiveImageUrl(collectiveSlug, params.height || defaultHeight);
+    } else if (githubUsername) {
+      imageUrl = await getGithubImageUrl(githubUsername, params.height || defaultHeight);
+    }
+  } catch (err) {
+    if (!err.message.match(/No collective found/)) {
+      logger.error(`logo: ${err.message}`);
     }
   }
-  // TODO: add clearbit handling for organizations here?
-
-  if (!image && !imageUrl) {
+  if (!imageUrl) {
     return res.status(404).send('Not found');
   }
 
-  switch (req.params.format) {
+  switch (format) {
     case 'txt':
       logger.warn(`logo: generating ascii for ${collectiveSlug} from ${imageUrl}`);
       generateAsciiLogo(imageUrl, {
-        bg: req.query.bg === 'true' ? true : false,
-        fg: req.query.fg === 'true' ? true : false,
-        white_bg: req.query.white_bg === 'false' ? false : true,
-        colored: req.query.colored === 'false' ? false : true,
+        bg: parseToBooleanDefaultFalse(req.query.bg),
+        fg: parseToBooleanDefaultFalse(req.query.fg),
+        white_bg: parseToBooleanDefaultTrue(req.query.white_bg),
+        colored: parseToBooleanDefaultTrue(req.query.colored),
         size: {
           height: params.height || 20,
           width: params.width,
         },
         variant: req.query.variant || 'wide',
-        trim: req.query.trim !== 'false',
-        reverse: req.query.reverse === 'true' ? true : false,
+        trim: parseToBooleanDefaultTrue(req.query.trim),
+        reverse: parseToBooleanDefaultFalse(req.query.reverse),
       })
         .then(ascii => {
           res.setHeader('content-type', 'text/plain; charset=us-ascii');
@@ -90,15 +102,31 @@ export default async function logo(req, res, next) {
 
     default:
       try {
-        if (!image) {
-          // Today, we apply the rounded style through Cloudinary
-          if (style === 'rounded') {
-            const height = params.height || defaultHeight;
+        const height = params.height || defaultHeight;
+        const width = params.width;
+
+        if (style === 'rounded') {
+          // For anonymous, we have it already rounded
+          if (imageUrl.includes('anonymous-logo-square')) {
+            imageUrl = imageUrl.replace('anonymous-logo-square', 'anonymous-logo-rounded');
+          }
+          // We apply the rounded style through UI Avatars (no border for now)
+          else if (imageUrl.includes('rounded=false')) {
+            imageUrl = imageUrl.replace('rounded=false', 'rounded=true');
+          }
+          // We apply the rounded style through Cloudinary
+          else {
             imageUrl = getCloudinaryUrl(imageUrl, { height, style });
           }
+        }
 
+        let image;
+        if (!imageUrl.includes('https://')) {
+          image = await readFile(path.join(staticFolder, imageUrl));
+        }
+
+        if (!image) {
           logger.info(`logo: fetching ${imageUrl}`);
-
           const response = await fetch(imageUrl);
           if (!response.ok) {
             return res.status(response.status).send(response.statusText);
@@ -110,11 +138,11 @@ export default async function logo(req, res, next) {
         }
 
         const resizedImage = await sharp(image)
-          .resize(params.width, params.height || defaultHeight)
-          .toFormat(req.params.format)
+          .resize(width, height, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+          .toFormat(format)
           .toBuffer();
 
-        res.set('Content-Type', mime.lookup(req.params.format)).send(resizedImage);
+        res.set('Content-Type', mime.lookup(format)).send(resizedImage);
       } catch (err) {
         logger.error(`logo: ${err.message}`);
         return res.status(500).send('Internal Server Error');
