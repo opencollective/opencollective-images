@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import request from 'request';
 import sizeOf from 'image-size';
 import debug from 'debug';
 import mime from 'mime-types';
@@ -16,7 +15,10 @@ const getSvg = svgPath => fs.readFileSync(path.join(__dirname, svgPath), { encod
 
 const anonymousSvg = getSvg('../../static/images/default-anonymous-logo.svg');
 
-const getImageData = url => asyncRequest({ url, encoding: null }).then(result => result[1]);
+const imageRequest = url =>
+  asyncRequest({ url, encoding: null }).then(([response]) => {
+    return response;
+  });
 
 const sendSvg = (res, svg) => {
   res.setHeader('Cache-Control', 'public, max-age=7200');
@@ -24,7 +26,7 @@ const sendSvg = (res, svg) => {
   return res.send(svg);
 };
 
-const imageAsSvg = (data, { maxHeight, selector, imageformat }) => {
+const imageAsSvg = (buffer, { maxHeight, selector, imageformat }) => {
   const imageHeight = Math.round(maxHeight / 2);
   const contentType = mime.lookup(imageformat);
 
@@ -32,30 +34,33 @@ const imageAsSvg = (data, { maxHeight, selector, imageformat }) => {
 
   if (selector.match(/sponsor/)) {
     try {
-      const dimensions = sizeOf(data);
+      const dimensions = sizeOf(buffer);
       imageWidth = Math.round((dimensions.width / dimensions.height) * imageHeight);
     } catch (err) {
       throw new Error('Unable to get image size.');
     }
   }
 
-  const base64data = Buffer.from(data).toString('base64');
+  const base64data = buffer.toString('base64');
   return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${imageWidth}" height="${imageHeight}">
         <image width="${imageWidth}" height="${imageHeight}" xlink:href="data:${contentType};base64,${base64data}"/>
       </svg>`;
 };
 
-const proxyImage = (req, res, imageUrl) => {
-  return req
-    .pipe(request(imageUrl))
-    .on('error', e => {
-      logger.error('>>> collectives.avatar: Error proxying %s', imageUrl, e);
-      res.status(500).send(e);
-    })
-    .on('response', res => {
-      res.headers['Cache-Control'] = 'public, max-age=7200';
-    })
-    .pipe(res);
+const proxyImage = async (req, res, imageUrl, { imageFormat }) => {
+  const response = await imageRequest(imageUrl);
+  if (response.statusCode !== 200) {
+    return res.status(response.statusCode).send(response.statusMessage);
+  }
+  const image = response.body;
+  if (image.byteLength === 0) {
+    return res.status(400).send('Invalid Image');
+  }
+
+  res.setHeader('Cache-Control', 'public, max-age=7200');
+  res.setHeader('Content-Type', mime.lookup(imageFormat));
+
+  return res.send(image);
 };
 
 export default async function avatar(req, res) {
@@ -95,7 +100,7 @@ export default async function avatar(req, res) {
     maxWidth = maxHeight * 3;
   }
 
-  const imageformat = format === 'jpg' ? format : 'png';
+  const imageFormat = format === 'jpg' ? format : 'png';
 
   // Special cases for USER
   if (user.type === 'USER') {
@@ -109,18 +114,25 @@ export default async function avatar(req, res) {
     }
 
     // Normal image
-    let imageUrl = `${process.env.IMAGES_URL}/${user.slug}/avatar/rounded/${maxHeight}.${imageformat}`;
+    let imageUrl = `${process.env.IMAGES_URL}/${user.slug}/avatar/rounded/${maxHeight}.${imageFormat}`;
     // Use Cloudinary directly if internal images disabled
     if (process.env.DISABLE_BANNER_INTERNAL_IMAGES) {
-      imageUrl = getCloudinaryUrl(user.image, { height: maxHeight, style: 'rounded', format: imageformat });
+      imageUrl = getCloudinaryUrl(user.image, { height: maxHeight, style: 'rounded', format: imageFormat });
     }
     debugAvatar(`Serving ${imageUrl} for ${user.slug} (type=USER)`);
     try {
       if (format === 'svg') {
-        const data = await getImageData(imageUrl);
-        return sendSvg(res, imageAsSvg(data, { selector, maxHeight, imageformat }));
+        const response = await imageRequest(imageUrl);
+        if (response.statusCode !== 200) {
+          return res.status(response.statusCode).send(response.statusMessage);
+        }
+        const image = response.body;
+        if (image.byteLength === 0) {
+          return res.status(400).send('Invalid Image');
+        }
+        return sendSvg(res, imageAsSvg(image, { selector, maxHeight, imageFormat }));
       } else {
-        return proxyImage(req, res, imageUrl);
+        return proxyImage(req, res, imageUrl, { imageFormat });
       }
     } catch (err) {
       logger.error(`avatar: unable to serve ${imageUrl} for ${user.slug}: ${err.message}`);
@@ -129,18 +141,25 @@ export default async function avatar(req, res) {
   }
 
   // Default case (likely Organizations)
-  let imageUrl = `${process.env.IMAGES_URL}/${user.slug}/logo/square/${maxHeight}/${maxWidth}.${imageformat}`;
+  let imageUrl = `${process.env.IMAGES_URL}/${user.slug}/logo/square/${maxHeight}/${maxWidth}.${imageFormat}`;
   // Use Cloudinary directly if internal images disabled
   if (process.env.DISABLE_BANNER_INTERNAL_IMAGES) {
-    imageUrl = getCloudinaryUrl(user.image, { height: maxHeight, width: maxWidth, format: imageformat });
+    imageUrl = getCloudinaryUrl(user.image, { height: maxHeight, width: maxWidth, format: imageFormat });
   }
   debugAvatar(`Serving ${imageUrl} for ${user.slug} (default)`);
   try {
     if (format === 'svg') {
-      const data = await getImageData(imageUrl);
-      return sendSvg(res, imageAsSvg(data, { selector, maxHeight, imageformat }));
+      const response = await imageRequest(imageUrl);
+      if (response.statusCode !== 200) {
+        return res.status(response.statusCode).send(response.statusMessage);
+      }
+      const image = response.body;
+      if (image.byteLength === 0) {
+        return res.status(400).send('Invalid Image');
+      }
+      return sendSvg(res, imageAsSvg(image, { selector, maxHeight, imageFormat }));
     } else {
-      return proxyImage(req, res, imageUrl);
+      return proxyImage(req, res, imageUrl, { imageFormat });
     }
   } catch (err) {
     logger.error(`avatar: unable to serve ${imageUrl} for ${user.slug}: ${err.message}`);

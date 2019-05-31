@@ -1,13 +1,10 @@
 import Promise from 'bluebird';
-import debug from 'debug';
 import sizeOf from 'image-size';
 import { cloneDeep } from 'lodash';
 
 import { asyncRequest } from './request';
 import { getCloudinaryUrl } from './utils';
 import { logger } from '../logger';
-
-const debugBanner = debug('banner');
 
 const WEBSITE_URL = process.env.WEBSITE_URL;
 
