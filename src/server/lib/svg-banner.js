@@ -59,9 +59,6 @@ export function generateSvgBanner(usersList, options) {
 
     // NOTE: we ask everywhere a double size quality for retina
     const image = getImageForUser(user, avatarHeight * 2, options);
-
-    debugBanner(`Pushing ${image}`);
-
     if (image) {
       promises.push(asyncRequest({ url: image, encoding: null }));
     } else {
