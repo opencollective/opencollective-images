@@ -10,7 +10,7 @@ import { get } from 'lodash';
 import { logger } from '../logger';
 import { fetchCollectiveWithCache } from '../lib/graphql';
 import { generateAsciiLogo } from '../lib/ascii-logo';
-import { getCloudinaryUrl, getUiAvatarUrl, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
+import { getUiAvatarUrl, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
 
 const defaultHeight = 128;
 
@@ -105,21 +105,6 @@ export default async function logo(req, res) {
         const height = params.height || defaultHeight;
         const width = params.width;
 
-        if (style === 'rounded') {
-          // For anonymous, we have it already rounded
-          if (imageUrl.includes('anonymous-logo-square')) {
-            imageUrl = imageUrl.replace('anonymous-logo-square', 'anonymous-logo-rounded');
-          }
-          // We apply the rounded style through UI Avatars (no border for now)
-          else if (imageUrl.includes('rounded=false')) {
-            imageUrl = imageUrl.replace('rounded=false', 'rounded=true');
-          }
-          // We apply the rounded style through Cloudinary
-          else {
-            imageUrl = getCloudinaryUrl(imageUrl, { height, style });
-          }
-        }
-
         let image;
         if (!imageUrl.includes('https://')) {
           image = await readFile(path.join(staticFolder, imageUrl));
@@ -137,12 +122,36 @@ export default async function logo(req, res) {
           }
         }
 
-        const resizedImage = await sharp(image)
-          .resize(width, height, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-          .toFormat(format)
-          .toBuffer();
+        let processedImage = sharp(image);
 
-        res.set('Content-Type', mime.lookup(format)).send(resizedImage);
+        if (style === 'rounded') {
+          const roundedCorners = Buffer.from(
+            `<svg><rect x="0" y="0" width="${height}" height="${height}" rx="${height}" ry="${height}"/></svg>`,
+          );
+          processedImage = processedImage
+            .resize(height, height)
+            // about "composite"
+            // https://sharp.pixelplumbing.com/en/stable/api-composite/
+            .composite([
+              {
+                input: roundedCorners,
+                // about "dest-in"
+                // https://libvips.github.io/libvips/API/current/libvips-conversion.html#VipsBlendMode
+                // the second (input) object is removed completely
+                // the first (origingal) is only drawn where the second was
+                blend: 'dest-in',
+              },
+            ]);
+        } else {
+          processedImage = processedImage.resize(width, height, {
+            fit: 'contain',
+            background: { r: 0, g: 0, b: 0, alpha: 0 },
+          });
+        }
+
+        processedImage = await processedImage.toFormat(format).toBuffer();
+
+        res.set('Content-Type', mime.lookup(format)).send(processedImage);
       } catch (err) {
         logger.error(`logo: ${err.message}`);
         return res.status(500).send('Internal Server Error');
