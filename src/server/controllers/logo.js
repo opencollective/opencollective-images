@@ -2,10 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
 
+import debug from 'debug';
 import fetch from 'node-fetch';
 import sharp from 'sharp';
 import mime from 'mime-types';
-import { get } from 'lodash';
+import { get, omit } from 'lodash';
 
 import { logger } from '../logger';
 import { fetchCollectiveWithCache } from '../lib/graphql';
@@ -17,6 +18,8 @@ const defaultHeight = 128;
 const readFile = promisify(fs.readFile);
 
 const staticFolder = path.resolve(__dirname, '..', '..', 'static');
+
+const debugLogo = debug('logo');
 
 const getCollectiveImageUrl = async (collectiveSlug, height = defaultHeight) => {
   const collective = await fetchCollectiveWithCache(collectiveSlug);
@@ -41,6 +44,16 @@ const getGithubImageUrl = async (githubUsername, height = defaultHeight) => {
 export default async function logo(req, res) {
   const collectiveSlug = req.params.collectiveSlug;
   const githubUsername = req.params.githubUsername;
+
+  if (githubUsername) {
+    debugLogo(
+      `generating ${githubUsername} (github): ${JSON.stringify(omit(req.params, ['githubUsername', 'image']))}`,
+    );
+  } else {
+    debugLogo(
+      `generating ${collectiveSlug} (collective): ${JSON.stringify(omit(req.params, ['collectiveSlug', 'image']))}`,
+    );
+  }
 
   const format = req.params.format;
 
@@ -111,7 +124,7 @@ export default async function logo(req, res) {
         }
 
         if (!image) {
-          logger.info(`logo: fetching ${imageUrl}`);
+          debugLogo(`fetching ${imageUrl}`);
           const response = await fetch(imageUrl);
           if (!response.ok) {
             return res.status(response.status).send(response.statusText);
@@ -153,7 +166,7 @@ export default async function logo(req, res) {
 
         res.set('Content-Type', mime.lookup(format)).send(processedImage);
       } catch (err) {
-        logger.error(`logo: ${err.message}`);
+        logger.error(`logo: error processing ${imageUrl} (${err.message})`);
         return res.status(500).send('Internal Server Error');
       }
 
