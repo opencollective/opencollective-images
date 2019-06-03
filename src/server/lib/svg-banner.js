@@ -1,5 +1,6 @@
 import Promise from 'bluebird';
 import sizeOf from 'image-size';
+import pLimit from 'p-limit';
 import { cloneDeep } from 'lodash';
 
 import { imageRequest } from './request';
@@ -7,6 +8,8 @@ import { getCloudinaryUrl } from './utils';
 import { logger } from '../logger';
 
 const WEBSITE_URL = process.env.WEBSITE_URL;
+
+const svgBannerRequestLimit = pLimit(process.env.SVG_BANNER_REQUEST_CONCURRENCY || 20);
 
 const getImageUrlForUser = (user, height, options) => {
   if (!user.image && (!user.name || user.name === 'anonymous') && !options.includeAnonymous) {
@@ -55,7 +58,7 @@ export function generateSvgBanner(usersList, options) {
     // NOTE: we ask everywhere a double size quality for high resolution devices
     user.requestImageUrl = getImageUrlForUser(user, avatarHeight * 2, options);
     if (user.requestImageUrl) {
-      promises.push(imageRequest(user.requestImageUrl));
+      promises.push(svgBannerRequestLimit(imageRequest, user.requestImageUrl));
     } else {
       promises.push(Promise.resolve());
     }
