@@ -30,3 +30,8 @@ export const asyncRequest = requestOptions => {
     return requestPromise(requestOptions);
   }
 };
+
+export const imageRequest = url =>
+  asyncRequest({ url, encoding: null }).then(([response]) => {
+    return response;
+  });

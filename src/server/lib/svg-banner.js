@@ -2,13 +2,13 @@ import Promise from 'bluebird';
 import sizeOf from 'image-size';
 import { cloneDeep } from 'lodash';
 
-import { asyncRequest } from './request';
+import { imageRequest } from './request';
 import { getCloudinaryUrl } from './utils';
 import { logger } from '../logger';
 
 const WEBSITE_URL = process.env.WEBSITE_URL;
 
-const getImageForUser = (user, height, options) => {
+const getImageUrlForUser = (user, height, options) => {
   if (!user.image && (!user.name || user.name === 'anonymous') && !options.includeAnonymous) {
     return null;
   }
@@ -27,8 +27,6 @@ const getImageForUser = (user, height, options) => {
 export function generateSvgBanner(usersList, options) {
   // usersList might come from LRU-cache and we don't want to modify it
   const users = cloneDeep(usersList);
-
-  logger.debug('>>> generateSvgBanner %d users, options: %j', users.length, options);
 
   const { limit, collectiveSlug } = options;
 
@@ -54,10 +52,10 @@ export function generateSvgBanner(usersList, options) {
   for (let i = 0; i < count; i++) {
     const user = users[i];
 
-    // NOTE: we ask everywhere a double size quality for retina
-    const image = getImageForUser(user, avatarHeight * 2, options);
-    if (image) {
-      promises.push(asyncRequest({ url: image, encoding: null }));
+    // NOTE: we ask everywhere a double size quality for high resolution devices
+    user.requestImageUrl = getImageUrlForUser(user, avatarHeight * 2, options);
+    if (user.requestImageUrl) {
+      promises.push(imageRequest(user.requestImageUrl));
     } else {
       promises.push(Promise.resolve());
     }
@@ -69,7 +67,7 @@ export function generateSvgBanner(usersList, options) {
       website: `${WEBSITE_URL}/${collectiveSlug}#support`,
     });
 
-    promises.push(asyncRequest({ url: options.buttonImage, encoding: null }));
+    promises.push(imageRequest(options.buttonImage));
   }
 
   let posX = margin;
@@ -79,26 +77,39 @@ export function generateSvgBanner(usersList, options) {
     .then(responses => {
       const images = [];
       for (let i = 0; i < responses.length; i++) {
-        if (!responses[i]) continue;
-
-        const { headers } = responses[i][0];
-        const rawData = responses[i][1];
         const user = users[i];
-        if (!user) continue;
+        const response = responses[i];
+        if (!user || !response) {
+          continue;
+        }
 
-        const contentType = headers['content-type'];
-        const website = options.linkToProfile || !user.website ? `${WEBSITE_URL}/${user.slug}` : user.website;
-        const base64data = Buffer.from(rawData).toString('base64');
+        if (response.statusCode !== 200) {
+          logger.warn(
+            `svgBanner: statusCode=${response.statusCode} for ${user.requestImageUrl} (${user.slug} - ${user.type})`,
+          );
+          continue;
+        }
+        const rawImage = response.body;
+        if (rawImage.byteLength === 0) {
+          logger.warn(`svgBanner: length=0 for ${user.requestImageUrl} (${user.slug} - ${user.type})`);
+          continue;
+        }
+
         let avatarWidth = avatarHeight;
         try {
           // We make sure the image loaded properly
-          const dimensions = sizeOf(rawData);
+          const dimensions = sizeOf(rawImage);
           avatarWidth = Math.round((dimensions.width / dimensions.height) * avatarHeight);
-        } catch (e) {
+        } catch (err) {
           // Otherwise, we skip it
-          logger.warn('Cannot get the dimensions of the avatar of %s.', user.slug, { image: user.image });
+          logger.warn(`svgBanner: invalid image for ${user.requestImageUrl} (${user.slug} - ${user.type})`);
+          logger.debug(err);
           continue;
         }
+
+        const contentType = response.headers['content-type'];
+        const website = options.linkToProfile || !user.website ? `${WEBSITE_URL}/${user.slug}` : user.website;
+        const base64data = Buffer.from(rawImage).toString('base64');
 
         if (imageWidth > 0 && posX + avatarWidth + margin > imageWidth) {
           posY += avatarHeight + margin;
@@ -119,7 +130,8 @@ export function generateSvgBanner(usersList, options) {
         ${images.join('\n')}
       </svg>`;
     })
-    .catch(e => {
-      logger.error('>>> Error in image-generator:generateSvgBanner', e);
+    .catch(err => {
+      logger.error(`svgBanner: ${err.message}`);
+      logger.debug(err);
     });
 }

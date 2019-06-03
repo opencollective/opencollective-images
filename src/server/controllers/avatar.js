@@ -7,18 +7,13 @@ import mime from 'mime-types';
 import { logger } from '../logger';
 import { fetchMembersWithCache } from '../lib/graphql';
 import { getCloudinaryUrl } from '../lib/utils';
-import { asyncRequest } from '../lib/request';
+import { imageRequest } from '../lib/request';
 
 const debugAvatar = debug('avatar');
 
 const getSvg = svgPath => fs.readFileSync(path.join(__dirname, svgPath), { encoding: 'utf8' });
 
 const anonymousSvg = getSvg('../../static/images/default-anonymous-logo.svg');
-
-const imageRequest = url =>
-  asyncRequest({ url, encoding: null }).then(([response]) => {
-    return response;
-  });
 
 const sendSvg = (res, svg) => {
   res.setHeader('Cache-Control', 'public, max-age=7200');
