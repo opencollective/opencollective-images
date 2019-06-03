@@ -127,10 +127,12 @@ export default async function logo(req, res) {
           debugLogo(`fetching ${imageUrl}`);
           const response = await fetch(imageUrl);
           if (!response.ok) {
+            logger.error(`logo: error processing ${imageUrl} (status=${response.status} ${response.statusText})`);
             return res.status(response.status).send(response.statusText);
           }
           image = await response.buffer();
           if (image.byteLength === 0) {
+            logger.error(`logo: error processing ${imageUrl} (Invalid Image)`);
             return res.status(400).send('Invalid Image');
           }
         }
