@@ -5,7 +5,7 @@ import { maxAge } from './middlewares';
 import { logger } from './logger';
 import { getCloudinaryUrl, isValidUrl } from './lib/utils';
 
-const maxAgeOneWeek = maxAge(7 * 24 * 60 * 60);
+const maxAgeOneDay = maxAge(24 * 60 * 60);
 const maxAgeTwoHours = maxAge(2 * 60 * 60);
 
 export const loadRoutes = app => {
@@ -52,14 +52,14 @@ export const loadRoutes = app => {
   // Special route for GitHub avatars
   app.get(
     '/github/:githubUsername/:image(avatar)/:style(rounded|square)?/:height?.:format(png)',
-    maxAgeOneWeek,
+    maxAgeOneDay,
     controllers.logo,
   );
 
   // Same as the following one but with agressive caching
   app.get(
     '/:collectiveSlug/:image(avatar|logo)/:style(rounded|square)/:height/:width?.:format(png)',
-    maxAgeOneWeek,
+    maxAgeOneDay,
     controllers.logo,
   );
 

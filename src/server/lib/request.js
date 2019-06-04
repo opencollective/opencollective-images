@@ -5,9 +5,9 @@ import cachedRequestLib from 'cached-request';
 const cachedRequest = cachedRequestLib(request);
 cachedRequest.setCacheDirectory('/tmp');
 
-const oneWeekInMilliseconds = 7 * 24 * 60 * 60 * 1000;
+const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
 
-const defaultTtl = oneWeekInMilliseconds;
+const defaultTtl = oneDayInMilliseconds;
 
 export const cachedRequestPromise = Promise.promisify(cachedRequest, { multiArgs: true });
 
