@@ -139,6 +139,10 @@ export default async function logo(req, res) {
 
         let processedImage = sharp(image);
 
+        const white = 'white';
+        const transparent = { r: 0, g: 0, b: 0, alpha: 0 };
+        const background = format === 'jpg' ? white : transparent;
+
         if (style === 'rounded') {
           const roundedCorners = Buffer.from(
             `<svg><rect x="0" y="0" width="${height}" height="${height}" rx="${height}" ry="${height}"/></svg>`,
@@ -160,12 +164,12 @@ export default async function logo(req, res) {
         } else {
           processedImage = processedImage.resize(width, height, {
             fit: 'contain',
-            background: format === 'jpg' ? 'white' : { r: 255, g: 255, b: 255, alpha: 0 },
+            background,
           });
         }
 
         if (format === 'jpg') {
-          processedImage = processedImage.flatten({ background: 'white' });
+          processedImage = processedImage.flatten({ background });
         }
 
         processedImage = await processedImage.toFormat(format).toBuffer();
