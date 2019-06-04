@@ -89,7 +89,7 @@ export default async function logo(req, res) {
 
   switch (format) {
     case 'txt':
-      logger.warn(`logo: generating ascii for ${collectiveSlug} from ${imageUrl}`);
+      debugLogo(`generating ascii for ${collectiveSlug} from ${imageUrl}`);
       generateAsciiLogo(imageUrl, {
         bg: parseToBooleanDefaultFalse(req.query.bg),
         fg: parseToBooleanDefaultFalse(req.query.fg),
