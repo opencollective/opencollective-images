@@ -146,9 +146,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
     };
   } else if (backerType) {
     type = backerType.match(/sponsor/i) ? 'ORGANIZATION' : 'USER';
-    if (backerType.match(/(backer|sponsor)/)) {
-      role = 'BACKER';
-    }
+    role = 'BACKER';
     query = `
     query allMembers($collectiveSlug: String!, $type: String!, $role: String!, $isActive: Boolean) {
       allMembers(collectiveSlug: $collectiveSlug, type: $type, role: $role, isActive: $isActive, orderBy: "totalDonations") {
