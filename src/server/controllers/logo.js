@@ -153,15 +153,19 @@ export default async function logo(req, res) {
                 // about "dest-in"
                 // https://libvips.github.io/libvips/API/current/libvips-conversion.html#VipsBlendMode
                 // the second (input) object is removed completely
-                // the first (origingal) is only drawn where the second was
+                // the first (original) is only drawn where the second was
                 blend: 'dest-in',
               },
             ]);
         } else {
           processedImage = processedImage.resize(width, height, {
             fit: 'contain',
-            background: { r: 0, g: 0, b: 0, alpha: 0 },
+            background: format === 'jpg' ? 'white' : { r: 255, g: 255, b: 255, alpha: 0 },
           });
+        }
+
+        if (format === 'jpg') {
+          processedImage = processedImage.flatten({ background: 'white' });
         }
 
         processedImage = await processedImage.toFormat(format).toBuffer();
