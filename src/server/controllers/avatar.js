@@ -64,8 +64,13 @@ export default async function avatar(req, res) {
   let users;
   try {
     users = await fetchMembersWithCache(req.params);
-  } catch (e) {
-    return res.status(404).send('Not found');
+  } catch (err) {
+    // Invalid collectiveSlug (not found)
+    if (err.message.match(/not found/)) {
+      return res.status(404).send('Not found.');
+    }
+    logger.error(`avatar: error while fetching members (${err.message})`);
+    return res.status(400).send('Unable to fetch avatar.');
   }
 
   const { tierSlug, backerType } = req.params;
