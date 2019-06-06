@@ -95,6 +95,9 @@ export async function fetchMembersStats(params) {
     }
     `;
     processResult = res => {
+      if (res.Collective.tiers.length === 0) {
+        throw new Error('Tier not found');
+      }
       return {
         count: res.Collective.tiers[0].stats.totalDistinctOrders,
         slug: res.Collective.tiers[0].slug,
