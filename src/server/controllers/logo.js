@@ -13,6 +13,10 @@ import { fetchCollectiveWithCache } from '../lib/graphql';
 import { generateAsciiLogo } from '../lib/ascii-logo';
 import { getUiAvatarUrl, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
 
+const white = 'white';
+
+const transparent = { r: 0, g: 0, b: 0, alpha: 0 };
+
 const defaultHeight = 128;
 
 const readFile = promisify(fs.readFile);
@@ -137,17 +141,12 @@ export default async function logo(req, res) {
           }
         }
 
-        let processedImage = sharp(image);
-
-        const white = 'white';
-        const transparent = { r: 0, g: 0, b: 0, alpha: 0 };
-        const background = format === 'jpg' ? white : transparent;
-
+        let sharpImage;
         if (style === 'rounded') {
           const roundedCorners = Buffer.from(
             `<svg><rect x="0" y="0" width="${height}" height="${height}" rx="${height}" ry="${height}"/></svg>`,
           );
-          processedImage = processedImage
+          sharpImage = sharp(image)
             .resize(height, height)
             // about "composite"
             // https://sharp.pixelplumbing.com/en/stable/api-composite/
@@ -162,19 +161,22 @@ export default async function logo(req, res) {
               },
             ]);
         } else {
-          processedImage = processedImage.resize(width, height, {
-            fit: 'contain',
-            background,
-          });
+          sharpImage = sharp(image).resize(width, height, { fit: 'contain', background: transparent });
         }
 
+        let finalImageBuffer;
         if (format === 'jpg') {
-          processedImage = processedImage.flatten({ background });
+          // We have to do this special treatment to avoid having a default black background
+          const imageWithTransparency = await sharpImage.toFormat('png').toBuffer();
+          finalImageBuffer = await sharp(imageWithTransparency)
+            .flatten({ background: white })
+            .jpeg()
+            .toBuffer();
+        } else {
+          finalImageBuffer = await sharpImage.toFormat(format).toBuffer();
         }
 
-        processedImage = await processedImage.toFormat(format).toBuffer();
-
-        res.set('Content-Type', mime.lookup(format)).send(processedImage);
+        res.set('Content-Type', mime.lookup(format)).send(finalImageBuffer);
       } catch (err) {
         logger.error(`logo: error processing ${imageUrl} (${err.message})`);
         return res.status(500).send('Internal Server Error');
