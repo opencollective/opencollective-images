@@ -22,7 +22,7 @@ export const loadRoutes = app => {
     const { src, width, height, query } = req.query;
 
     if (!isValidUrl(src)) {
-      return res.status(400).send(`Invalid parameter: "src"`);
+      return res.status(400).send('Invalid parameter: "src"');
     }
 
     const url = getCloudinaryUrl(src, { width, height, query });

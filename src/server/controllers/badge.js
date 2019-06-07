@@ -17,9 +17,7 @@ export default async function badge(req, res) {
 
     // Starting to move to shields.io matching URLs
     if (process.env.SHIELDS_IO && req.params.backerType && !req.query.label) {
-      imageUrl = `https://img.shields.io/opencollective/${req.params.backerType}/${
-        req.params.collectiveSlug
-      }.svg?color=${color}&style=${style}`;
+      imageUrl = `https://img.shields.io/opencollective/${req.params.backerType}/${req.params.collectiveSlug}.svg?color=${color}&style=${style}`;
     }
 
     if (!imageUrl) {
@@ -45,7 +43,7 @@ export default async function badge(req, res) {
     } catch (err) {
       logger.error(`badge: error while fetching ${imageUrl} (${err.message})`);
       res.setHeader('cache-control', 'max-age=30');
-      return res.status(400).send(`Unable to fetch badge`);
+      return res.status(400).send('Unable to fetch badge');
     }
   } catch (err) {
     let errorParams = '';
@@ -55,6 +53,6 @@ export default async function badge(req, res) {
       errorParams = `tierSlug=${req.params.tierSlug}`;
     }
     logger.error(`badge: error while processing ${req.params.collectiveSlug} ${errorParams} (${err.message})`);
-    return res.status(400).send(`Unable to generate badge`);
+    return res.status(400).send('Unable to generate badge');
   }
 }

@@ -25,7 +25,7 @@ const getCollectiveImageUrl = async (collectiveSlug, height = defaultHeight) => 
   const collective = await fetchCollectiveWithCache(collectiveSlug);
 
   if (!collective.name || collective.name === 'anonymous') {
-    return `/images/anonymous-logo-square.png`;
+    return '/images/anonymous-logo-square.png';
   }
 
   if (collective.image) {
@@ -109,7 +109,7 @@ export default async function logo(req, res) {
         })
         .catch(err => {
           logger.error(`logo: unable to generate ascii for ${collectiveSlug} from ${imageUrl} (${err.message})`);
-          return res.status(400).send(`Unable to create an ASCII art.`);
+          return res.status(400).send('Unable to create an ASCII art.');
         });
       break;
 

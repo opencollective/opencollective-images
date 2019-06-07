@@ -136,7 +136,7 @@ export default async function avatar(req, res) {
       }
     } catch (err) {
       logger.error(`avatar: unable to serve ${imageUrl} for ${user.slug}: ${err.message}`);
-      return res.status(400).send(`Unable to fetch image.`);
+      return res.status(400).send('Unable to fetch image.');
     }
   }
 
@@ -163,6 +163,6 @@ export default async function avatar(req, res) {
     }
   } catch (err) {
     logger.error(`avatar: unable to serve ${imageUrl} for ${user.slug}: ${err.message}`);
-    return res.status(400).send(`Unable to fetch image.`);
+    return res.status(400).send('Unable to fetch image.');
   }
 }
