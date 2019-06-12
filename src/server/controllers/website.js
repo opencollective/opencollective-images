@@ -1,7 +1,7 @@
 import { URL } from 'url';
 
 import { fetchMembersWithCache } from '../lib/graphql';
-import { parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
+import { getWebsite, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
 
 const websiteUrl = process.env.WEBSITE_URL;
 
@@ -22,7 +22,7 @@ export default async function website(req, res) {
     return res.status(404).send('Not found');
   }
 
-  const { collectiveSlug, tierSlug, backerType } = req.params;
+  const { collectiveSlug } = req.params;
 
   const position = parseInt(req.params.position, 10);
 
@@ -31,15 +31,12 @@ export default async function website(req, res) {
   }
 
   const user = users[position] || {};
-  const selector = tierSlug || backerType;
-  let redirectUrl = `${websiteUrl}/${user.slug}`;
-  if (selector.match(/sponsor/i) || selector.match(/organization/i)) {
-    user.twitter = user.twitterHandle ? `https://twitter.com/${user.twitterHandle}` : null;
-    redirectUrl = user.website || user.twitter || `${websiteUrl}/${user.slug}`;
-  }
 
+  let redirectUrl;
   if (position === users.length) {
     redirectUrl = `${websiteUrl}/${collectiveSlug}#support`;
+  } else {
+    redirectUrl = getWebsite(user);
   }
 
   const parsedUrl = new URL(redirectUrl);

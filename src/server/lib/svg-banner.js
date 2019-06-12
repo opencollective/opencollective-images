@@ -4,7 +4,7 @@ import pLimit from 'p-limit';
 import { cloneDeep } from 'lodash';
 
 import { imageRequest } from './request';
-import { getCloudinaryUrl } from './utils';
+import { getCloudinaryUrl, getWebsite } from './utils';
 import { logger } from '../logger';
 
 const WEBSITE_URL = process.env.WEBSITE_URL;
@@ -111,7 +111,8 @@ export function generateSvgBanner(usersList, options) {
         }
 
         const contentType = response.headers['content-type'];
-        const website = options.linkToProfile || !user.website ? `${WEBSITE_URL}/${user.slug}` : user.website;
+
+        const website = getWebsite(user);
         const base64data = Buffer.from(rawImage).toString('base64');
 
         if (imageWidth > 0 && posX + avatarWidth + margin > imageWidth) {
