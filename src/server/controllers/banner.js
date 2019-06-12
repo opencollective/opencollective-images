@@ -40,7 +40,8 @@ export default async function banner(req, res) {
   }
 
   const selector = tierSlug || backerType;
-  const linkToProfile = selector === 'contributors' || selector == 'sponsors' ? false : true;
+  const linkToProfile =
+    selector === 'contributors' || selector == 'sponsors' || selector == 'organizations' ? false : true;
   const buttonImage =
     showBtn && `${imagesUrl}/static/images/become_${selector.match(/sponsor/) ? 'sponsor' : 'backer'}.svg`;
 
