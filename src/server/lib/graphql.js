@@ -72,9 +72,14 @@ export async function fetchMembersStats(params) {
     }
     `;
     processResult = res => {
-      const count = backerType.match(/sponsor/)
-        ? res.Collective.stats.backers.organizations
-        : res.Collective.stats.backers.users;
+      let count;
+      if (backerType.match(/sponsor/i) || backerType.match(/organization/i)) {
+        count = res.Collective.stats.backers.organizations;
+      } else if (backerType.match(/backer/i) || backerType.match(/individual/i)) {
+        count = res.Collective.stats.backers.users;
+      } else {
+        count = res.Collective.stats.backers.all;
+      }
       return {
         name: backerType,
         count,
