@@ -153,7 +153,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
       });
     };
   } else if (backerType) {
-    type = backerType.match(/sponsor/i) ? 'ORGANIZATION' : 'USER';
+    type = backerType.match(/sponsor/i) || backerType.match(/organization/i) ? 'ORGANIZATION' : 'USER';
     role = 'BACKER';
     query = `
     query allMembers($collectiveSlug: String!, $type: String!, $role: String!, $isActive: Boolean) {

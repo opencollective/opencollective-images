@@ -1,11 +1,19 @@
 import { URL } from 'url';
 
 import { fetchMembersWithCache } from '../lib/graphql';
+import { parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
 
 const websiteUrl = process.env.WEBSITE_URL;
 
 export default async function website(req, res) {
-  req.params.isActive = req.query.isActive === 'false' ? false : true;
+  if (
+    req.params.backerType &&
+    (req.params.backerType.match(/organization/i) || req.params.backerType.match(/individual/i))
+  ) {
+    req.params.isActive = parseToBooleanDefaultFalse(req.query.isActive);
+  } else {
+    req.params.isActive = parseToBooleanDefaultTrue(req.query.isActive);
+  }
 
   let users;
   try {
@@ -25,7 +33,7 @@ export default async function website(req, res) {
   const user = users[position] || {};
   const selector = tierSlug || backerType;
   let redirectUrl = `${websiteUrl}/${user.slug}`;
-  if (selector.match(/sponsor/)) {
+  if (selector.match(/sponsor/i) || selector.match(/organization/i)) {
     user.twitter = user.twitterHandle ? `https://twitter.com/${user.twitterHandle}` : null;
     redirectUrl = user.website || user.twitter || `${websiteUrl}/${user.slug}`;
   }

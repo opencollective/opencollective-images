@@ -6,7 +6,7 @@ import mime from 'mime-types';
 
 import { logger } from '../logger';
 import { fetchMembersWithCache } from '../lib/graphql';
-import { getCloudinaryUrl } from '../lib/utils';
+import { getCloudinaryUrl, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
 import { imageRequest } from '../lib/request';
 
 const debugAvatar = debug('avatar');
@@ -59,7 +59,14 @@ const proxyImage = async (req, res, imageUrl, { imageFormat }) => {
 };
 
 export default async function avatar(req, res) {
-  req.params.isActive = req.query.isActive === 'false' ? false : true;
+  if (
+    req.params.backerType &&
+    (req.params.backerType.match(/organization/i) || req.params.backerType.match(/individual/i))
+  ) {
+    req.params.isActive = parseToBooleanDefaultFalse(req.query.isActive);
+  } else {
+    req.params.isActive = parseToBooleanDefaultTrue(req.query.isActive);
+  }
 
   let users;
   try {
@@ -82,7 +89,7 @@ export default async function avatar(req, res) {
 
   // Unexisting position or button
   if (position == users.length) {
-    const btnImage = selector.match(/sponsor/) ? 'sponsor' : 'backer';
+    const btnImage = selector.match(/sponsor/i) || selector.match(/organization/i) ? 'sponsor' : 'backer';
     return res.redirect(`/static/images/become_${btnImage}.svg`);
   } else if (position > users.length) {
     return res.redirect('/static/images/1px.png');
