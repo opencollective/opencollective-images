@@ -28,7 +28,7 @@ const debugLogo = debug('logo');
 const getCollectiveImageUrl = async (collectiveSlug, height = defaultHeight) => {
   const collective = await fetchCollectiveWithCache(collectiveSlug);
 
-  if (!collective.name || collective.name === 'anonymous') {
+  if (collective.type === 'USER' && (!collective.name || collective.name === 'anonymous')) {
     return '/images/anonymous-logo-square.png';
   }
 
@@ -38,6 +38,10 @@ const getCollectiveImageUrl = async (collectiveSlug, height = defaultHeight) => 
 
   if (collective.type === 'USER') {
     return getUiAvatarUrl(collective.name, height, false);
+  }
+
+  if (collective.type === 'COLLECTIVE') {
+    return '/images/default-collective-logo.png';
   }
 };
 
