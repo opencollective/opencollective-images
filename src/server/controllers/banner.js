@@ -39,7 +39,17 @@ export default async function banner(req, res) {
     return res.status(404).send('Not found');
   }
 
-  const buttonImage = showBtn && `${imagesUrl}/static/images/contribute.svg`;
+  let buttonImage;
+  if (showBtn) {
+    const selector = tierSlug || backerType;
+    if (selector.match(/sponsor/)) {
+      buttonImage = `${imagesUrl}/static/images/become_sponsor.svg`;
+    } else if (selector.match(/backer/)) {
+      buttonImage = `${imagesUrl}/static/images/become_backer.svg`;
+    } else {
+      buttonImage = `${imagesUrl}/static/images/contribute.svg`;
+    }
+  }
 
   if (backerType) {
     debugBanner(`generating for ${collectiveSlug} (backerType=${backerType})`);

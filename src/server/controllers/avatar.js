@@ -89,7 +89,15 @@ export default async function avatar(req, res) {
 
   // Unexisting position or button
   if (position == users.length) {
-    return res.redirect(`/static/images/contribute.svg`);
+    let buttonImage;
+    if (selector.match(/sponsor/)) {
+      buttonImage = `/static/images/become_sponsor.svg`;
+    } else if (selector.match(/backer/)) {
+      buttonImage = `/static/images/become_backer.svg`;
+    } else {
+      buttonImage = `/static/images/contribute.svg`;
+    }
+    return res.redirect(buttonImage);
   } else if (position > users.length) {
     return res.redirect('/static/images/1px.png');
   }
