@@ -72,18 +72,18 @@ export async function fetchMembersStats(params) {
     }
     `;
     processResult = res => {
-      let count;
+      let name, count;
       if (backerType.match(/sponsor/i) || backerType.match(/organization/i)) {
         count = res.Collective.stats.backers.organizations;
+        name = backerType;
       } else if (backerType.match(/backer/i) || backerType.match(/individual/i)) {
         count = res.Collective.stats.backers.users;
+        name = backerType;
       } else {
         count = res.Collective.stats.backers.all;
+        name = 'financial contributors';
       }
-      return {
-        name: backerType,
-        count,
-      };
+      return { name, count };
     };
   } else if (tierSlug) {
     query = `
