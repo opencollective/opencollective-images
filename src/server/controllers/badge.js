@@ -17,7 +17,7 @@ export default async function badge(req, res) {
 
     // Starting to move to shields.io matching URLs
     if (process.env.SHIELDS_IO && req.params.backerType) {
-      const label = req.query.label || req.params.backerType;
+      let label = req.query.label || req.params.backerType;
       let backerType;
       if (req.params.backerType.match(/sponsor/i) || req.params.backerType.match(/organization/i)) {
         backerType = 'sponsors';
@@ -25,6 +25,7 @@ export default async function badge(req, res) {
         backerType = 'backers';
       } else {
         backerType = 'all';
+        label = 'financial contributors';
       }
 
       imageUrl = `https://img.shields.io/opencollective/${backerType}/${req.params.collectiveSlug}.svg?color=${color}&style=${style}&label=${label}`;
