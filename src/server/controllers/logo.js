@@ -43,6 +43,10 @@ const getCollectiveImageUrl = async (collectiveSlug, height = defaultHeight) => 
   if (collective.type === 'COLLECTIVE') {
     return '/images/default-collective-logo.png';
   }
+
+  if (collective.type === 'ORGANIZATION') {
+    return '/images/default-organization-logo.png';
+  }
 };
 
 const getGithubImageUrl = async (githubUsername, height = defaultHeight) => {
