@@ -11,6 +11,8 @@ import { imageRequest } from '../lib/request';
 
 const debugAvatar = debug('avatar');
 
+const imagesUrl = process.env.IMAGES_URL;
+
 const getSvg = svgPath => fs.readFileSync(path.join(__dirname, svgPath), { encoding: 'utf8' });
 
 const anonymousSvg = getSvg('../../static/images/default-anonymous-logo.svg');
@@ -91,15 +93,15 @@ export default async function avatar(req, res) {
   if (position == users.length) {
     let buttonImage;
     if (selector.match(/sponsor/)) {
-      buttonImage = `/static/images/become_sponsor.svg`;
+      buttonImage = `${imagesUrl}/static/images/become_sponsor.svg`;
     } else if (selector.match(/backer/)) {
-      buttonImage = `/static/images/become_backer.svg`;
+      buttonImage = `${imagesUrl}/static/images/become_backer.svg`;
     } else {
-      buttonImage = `/static/images/contribute.svg`;
+      buttonImage = `${imagesUrl}/static/images/contribute.svg`;
     }
     return res.redirect(buttonImage);
   } else if (position > users.length) {
-    return res.redirect('/static/images/1px.png');
+    return res.redirect(`${imagesUrl}/static/images/1px.png`);
   }
 
   let maxHeight, maxWidth;
