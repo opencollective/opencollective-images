@@ -39,9 +39,7 @@ export default async function banner(req, res) {
     return res.status(404).send('Not found');
   }
 
-  const selector = tierSlug || backerType;
-  const buttonImage =
-    showBtn && `${imagesUrl}/static/images/become_${selector.match(/sponsor/) ? 'sponsor' : 'backer'}.svg`;
+  const buttonImage = showBtn && `${imagesUrl}/static/images/contribute.svg`;
 
   if (backerType) {
     debugBanner(`generating for ${collectiveSlug} (backerType=${backerType})`);

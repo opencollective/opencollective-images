@@ -89,8 +89,7 @@ export default async function avatar(req, res) {
 
   // Unexisting position or button
   if (position == users.length) {
-    const btnImage = selector.match(/sponsor/i) || selector.match(/organization/i) ? 'sponsor' : 'backer';
-    return res.redirect(`/static/images/become_${btnImage}.svg`);
+    return res.redirect(`/static/images/contribute.svg`);
   } else if (position > users.length) {
     return res.redirect('/static/images/1px.png');
   }
