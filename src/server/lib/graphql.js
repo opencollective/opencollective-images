@@ -72,13 +72,18 @@ export async function fetchMembersStats(params) {
     }
     `;
     processResult = res => {
-      const count = backerType.match(/sponsor/)
-        ? res.Collective.stats.backers.organizations
-        : res.Collective.stats.backers.users;
-      return {
-        name: backerType,
-        count,
-      };
+      let name, count;
+      if (backerType.match(/sponsor/i) || backerType.match(/organization/i)) {
+        count = res.Collective.stats.backers.organizations;
+        name = backerType;
+      } else if (backerType.match(/backer/i) || backerType.match(/individual/i)) {
+        count = res.Collective.stats.backers.users;
+        name = backerType;
+      } else {
+        count = res.Collective.stats.backers.all;
+        name = 'financial contributors';
+      }
+      return { name, count };
     };
   } else if (tierSlug) {
     query = `
@@ -148,7 +153,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
       });
     };
   } else if (backerType) {
-    type = backerType.match(/sponsor/i) ? 'ORGANIZATION' : 'USER';
+    type = backerType.match(/sponsor/i) || backerType.match(/organization/i) ? 'ORGANIZATION' : 'USER';
     role = 'BACKER';
     query = `
     query allMembers($collectiveSlug: String!, $type: String!, $role: String!, $isActive: Boolean) {

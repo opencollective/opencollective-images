@@ -16,8 +16,20 @@ export default async function badge(req, res) {
     let imageUrl;
 
     // Starting to move to shields.io matching URLs
-    if (process.env.SHIELDS_IO && req.params.backerType && !req.query.label) {
-      imageUrl = `https://img.shields.io/opencollective/${req.params.backerType}/${req.params.collectiveSlug}.svg?color=${color}&style=${style}`;
+    if (process.env.SHIELDS_IO && req.params.backerType) {
+      let backerType, label;
+      if (req.params.backerType.match(/sponsor/i) || req.params.backerType.match(/organization/i)) {
+        backerType = 'sponsors';
+        label = req.query.label || req.params.backerType;
+      } else if (req.params.backerType.match(/backer/i) || req.params.backerType.match(/individual/i)) {
+        backerType = 'backers';
+        label = req.query.label || req.params.backerType;
+      } else {
+        backerType = 'all';
+        label = req.query.label || 'financial contributors';
+      }
+
+      imageUrl = `https://img.shields.io/opencollective/${backerType}/${req.params.collectiveSlug}.svg?color=${color}&style=${style}&label=${label}`;
     }
 
     if (!imageUrl) {

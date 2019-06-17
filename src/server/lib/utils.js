@@ -107,3 +107,9 @@ export const isValidUrl = string => {
     return false;
   }
 };
+
+export const getWebsite = user => {
+  const twitter = user.twitterHandle ? `https://twitter.com/${user.twitterHandle}` : null;
+
+  return user.website || twitter || `${process.env.WEBSITE_URL}/${user.slug}`;
+};
