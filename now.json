@@ -1,23 +1,5 @@
 {
   "version": 1,
   "type": "docker",
-  "name": "opencollective-images",
-  "alias": "images.opencollective.com",
-  "env": {
-    "API_KEY": "@opencollective_api_key",
-    "API_URL": "https://api.opencollective.com"
-  },
-  "scale": {
-    "sfo1": {
-      "min": 2,
-      "max": "auto"
-    },
-    "bru1": {
-      "min": 2,
-      "max": "auto"
-    }
-  },
-  "github": {
-    "autoAlias": false
-  }
+  "name": "opencollective-images"
 }
