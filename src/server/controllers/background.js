@@ -9,11 +9,12 @@ import { fetchCollectiveWithCache } from '../lib/graphql';
 const getImageData = url => asyncRequest({ url, encoding: null }).then(result => result[1]);
 
 export default async function background(req, res, next) {
-  let collective;
+  let collective, imageUrl;
   try {
     collective = await fetchCollectiveWithCache(req.params.collectiveSlug);
-    if (!collective.backgroundImage) {
-      return res.status(404).send('Not found (No collective backgroundImage)');
+    imageUrl = collective.backgroundImage || get(collective, 'parentCollective.backgroundImage');
+    if (!imageUrl) {
+      return res.status(404).send('Not found (no collective/parentCollective backgroundImage)');
     }
   } catch (e) {
     if (e.message.match(/No collective found/)) {
@@ -37,7 +38,7 @@ export default async function background(req, res, next) {
     params['height'] = Number(height);
   }
 
-  const image = await getImageData(collective.backgroundImage);
+  const image = await getImageData(imageUrl);
 
   const resizedImage = await sharp(image)
     .resize(params.width, params.height)
