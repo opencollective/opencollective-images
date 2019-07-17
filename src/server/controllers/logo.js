@@ -36,6 +36,13 @@ const getCollectiveImageUrl = async (collectiveSlug, height = defaultHeight) => 
     return collective.image;
   }
 
+  if (collective.type === 'EVENT') {
+    const parentCollectiveImage = get(collective, 'parentCollective.image');
+    if (parentCollectiveImage) {
+      return parentCollectiveImage;
+    }
+  }
+
   if (collective.type === 'USER') {
     return getUiAvatarUrl(collective.name, height, false);
   }

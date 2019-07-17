@@ -34,6 +34,10 @@ export async function fetchCollective(collectiveSlug) {
       type
       image
       backgroundImage
+      parentCollective {
+        image
+        backgroundImage
+      }
     }
   }
   `;
@@ -44,7 +48,7 @@ export async function fetchCollective(collectiveSlug) {
 }
 
 export async function fetchCollectiveWithCache(collectiveSlug) {
-  const cacheKey = `collective_${collectiveSlug}`;
+  const cacheKey = `collective_v2_${collectiveSlug}`;
   let collective = await cache.get(cacheKey);
   if (!collective) {
     collective = await fetchCollective(collectiveSlug);
