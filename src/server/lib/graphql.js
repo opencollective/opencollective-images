@@ -47,8 +47,13 @@ export async function fetchCollective(collectiveSlug) {
   return result.Collective;
 }
 
-export async function fetchCollectiveWithCache(collectiveSlug) {
-  const cacheKey = `collective_v2_${collectiveSlug}`;
+export async function fetchCollectiveWithCache(collectiveSlug, options = {}) {
+  let cacheKey;
+  if (options.hash) {
+    cacheKey = `collective_v2_${collectiveSlug}_${options.hash}`;
+  } else {
+    cacheKey = `collective_v2_${collectiveSlug}`;
+  }
   let collective = await cache.get(cacheKey);
   if (!collective) {
     collective = await fetchCollective(collectiveSlug);

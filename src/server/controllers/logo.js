@@ -25,8 +25,8 @@ const staticFolder = path.resolve(__dirname, '..', '..', 'static');
 
 const debugLogo = debug('logo');
 
-const getCollectiveImageUrl = async (collectiveSlug, height = defaultHeight) => {
-  const collective = await fetchCollectiveWithCache(collectiveSlug);
+const getCollectiveImageUrl = async (collectiveSlug, { height, hash } = {}) => {
+  const collective = await fetchCollectiveWithCache(collectiveSlug, { hash });
 
   if (collective.type === 'USER' && (!collective.name || collective.name === 'anonymous')) {
     return '/images/anonymous-logo-square.png';
@@ -44,7 +44,7 @@ const getCollectiveImageUrl = async (collectiveSlug, height = defaultHeight) => 
   }
 
   if (collective.type === 'USER') {
-    return getUiAvatarUrl(collective.name, height, false);
+    return getUiAvatarUrl(collective.name, height || defaultHeight, false);
   }
 
   if (collective.type === 'COLLECTIVE') {
@@ -93,7 +93,10 @@ export default async function logo(req, res) {
   let imageUrl;
   try {
     if (collectiveSlug) {
-      imageUrl = await getCollectiveImageUrl(collectiveSlug, params.height || defaultHeight);
+      imageUrl = await getCollectiveImageUrl(collectiveSlug, {
+        height: params.height || defaultHeight,
+        hash: req.params.hash,
+      });
     } else if (githubUsername) {
       imageUrl = await getGithubImageUrl(githubUsername, params.height || defaultHeight);
     }
