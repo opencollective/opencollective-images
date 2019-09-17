@@ -18,7 +18,7 @@
     "express": "^4.17.1",
     "express-winston": "^3.3.0",
     "graphql-request": "^1.8.2",
-    "image-size": "^0.7.4",
+    "image-size": "^0.8.0",
     "image-to-ascii": "^3.0.12",
     "lodash": "^4.17.15",
     "lru-cache": "^5.1.1",
