@@ -92,8 +92,8 @@ export const getUiAvatarUrl = (name, size, rounded = true) => {
 
   url.searchParams.set('rounded', rounded);
   url.searchParams.set('name', name);
-  url.searchParams.set('color', 'c4c7cc');
-  url.searchParams.set('background', 'f2f3f5');
+  url.searchParams.set('color', 'F0F2F5');
+  url.searchParams.set('background', '969BA3');
   url.searchParams.set('size', size);
 
   return url.toString();
