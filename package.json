@@ -11,10 +11,10 @@
     "npm": "^6.9.0"
   },
   "dependencies": {
-    "bluebird": "^3.5.5",
+    "bluebird": "^3.7.1",
     "cached-request": "^2.0.1",
     "debug": "^4.1.1",
-    "dotenv": "^8.1.0",
+    "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "express-winston": "^4.0.1",
     "graphql-request": "^1.8.2",
@@ -27,7 +27,7 @@
     "p-limit": "^2.2.1",
     "redis": "^2.8.0",
     "request": "^2.88.0",
-    "sharp": "^0.23.0",
+    "sharp": "^0.23.2",
     "winston": "^3.2.1"
   },
   "scripts": {
@@ -51,24 +51,24 @@
     "deploy:staging": "./scripts/pre-deploy.sh staging && git push staging master"
   },
   "devDependencies": {
-    "@babel/cli": "^7.5.5",
-    "@babel/core": "^7.5.5",
-    "@babel/node": "^7.5.5",
-    "@babel/preset-env": "^7.5.5",
+    "@babel/cli": "^7.6.4",
+    "@babel/core": "^7.6.4",
+    "@babel/node": "^7.6.3",
+    "@babel/preset-env": "^7.6.3",
     "babel-eslint": "10.0.3",
     "babel-plugin-lodash": "3.3.4",
     "commitizen": "^4.0.3",
     "cz-conventional-changelog": "^3.0.2",
-    "eslint": "^6.3.0",
+    "eslint": "^6.6.0",
     "eslint-config-opencollective": "^2.0.0",
     "eslint-plugin-babel": "^5.3.0",
     "eslint-plugin-import": "^2.18.2",
     "eslint-plugin-node": "^10.0.0",
-    "eslint-plugin-react": "^7.14.3",
-    "husky": "^3.0.5",
+    "eslint-plugin-react": "^7.16.0",
+    "husky": "^3.0.9",
     "jest": "24.9.0",
-    "lint-staged": "^9.2.5",
-    "nodemon": "^1.19.1",
+    "lint-staged": "^9.4.2",
+    "nodemon": "^1.19.4",
     "prettier": "1.18.2"
   },
   "config": {
