@@ -162,7 +162,11 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
       });
     };
   } else if (backerType) {
-    type = backerType.match(/sponsor/i) || backerType.match(/organization/i) ? 'ORGANIZATION' : 'USER';
+    if (backerType.match(/sponsor/i) || backerType.match(/organization/i)) {
+      type = 'ORGANIZATION,COLLECTIVE';
+    } else {
+      type = 'USER';
+    }
     role = 'BACKER';
     query = `
     query allMembers($collectiveSlug: String!, $type: String!, $role: String!, $isActive: Boolean) {
