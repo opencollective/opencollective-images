@@ -60,6 +60,69 @@ const getGithubImageUrl = async (githubUsername, height = defaultHeight) => {
   return `https://avatars.githubusercontent.com/${githubUsername}?s=${height}`;
 };
 
+const fetchImage = async imageUrl => {
+  let image;
+  if (!imageUrl.includes('https://')) {
+    image = await readFile(path.join(staticFolder, imageUrl));
+  }
+
+  if (!image) {
+    debugLogo(`fetching ${imageUrl}`);
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      throw Error(`logo: error processing ${imageUrl} (status=${response.status} ${response.statusText})`);
+    }
+    image = await response.buffer();
+    if (image.byteLength === 0) {
+      throw Error(`logo: error processing ${imageUrl} (Invalid Image)`);
+    }
+  }
+  return image;
+};
+
+const applyStyle = async (image, height, width, format, style) => {
+  let sharpImage;
+  if (style === 'rounded') {
+    const roundedCorners = Buffer.from(
+      `<svg><rect x="0" y="0" width="${height}" height="${height}" rx="${height}" ry="${height}"/></svg>`,
+    );
+    sharpImage = sharp(image)
+      .resize(height, height)
+      // about "composite"
+      // https://sharp.pixelplumbing.com/en/stable/api-composite/
+      .composite([
+        {
+          input: roundedCorners,
+          // about "dest-in"
+          // https://libvips.github.io/libvips/API/current/libvips-conversion.html#VipsBlendMode
+          // the second (input) object is removed completely
+          // the first (original) is only drawn where the second was
+          blend: 'dest-in',
+        },
+      ]);
+  } else {
+    sharpImage = sharp(image).resize(width, height, { fit: 'contain', background: transparent });
+  }
+  let finalImageBuffer;
+  if (format === 'jpg') {
+    // We have to do this special treatment to avoid having a default black background
+    const imageWithTransparency = await sharpImage.toFormat('png').toBuffer();
+    finalImageBuffer = await sharp(imageWithTransparency)
+      .flatten({ background: white })
+      .jpeg()
+      .toBuffer();
+  } else {
+    finalImageBuffer = await sharpImage.toFormat(format).toBuffer();
+  }
+  return finalImageBuffer;
+};
+
+const getLogo = async (imageUrl, height = defaultHeight, width, format, style) => {
+  const image = await fetchImage(imageUrl);
+  const styledImage = await applyStyle(image, height, width, format, style);
+  return styledImage;
+};
+
 export default async function logo(req, res) {
   const collectiveSlug = req.params.collectiveSlug;
   const githubUsername = req.params.githubUsername;
@@ -139,62 +202,9 @@ export default async function logo(req, res) {
       try {
         const height = params.height || defaultHeight;
         const width = params.width;
-
-        let image;
-        if (!imageUrl.includes('https://')) {
-          image = await readFile(path.join(staticFolder, imageUrl));
-        }
-
-        if (!image) {
-          debugLogo(`fetching ${imageUrl}`);
-          const response = await fetch(imageUrl);
-          if (!response.ok) {
-            logger.error(`logo: error processing ${imageUrl} (status=${response.status} ${response.statusText})`);
-            return res.status(response.status).send(response.statusText);
-          }
-          image = await response.buffer();
-          if (image.byteLength === 0) {
-            logger.error(`logo: error processing ${imageUrl} (Invalid Image)`);
-            return res.status(400).send('Invalid Image');
-          }
-        }
-
-        let sharpImage;
-        if (style === 'rounded') {
-          const roundedCorners = Buffer.from(
-            `<svg><rect x="0" y="0" width="${height}" height="${height}" rx="${height}" ry="${height}"/></svg>`,
-          );
-          sharpImage = sharp(image)
-            .resize(height, height)
-            // about "composite"
-            // https://sharp.pixelplumbing.com/en/stable/api-composite/
-            .composite([
-              {
-                input: roundedCorners,
-                // about "dest-in"
-                // https://libvips.github.io/libvips/API/current/libvips-conversion.html#VipsBlendMode
-                // the second (input) object is removed completely
-                // the first (original) is only drawn where the second was
-                blend: 'dest-in',
-              },
-            ]);
-        } else {
-          sharpImage = sharp(image).resize(width, height, { fit: 'contain', background: transparent });
-        }
-
-        let finalImageBuffer;
-        if (format === 'jpg') {
-          // We have to do this special treatment to avoid having a default black background
-          const imageWithTransparency = await sharpImage.toFormat('png').toBuffer();
-          finalImageBuffer = await sharp(imageWithTransparency)
-            .flatten({ background: white })
-            .jpeg()
-            .toBuffer();
-        } else {
-          finalImageBuffer = await sharpImage.toFormat(format).toBuffer();
-        }
-
-        res.set('Content-Type', mime.lookup(format)).send(finalImageBuffer);
+        const image = await getLogo(imageUrl, height, width, format, style);
+        res.setHeader('content-type', mime.lookup(format));
+        res.send(image);
       } catch (err) {
         logger.error(`logo: error processing ${imageUrl} (${err.message})`);
         return res.status(500).send('Internal Server Error');
