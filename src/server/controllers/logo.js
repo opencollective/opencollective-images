@@ -25,6 +25,8 @@ const staticFolder = path.resolve(__dirname, '..', '..', 'static');
 
 const debugLogo = debug('logo');
 
+const defaultLogoFile = '/images/default-collective-logo.png';
+
 const getCollectiveImageUrl = async (collectiveSlug, { height, hash } = {}) => {
   const collective = await fetchCollectiveWithCache(collectiveSlug, { hash });
 
@@ -123,6 +125,10 @@ const getLogo = async (imageUrl, height = defaultHeight, width, format, style) =
   return styledImage;
 };
 
+const getDefaultLogo = async (height, width, style) => {
+  return await getLogo(defaultLogoFile, height, width, 'png', style);
+};
+
 export default async function logo(req, res) {
   const collectiveSlug = req.params.collectiveSlug;
   const githubUsername = req.params.githubUsername;
@@ -207,7 +213,9 @@ export default async function logo(req, res) {
         res.send(image);
       } catch (err) {
         logger.error(`logo: error processing ${imageUrl} (${err.message})`);
-        return res.status(500).send('Internal Server Error');
+        const defaultImage = await getDefaultLogo(height, width, style);
+        res.setHeader('content-type', mime.lookup(format));
+        return res.send(defaultImage);
       }
 
       break;

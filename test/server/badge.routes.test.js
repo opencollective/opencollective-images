@@ -150,12 +150,14 @@ describe('badge.routes.test.js', () => {
       },
       timeout,
     );
-    // This test will work until lajacqueline loads a new logo
+    // This test will work until lajacqueline loads a new valid logo
     test(
-      'returns a 500 if processing fails',
+      'return a default logo if processing fails',
       async () => {
         const res = await fetchResponse('/lajacqueline/logo.jpg');
-        expect(res.status).toEqual(500);
+        expect(res.status).toEqual(200);
+        expect(res.headers.get('content-type')).toEqual('image/jpeg');
+        expect(res.headers.get('cache-control')).toMatch(/public, max-age=[1-9][0-9]{3,7}/);
       },
       timeout,
     );
