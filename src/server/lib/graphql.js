@@ -4,6 +4,8 @@ import { flatten, uniqBy } from 'lodash';
 import cache from './cache';
 import { queryString, md5 } from './utils';
 
+const thirtyMinutesInSeconds = 30 * 60;
+
 const tenMinutesInSeconds = 10 * 60;
 
 const oneMinuteInSeconds = 60;
@@ -63,7 +65,7 @@ export async function fetchCollectiveWithCache(collectiveSlug, options = {}) {
   let collective = await cache.get(cacheKey);
   if (!collective) {
     collective = await fetchCollective(collectiveSlug);
-    cache.set(cacheKey, collective, tenMinutesInSeconds);
+    cache.set(cacheKey, collective, thirtyMinutesInSeconds);
   }
   return collective;
 }
