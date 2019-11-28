@@ -243,21 +243,24 @@ export async function fetchMembersWithCache(params) {
   let users = await cache.get(cacheKey);
   if (!users) {
     debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} miss`);
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const fetching = await cache.has(cacheKeyFetching);
-      if (!fetching) {
-        break;
+    let fetching = await cache.has(cacheKeyFetching);
+    if (fetching) {
+      while (fetching) {
+        debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} waiting`);
+        await sleep(100);
+        fetching = await cache.has(cacheKeyFetching);
       }
-      debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} waiting`);
-      await sleep(100);
+      debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} available`);
+      users = await cache.get(cacheKey);
     }
-    debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} fetching`);
-    cache.set(cacheKeyFetching, true, oneMinuteInSeconds);
-    users = await fetchMembers(params);
-    cache.set(cacheKey, users, tenMinutesInSeconds + randomInteger(60));
-    debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} set`);
-    cache.del(cacheKeyFetching);
+    if (!users) {
+      debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} fetching`);
+      cache.set(cacheKeyFetching, true, oneMinuteInSeconds);
+      users = await fetchMembers(params);
+      cache.set(cacheKey, users, tenMinutesInSeconds + randomInteger(60));
+      debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} set`);
+      cache.del(cacheKeyFetching);
+    }
   } else {
     debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} hit`);
   }
