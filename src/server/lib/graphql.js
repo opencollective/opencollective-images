@@ -29,6 +29,10 @@ function sleep(ms = 0) {
   return new Promise(r => setTimeout(r, ms));
 }
 
+function randomInteger(max) {
+  return Math.floor(Math.random() * max);
+}
+
 /*
 Used by:
   - logo.js: requires `type`, `name` and `image`
@@ -65,7 +69,7 @@ export async function fetchCollectiveWithCache(collectiveSlug, options = {}) {
   let collective = await cache.get(cacheKey);
   if (!collective) {
     collective = await fetchCollective(collectiveSlug);
-    cache.set(cacheKey, collective, thirtyMinutesInSeconds);
+    cache.set(cacheKey, collective, thirtyMinutesInSeconds + randomInteger(300));
   }
   return collective;
 }
@@ -244,7 +248,7 @@ export async function fetchMembersWithCache(params) {
     }
     cache.set(cacheKeyFetching, true, oneMinuteInSeconds);
     users = await fetchMembers(params);
-    cache.set(cacheKey, users, tenMinutesInSeconds);
+    cache.set(cacheKey, users, tenMinutesInSeconds + randomInteger(60));
     cache.del(cacheKeyFetching);
   }
   return users;
