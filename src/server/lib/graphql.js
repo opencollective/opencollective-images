@@ -4,7 +4,11 @@ import { flatten, uniqBy } from 'lodash';
 import cache from './cache';
 import { queryString, md5 } from './utils';
 
+const thirtyMinutesInSeconds = 30 * 60;
+
 const tenMinutesInSeconds = 10 * 60;
+
+const oneMinuteInSeconds = 60;
 
 export const getGraphqlUrl = () => {
   const apiKey = process.env.API_KEY;
@@ -19,6 +23,14 @@ function getClient() {
     client = new GraphQLClient(getGraphqlUrl());
   }
   return client;
+}
+
+function sleep(ms = 0) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+function randomInteger(max) {
+  return Math.floor(Math.random() * max);
 }
 
 /*
@@ -57,7 +69,7 @@ export async function fetchCollectiveWithCache(collectiveSlug, options = {}) {
   let collective = await cache.get(cacheKey);
   if (!collective) {
     collective = await fetchCollective(collectiveSlug);
-    cache.set(cacheKey, collective, tenMinutesInSeconds);
+    cache.set(cacheKey, collective, thirtyMinutesInSeconds + randomInteger(300));
   }
   return collective;
 }
@@ -223,10 +235,21 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
 
 export async function fetchMembersWithCache(params) {
   const cacheKey = `users_${md5(queryString.stringify(params))}`;
+  const cacheKeyFetching = `${cacheKey}_fetching`;
   let users = await cache.get(cacheKey);
   if (!users) {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const fetching = await cache.has(cacheKeyFetching);
+      if (!fetching) {
+        break;
+      }
+      await sleep(100);
+    }
+    cache.set(cacheKeyFetching, true, oneMinuteInSeconds);
     users = await fetchMembers(params);
-    cache.set(cacheKey, users, tenMinutesInSeconds);
+    cache.set(cacheKey, users, tenMinutesInSeconds + randomInteger(60));
+    cache.del(cacheKeyFetching);
   }
   return users;
 }
