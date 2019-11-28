@@ -1,6 +1,6 @@
 import debug from 'debug';
 import { GraphQLClient } from 'graphql-request';
-import { flatten, uniqBy } from 'lodash';
+import { flatten, uniqBy, pick } from 'lodash';
 
 import cache from './cache';
 import { queryString, md5 } from './utils';
@@ -237,6 +237,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
 }
 
 export async function fetchMembersWithCache(params) {
+  params = pick(params, ['collectiveSlug', 'tierSlug', 'backerType', 'isActive']);
   const cacheKey = `users_${md5(queryString.stringify(params))}`;
   const cacheKeyFetching = `${cacheKey}_fetching`;
   let users = await cache.get(cacheKey);
