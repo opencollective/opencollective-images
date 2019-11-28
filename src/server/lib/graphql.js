@@ -1,3 +1,4 @@
+import debug from 'debug';
 import { GraphQLClient } from 'graphql-request';
 import { flatten, uniqBy } from 'lodash';
 
@@ -9,6 +10,8 @@ const thirtyMinutesInSeconds = 30 * 60;
 const tenMinutesInSeconds = 10 * 60;
 
 const oneMinuteInSeconds = 60;
+
+const debugGraphql = debug('graphql');
 
 export const getGraphqlUrl = () => {
   const apiKey = process.env.API_KEY;
@@ -238,18 +241,24 @@ export async function fetchMembersWithCache(params) {
   const cacheKeyFetching = `${cacheKey}_fetching`;
   let users = await cache.get(cacheKey);
   if (!users) {
+    debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} miss`);
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const fetching = await cache.has(cacheKeyFetching);
       if (!fetching) {
         break;
       }
+      debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} waiting`);
       await sleep(100);
     }
+    debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} fetching`);
     cache.set(cacheKeyFetching, true, oneMinuteInSeconds);
     users = await fetchMembers(params);
     cache.set(cacheKey, users, tenMinutesInSeconds + randomInteger(60));
+    debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} set`);
     cache.del(cacheKeyFetching);
+  } else {
+    debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} hit`);
   }
   return users;
 }
