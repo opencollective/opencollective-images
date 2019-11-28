@@ -6,6 +6,8 @@ import { queryString, md5 } from './utils';
 
 const tenMinutesInSeconds = 10 * 60;
 
+const oneMinuteInSeconds = 60;
+
 export const getGraphqlUrl = () => {
   const apiKey = process.env.API_KEY;
   const baseApiUrl = process.env.API_URL;
@@ -19,6 +21,10 @@ function getClient() {
     client = new GraphQLClient(getGraphqlUrl());
   }
   return client;
+}
+
+function sleep(ms = 0) {
+  return new Promise(r => setTimeout(r, ms));
 }
 
 /*
@@ -223,10 +229,21 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
 
 export async function fetchMembersWithCache(params) {
   const cacheKey = `users_${md5(queryString.stringify(params))}`;
+  const cacheKeyFetching = `${cacheKey}_fetching`;
   let users = await cache.get(cacheKey);
   if (!users) {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const fetching = await cache.has(cacheKeyFetching);
+      if (!fetching) {
+        break;
+      }
+      await sleep(100);
+    }
+    cache.set(cacheKeyFetching, true, oneMinuteInSeconds);
     users = await fetchMembers(params);
     cache.set(cacheKey, users, tenMinutesInSeconds);
+    cache.del(cacheKeyFetching);
   }
   return users;
 }
