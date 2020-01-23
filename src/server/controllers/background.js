@@ -43,10 +43,15 @@ export default async function background(req, res, next) {
 
   const image = await getImageData(imageUrl);
 
-  const resizedImage = await sharp(image)
-    .resize(params.width, params.height)
-    .toFormat(format)
-    .toBuffer();
+  try {
+    const resizedImage = await sharp(image)
+      .resize(params.width, params.height)
+      .toFormat(format)
+      .toBuffer();
 
-  res.set('Content-Type', mime.lookup(format)).send(resizedImage);
+    res.set('Content-Type', mime.lookup(format)).send(resizedImage);
+  } catch (err) {
+    logger.error(`background: error processing ${imageUrl} (${err.message})`);
+    return res.status(500).send('Internal Server Error');
+  }
 }
