@@ -11,7 +11,7 @@
     "npm": "^6.9.0"
   },
   "dependencies": {
-    "bluebird": "^3.7.1",
+    "bluebird": "^3.7.2",
     "cached-request": "^2.0.1",
     "debug": "^4.1.1",
     "dotenv": "^8.2.0",
