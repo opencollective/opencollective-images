@@ -197,7 +197,11 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
       }
     }
     `;
-    processResult = res => uniqBy(res.allMembers.map(m => m.member), m => m.slug);
+    processResult = res =>
+      uniqBy(
+        res.allMembers.map(m => m.member),
+        m => m.slug,
+      );
   } else if (tierSlug) {
     tierSlug = tierSlug.split(',');
     query = `
