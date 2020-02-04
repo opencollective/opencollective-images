@@ -41,6 +41,7 @@ wait_for_service IMAGES 127.0.0.1 3001
 
 echo ""
 echo "> Starting server jest tests"
+rm opencollective-api/test/server/graphql/v1/transaction.test.js.snap
 TZ=UTC npx jest test/server/*
 RETURN_CODE=$?
 if [ $RETURN_CODE -ne 0 ]; then
