@@ -51,7 +51,7 @@
     "deploy:staging": "./scripts/pre-deploy.sh staging && git push staging master"
   },
   "devDependencies": {
-    "@babel/cli": "^7.8.3",
+    "@babel/cli": "^7.8.4",
     "@babel/core": "^7.8.4",
     "@babel/node": "^7.8.4",
     "@babel/preset-env": "^7.8.4",
