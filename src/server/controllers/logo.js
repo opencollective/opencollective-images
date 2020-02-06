@@ -149,7 +149,11 @@ export default async function logo(req, res) {
           debugLogo(`fetching ${imageUrl}`);
           const response = await fetch(imageUrl);
           if (!response.ok) {
-            logger.error(`logo: error processing ${imageUrl} (status=${response.status} ${response.statusText})`);
+            if (response.status === 404) {
+              logger.info(`logo: not found ${imageUrl} (status=${response.status} ${response.statusText})`);
+            } else {
+              logger.error(`logo: error processing ${imageUrl} (status=${response.status} ${response.statusText})`);
+            }
             return res.status(response.status).send(response.statusText);
           }
           image = await response.buffer();
