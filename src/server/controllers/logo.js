@@ -141,7 +141,7 @@ export default async function logo(req, res) {
         const width = params.width;
 
         let image;
-        if (!imageUrl.includes('https://')) {
+        if (!imageUrl.includes('https://') && !imageUrl.includes('http://')) {
           image = await readFile(path.join(staticFolder, imageUrl));
         }
 
