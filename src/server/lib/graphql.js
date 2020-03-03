@@ -2,6 +2,11 @@ import debug from 'debug';
 import { GraphQLClient } from 'graphql-request';
 import { flatten, uniqBy, pick } from 'lodash';
 
+// Alternative setup with ApolloClient
+// import fetch from 'node-fetch';
+// import gql from 'graphql-tag';
+// import ApolloClient from 'apollo-boost';
+
 import cache from './cache';
 import { queryString, md5 } from './utils';
 
@@ -13,10 +18,13 @@ const oneMinuteInSeconds = 60;
 
 const debugGraphql = debug('graphql');
 
-export const getGraphqlUrl = () => {
+// Emulate gql from graphql-tag
+const gql = string => String(string).replace(`\n`, ` `);
+
+const getGraphqlUrl = ({ version = 'v1' } = {}) => {
   const apiKey = process.env.API_KEY;
   const baseApiUrl = process.env.API_URL;
-  return `${baseApiUrl}/graphql${apiKey ? `?api_key=${apiKey}` : ''}`;
+  return `${baseApiUrl}/graphql/${version}${apiKey ? `?api_key=${apiKey}` : ''}`;
 };
 
 let client;
@@ -24,8 +32,18 @@ let client;
 function getClient() {
   if (!client) {
     client = new GraphQLClient(getGraphqlUrl());
+    // client = new ApolloClient({ fetch, uri: getGraphqlUrl({ version: 'v1' }) });
   }
   return client;
+}
+
+function graphqlRequest(query, variables) {
+  // With from graphql-request
+  return getClient().request(query, variables);
+  // With ApolloClient as client
+  // return getClient()
+  //   .query({ query, variables })
+  //   .then(result => result.data);
 }
 
 function sleep(ms = 0) {
@@ -42,22 +60,22 @@ Used by:
   - background.js: requires `backgroundImage`
 */
 export async function fetchCollective(collectiveSlug) {
-  const query = `
-  query Collective($collectiveSlug: String) {
-    Collective(slug:$collectiveSlug) {
-      name
-      type
-      image
-      backgroundImage
-      parentCollective {
+  const query = gql`
+    query Collective($collectiveSlug: String) {
+      Collective(slug: $collectiveSlug) {
+        name
+        type
         image
         backgroundImage
+        parentCollective {
+          image
+          backgroundImage
+        }
       }
     }
-  }
   `;
 
-  const result = await getClient().request(query, { collectiveSlug });
+  const result = await graphqlRequest(query, { collectiveSlug });
 
   return result.Collective;
 }
@@ -77,23 +95,23 @@ export async function fetchCollectiveWithCache(collectiveSlug, options = {}) {
   return collective;
 }
 
-export async function fetchMembersStats(params) {
-  const { backerType, tierSlug } = params;
+export async function fetchMembersStats(variables) {
+  const { backerType, tierSlug } = variables;
   let query, processResult;
 
   if (backerType) {
-    query = `
-    query Collective($collectiveSlug: String) {
-      Collective(slug:$collectiveSlug) {
-        stats {
-          backers {
-            all
-            users
-            organizations
+    query = gql`
+      query Collective($collectiveSlug: String) {
+        Collective(slug: $collectiveSlug) {
+          stats {
+            backers {
+              all
+              users
+              organizations
+            }
           }
         }
       }
-    }
     `;
     processResult = res => {
       let name, count;
@@ -110,31 +128,31 @@ export async function fetchMembersStats(params) {
       return { name, count };
     };
   } else if (tierSlug) {
-    query = `
-    query Collective($collectiveSlug: String, $tierSlug: String) {
-      Collective(slug:$collectiveSlug) {
-        tiers(slug: $tierSlug) {
-          slug
-          name
-          stats {
-            totalDistinctOrders
+    query = gql`
+      query Collective($collectiveSlug: String, $tierSlug: String) {
+        Collective(slug: $collectiveSlug) {
+          tiers(slug: $tierSlug) {
+            slug
+            name
+            stats {
+              totalDistinctOrders
+            }
           }
         }
       }
-    }
     `;
-    processResult = res => {
-      if (res.Collective.tiers.length === 0) {
+    processResult = result => {
+      if (result.Collective.tiers.length === 0) {
         throw new Error('Tier not found');
       }
       return {
-        count: res.Collective.tiers[0].stats.totalDistinctOrders,
-        slug: res.Collective.tiers[0].slug,
-        name: res.Collective.tiers[0].name,
+        count: result.Collective.tiers[0].stats.totalDistinctOrders,
+        slug: result.Collective.tiers[0].slug,
+        name: result.Collective.tiers[0].name,
       };
     };
   }
-  const result = await getClient().request(query, params);
+  const result = await graphqlRequest(query, variables);
   const count = processResult(result);
   return count;
 }
@@ -158,15 +176,15 @@ Used by:
 export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isActive }) {
   let query, processResult, type, role;
   if (backerType === 'contributors') {
-    query = `
-    query Collective($collectiveSlug: String) {
-      Collective(slug:$collectiveSlug) {
-        data
+    query = gql`
+      query Collective($collectiveSlug: String) {
+        Collective(slug: $collectiveSlug) {
+          data
+        }
       }
-    }
     `;
-    processResult = res => {
-      const users = res.Collective.data.githubContributors;
+    processResult = result => {
+      const users = result.Collective.data.githubContributors;
       return Object.keys(users).map(username => {
         return {
           slug: username,
@@ -183,53 +201,59 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
       type = 'USER';
     }
     role = 'BACKER';
-    query = `
-    query allMembers($collectiveSlug: String!, $type: String!, $role: String!, $isActive: Boolean) {
-      allMembers(collectiveSlug: $collectiveSlug, type: $type, role: $role, isActive: $isActive, orderBy: "totalDonations") {
-        member {
-          type
-          slug
-          name
-          image
-          website
-          twitterHandle
+    query = gql`
+      query allMembers($collectiveSlug: String!, $type: String!, $role: String!, $isActive: Boolean) {
+        allMembers(
+          collectiveSlug: $collectiveSlug
+          type: $type
+          role: $role
+          isActive: $isActive
+          orderBy: "totalDonations"
+        ) {
+          member {
+            type
+            slug
+            name
+            image
+            website
+            twitterHandle
+          }
         }
       }
-    }
     `;
-    processResult = res =>
+    processResult = result =>
       uniqBy(
-        res.allMembers.map(m => m.member),
+        result.allMembers.map(m => m.member),
         m => m.slug,
       );
   } else if (tierSlug) {
     tierSlug = tierSlug.split(',');
-    query = `
-    query Collective($collectiveSlug: String, $tierSlug: [String], $isActive: Boolean) {
-      Collective(slug:$collectiveSlug) {
-        tiers(slugs: $tierSlug) {
-          orders(isActive: $isActive) {
-            fromCollective {
-              type
-              slug
-              name
-              image
-              website
-              twitterHandle
+    query = gql`
+      query Collective($collectiveSlug: String, $tierSlug: [String], $isActive: Boolean) {
+        Collective(slug: $collectiveSlug) {
+          tiers(slugs: $tierSlug) {
+            orders(isActive: $isActive) {
+              fromCollective {
+                type
+                slug
+                name
+                image
+                website
+                twitterHandle
+              }
             }
           }
         }
       }
-    }
     `;
-    processResult = res => {
-      const allOrders = flatten(res.Collective.tiers.map(t => t.orders));
+    processResult = result => {
+      const allOrders = flatten(result.Collective.tiers.map(t => t.orders));
       const allCollectives = allOrders.map(o => o.fromCollective);
       return uniqBy(allCollectives, c => c.slug);
     };
   }
 
-  const result = await getClient().request(query, {
+  const result = await graphqlRequest(query, {
     collectiveSlug,
     tierSlug,
     type,

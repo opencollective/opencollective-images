@@ -17,6 +17,7 @@
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "express-winston": "^4.0.3",
+    "graphql": "^14.6.0",
     "graphql-request": "^1.8.2",
     "image-size": "^0.8.3",
     "image-to-ascii": "^3.0.12",
@@ -48,7 +49,10 @@
     "prettier:write": "npm run prettier -- --write",
     "prettier:check": "npm run prettier -- --list-different",
     "deploy:production": "./scripts/pre-deploy.sh production && git push production master",
-    "deploy:staging": "./scripts/pre-deploy.sh staging && git push staging master"
+    "deploy:staging": "./scripts/pre-deploy.sh staging && git push staging master",
+    "graphql:update": "npm-run-all graphql:updateV1 graphql:updateV2",
+    "graphql:updateV1": "npx graphql-cli get-schema -p opencollective -e dev && prettier src/graphql/schema.graphql --write",
+    "graphql:updateV2": "npx graphql-cli get-schema -p opencollectiveV2 -e dev && prettier src/graphql/schemaV2.graphql --write"
   },
   "devDependencies": {
     "@babel/cli": "^7.8.4",
@@ -62,6 +66,7 @@
     "eslint": "^6.8.0",
     "eslint-config-opencollective": "^2.0.1",
     "eslint-plugin-babel": "^5.3.0",
+    "eslint-plugin-graphql": "^3.1.1",
     "eslint-plugin-import": "^2.20.1",
     "eslint-plugin-node": "^11.0.0",
     "eslint-plugin-react": "^7.18.3",
@@ -69,6 +74,7 @@
     "jest": "25.1.0",
     "lint-staged": "^10.0.8",
     "nodemon": "^2.0.2",
+    "npm-run-all": "^4.1.5",
     "prettier": "1.19.1"
   },
   "config": {
