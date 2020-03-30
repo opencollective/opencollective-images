@@ -19,7 +19,7 @@ const oneMinuteInSeconds = 60;
 const debugGraphql = debug('graphql');
 
 // Emulate gql from graphql-tag
-const gql = string => String(string).replace(`\n`, ` `);
+const gql = (string) => String(string).replace(`\n`, ` `);
 
 const getGraphqlUrl = ({ version = 'v1' } = {}) => {
   const apiKey = process.env.API_KEY;
@@ -47,7 +47,7 @@ function graphqlRequest(query, variables) {
 }
 
 function sleep(ms = 0) {
-  return new Promise(r => setTimeout(r, ms));
+  return new Promise((r) => setTimeout(r, ms));
 }
 
 function randomInteger(max) {
@@ -113,7 +113,7 @@ export async function fetchMembersStats(variables) {
         }
       }
     `;
-    processResult = res => {
+    processResult = (res) => {
       let name, count;
       if (backerType.match(/sponsor/i) || backerType.match(/organization/i)) {
         count = res.Collective.stats.backers.organizations;
@@ -141,7 +141,7 @@ export async function fetchMembersStats(variables) {
         }
       }
     `;
-    processResult = result => {
+    processResult = (result) => {
       if (result.Collective.tiers.length === 0) {
         throw new Error('Tier not found');
       }
@@ -183,9 +183,9 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
         }
       }
     `;
-    processResult = result => {
+    processResult = (result) => {
       const users = result.Collective.data.githubContributors;
-      return Object.keys(users).map(username => {
+      return Object.keys(users).map((username) => {
         return {
           slug: username,
           type: 'GITHUB_USER',
@@ -221,10 +221,10 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
         }
       }
     `;
-    processResult = result =>
+    processResult = (result) =>
       uniqBy(
-        result.allMembers.map(m => m.member),
-        m => m.slug,
+        result.allMembers.map((m) => m.member),
+        (m) => m.slug,
       );
   } else if (tierSlug) {
     tierSlug = tierSlug.split(',');
@@ -246,10 +246,10 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
         }
       }
     `;
-    processResult = result => {
-      const allOrders = flatten(result.Collective.tiers.map(t => t.orders));
-      const allCollectives = allOrders.map(o => o.fromCollective);
-      return uniqBy(allCollectives, c => c.slug);
+    processResult = (result) => {
+      const allOrders = flatten(result.Collective.tiers.map((t) => t.orders));
+      const allCollectives = allOrders.map((o) => o.fromCollective);
+      return uniqBy(allCollectives, (c) => c.slug);
     };
   }
 

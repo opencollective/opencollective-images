@@ -125,11 +125,11 @@ export default async function logo(req, res) {
         trim: parseToBooleanDefaultTrue(req.query.trim),
         reverse: parseToBooleanDefaultFalse(req.query.reverse),
       })
-        .then(ascii => {
+        .then((ascii) => {
           res.setHeader('content-type', 'text/plain; charset=us-ascii');
           res.send(`${ascii}\n`);
         })
-        .catch(err => {
+        .catch((err) => {
           logger.error(`logo: unable to generate ascii for ${collectiveSlug} from ${imageUrl} (${err.message})`);
           return res.status(400).send('Unable to create an ASCII art.');
         });
@@ -190,10 +190,7 @@ export default async function logo(req, res) {
         if (format === 'jpg') {
           // We have to do this special treatment to avoid having a default black background
           const imageWithTransparency = await sharpImage.toFormat('png').toBuffer();
-          finalImageBuffer = await sharp(imageWithTransparency)
-            .flatten({ background: white })
-            .jpeg()
-            .toBuffer();
+          finalImageBuffer = await sharp(imageWithTransparency).flatten({ background: white }).jpeg().toBuffer();
         } else {
           finalImageBuffer = await sharpImage.toFormat(format).toBuffer();
         }

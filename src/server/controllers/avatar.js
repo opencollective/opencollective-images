@@ -13,7 +13,7 @@ const debugAvatar = debug('avatar');
 
 const imagesUrl = process.env.IMAGES_URL;
 
-const getSvg = svgPath => fs.readFileSync(path.join(__dirname, svgPath), { encoding: 'utf8' });
+const getSvg = (svgPath) => fs.readFileSync(path.join(__dirname, svgPath), { encoding: 'utf8' });
 
 const anonymousSvg = getSvg('../../static/images/default-anonymous-logo.svg');
 
