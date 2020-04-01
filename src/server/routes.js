@@ -8,7 +8,7 @@ import { getCloudinaryUrl, isValidUrl } from './lib/utils';
 const maxAgeOneDay = maxAge(24 * 60 * 60);
 const maxAgeTwoHours = maxAge(2 * 60 * 60);
 
-export const loadRoutes = app => {
+export const loadRoutes = (app) => {
   app.get('/', (req, res) => {
     res.send('This is the Open Collective images server.');
   });
@@ -29,7 +29,7 @@ export const loadRoutes = app => {
 
     req
       .pipe(request(url, { followRedirect: false }))
-      .on('error', e => {
+      .on('error', (e) => {
         logger.error('>>> Error proxying %s', url, e);
         res.status(500).send(e);
       })

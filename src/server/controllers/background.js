@@ -6,7 +6,7 @@ import { logger } from '../logger';
 import { asyncRequest } from '../lib/request';
 import { fetchCollectiveWithCache } from '../lib/graphql';
 
-const getImageData = url => asyncRequest({ url, encoding: null }).then(result => result[1]);
+const getImageData = (url) => asyncRequest({ url, encoding: null }).then((result) => result[1]);
 
 export default async function background(req, res, next) {
   const collectiveSlug = req.params.collectiveSlug;
@@ -44,10 +44,7 @@ export default async function background(req, res, next) {
   const image = await getImageData(imageUrl);
 
   try {
-    const resizedImage = await sharp(image)
-      .resize(params.width, params.height)
-      .toFormat(format)
-      .toBuffer();
+    const resizedImage = await sharp(image).resize(params.width, params.height).toFormat(format).toBuffer();
 
     res.set('Content-Type', mime.lookup(format)).send(resizedImage);
   } catch (err) {

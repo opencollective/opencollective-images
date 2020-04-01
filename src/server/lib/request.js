@@ -11,7 +11,7 @@ const defaultTtl = oneDayInMilliseconds;
 
 export const cachedRequestPromise = Promise.promisify(cachedRequest, { multiArgs: true });
 
-export const requestPromise = async options => {
+export const requestPromise = async (options) => {
   return new Promise((resolve, reject) => {
     request(options, (error, response, body) => {
       if (error) {
@@ -23,7 +23,7 @@ export const requestPromise = async options => {
   });
 };
 
-export const asyncRequest = requestOptions => {
+export const asyncRequest = (requestOptions) => {
   if (process.env.ENABLE_CACHED_REQUEST) {
     return cachedRequestPromise({ ttl: defaultTtl, ...requestOptions });
   } else {
@@ -31,7 +31,7 @@ export const asyncRequest = requestOptions => {
   }
 };
 
-export const imageRequest = url =>
+export const imageRequest = (url) =>
   asyncRequest({ url, encoding: null }).then(([response]) => {
     return response;
   });

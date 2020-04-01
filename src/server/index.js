@@ -22,7 +22,7 @@ app.use(loggerMiddleware.errorLogger);
 
 const httpServer = http.createServer(app);
 
-httpServer.on('error', err => {
+httpServer.on('error', (err) => {
   logger.error(`Can't start server on http://localhost:${port}. %s`, err);
 });
 

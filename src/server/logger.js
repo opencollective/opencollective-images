@@ -31,7 +31,7 @@ const loggerMiddleware = {
     meta: false,
     colorize: true,
     expressFormat: true,
-    ignoreRoute: req => req.url.match(/^\/_/),
+    ignoreRoute: (req) => req.url.match(/^\/_/),
   }),
   errorLogger: expressWinston.errorLogger({
     winstonInstance: logger,

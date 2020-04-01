@@ -67,12 +67,12 @@ export default async function banner(req, res) {
     collectiveSlug,
     includeAnonymous,
   })
-    .then(content => {
+    .then((content) => {
       res.setHeader('Content-Type', 'image/svg+xml;charset=utf-8');
       res.setHeader('Cache-Control', 'public, max-age=21600');
       res.send(content);
     })
-    .catch(e => {
+    .catch((e) => {
       logger.error('>>> collectives.banner error', e);
     });
 }
