@@ -23,7 +23,7 @@
     "image-to-ascii": "^3.0.12",
     "lodash": "^4.17.15",
     "lru-cache": "^5.1.1",
-    "mime-types": "^2.1.26",
+    "mime-types": "^2.1.27",
     "node-fetch": "^2.6.0",
     "p-limit": "^2.3.0",
     "redis": "^3.0.2",
