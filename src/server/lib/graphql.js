@@ -31,7 +31,12 @@ let client;
 
 function getClient() {
   if (!client) {
-    client = new GraphQLClient(getGraphqlUrl());
+    const headers = {
+      'oc-env': process.env.OC_ENV,
+      'oc-secret': process.env.OC_SECRET,
+      'oc-application': process.env.OC_APPLICATION,
+    };
+    client = new GraphQLClient(getGraphqlUrl(), { headers });
     // client = new ApolloClient({ fetch, uri: getGraphqlUrl({ version: 'v1' }) });
   }
   return client;
