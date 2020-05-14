@@ -1,11 +1,11 @@
 import debug from 'debug';
-import { GraphQLClient } from 'graphql-request';
+import fetch from 'node-fetch';
+import gql from 'graphql-tag';
+import ApolloClient from 'apollo-boost';
 import { flatten, uniqBy, pick } from 'lodash';
 
-// Alternative setup with ApolloClient
-// import fetch from 'node-fetch';
-// import gql from 'graphql-tag';
-// import ApolloClient from 'apollo-boost';
+// Alternative setup with GraphQLClient from graphql-request
+// import { GraphQLClient } from 'graphql-request';
 
 import cache from './cache';
 import { queryString, md5 } from './utils';
@@ -17,9 +17,6 @@ const tenMinutesInSeconds = 10 * 60;
 const oneMinuteInSeconds = 60;
 
 const debugGraphql = debug('graphql');
-
-// Emulate gql from graphql-tag
-const gql = (string) => String(string).replace(`\n`, ` `);
 
 const getGraphqlUrl = ({ version = 'v1' } = {}) => {
   const apiKey = process.env.API_KEY;
@@ -36,19 +33,20 @@ function getClient() {
       'oc-secret': process.env.OC_SECRET,
       'oc-application': process.env.OC_APPLICATION,
     };
-    client = new GraphQLClient(getGraphqlUrl(), { headers });
-    // client = new ApolloClient({ fetch, uri: getGraphqlUrl({ version: 'v1' }) });
+    // client = new GraphQLClient(getGraphqlUrl(), { headers });
+    client = new ApolloClient({ fetch, headers, uri: getGraphqlUrl({ version: 'v1' }) });
   }
   return client;
 }
 
 function graphqlRequest(query, variables) {
-  // With from graphql-request
-  return getClient().request(query, variables);
+  // With GraphQLClient from graphql-request
+  // return getClient().request(query, variables);
+
   // With ApolloClient as client
-  // return getClient()
-  //   .query({ query, variables })
-  //   .then(result => result.data);
+  return getClient()
+    .query({ query, variables })
+    .then((result) => result.data);
 }
 
 function sleep(ms = 0) {
@@ -66,7 +64,7 @@ Used by:
 */
 export async function fetchCollective(collectiveSlug) {
   const query = gql`
-    query Collective($collectiveSlug: String) {
+    query fetchCollective($collectiveSlug: String) {
       Collective(slug: $collectiveSlug) {
         name
         type
@@ -106,7 +104,7 @@ export async function fetchMembersStats(variables) {
 
   if (backerType) {
     query = gql`
-      query Collective($collectiveSlug: String) {
+      query fetchMembersStats($collectiveSlug: String) {
         Collective(slug: $collectiveSlug) {
           stats {
             backers {
@@ -134,7 +132,7 @@ export async function fetchMembersStats(variables) {
     };
   } else if (tierSlug) {
     query = gql`
-      query Collective($collectiveSlug: String, $tierSlug: String) {
+      query fetchMembersStatsForTier($collectiveSlug: String, $tierSlug: String) {
         Collective(slug: $collectiveSlug) {
           tiers(slug: $tierSlug) {
             slug
@@ -182,7 +180,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
   let query, processResult, type, role;
   if (backerType === 'contributors') {
     query = gql`
-      query Collective($collectiveSlug: String) {
+      query fetchContributors($collectiveSlug: String) {
         Collective(slug: $collectiveSlug) {
           data
         }
@@ -207,7 +205,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
     }
     role = 'BACKER';
     query = gql`
-      query allMembers($collectiveSlug: String!, $type: String!, $role: String!, $isActive: Boolean) {
+      query fetchMembersWithRole($collectiveSlug: String!, $type: String!, $role: String!, $isActive: Boolean) {
         allMembers(
           collectiveSlug: $collectiveSlug
           type: $type
@@ -234,7 +232,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
   } else if (tierSlug) {
     tierSlug = tierSlug.split(',');
     query = gql`
-      query Collective($collectiveSlug: String, $tierSlug: [String], $isActive: Boolean) {
+      query fetchMembersWithTier($collectiveSlug: String, $tierSlug: [String], $isActive: Boolean) {
         Collective(slug: $collectiveSlug) {
           tiers(slugs: $tierSlug) {
             orders(isActive: $isActive) {

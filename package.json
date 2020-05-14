@@ -11,6 +11,7 @@
     "npm": "^6.9.0"
   },
   "dependencies": {
+    "apollo-boost": "^0.4.8",
     "bluebird": "^3.7.2",
     "cached-request": "^2.0.1",
     "debug": "^4.1.1",
@@ -18,7 +19,7 @@
     "express": "^4.17.1",
     "express-winston": "^4.0.3",
     "graphql": "^14.6.0",
-    "graphql-request": "^1.8.2",
+    "graphql-tag": "^2.10.3",
     "image-size": "^0.8.3",
     "image-to-ascii": "^3.0.12",
     "lodash": "^4.17.15",
