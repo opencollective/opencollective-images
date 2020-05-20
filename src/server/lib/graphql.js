@@ -45,7 +45,7 @@ function graphqlRequest(query, variables) {
 
   // With ApolloClient as client
   return getClient()
-    .query({ query, variables })
+    .query({ query, variables, fetchPolicy: 'network-only' })
     .then((result) => result.data);
 }
 
