@@ -6,6 +6,10 @@ import { getWebsite, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } fro
 const websiteUrl = process.env.WEBSITE_URL;
 
 export default async function website(req, res) {
+  if (req.params.backerType && req.params.backerType === 'contributors') {
+    return res.status(404).send('Not found');
+  }
+
   if (
     req.params.backerType &&
     (req.params.backerType.match(/organization/i) || req.params.backerType.match(/individual/i))

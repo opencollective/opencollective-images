@@ -61,6 +61,10 @@ const proxyImage = async (req, res, imageUrl, { imageFormat }) => {
 };
 
 export default async function avatar(req, res) {
+  if (req.params.backerType && req.params.backerType === 'contributors') {
+    return res.status(404).send('Not found');
+  }
+
   if (
     req.params.backerType &&
     (req.params.backerType.match(/organization/i) || req.params.backerType.match(/individual/i))
