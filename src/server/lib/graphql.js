@@ -32,6 +32,7 @@ function getClient() {
       'oc-env': process.env.OC_ENV,
       'oc-secret': process.env.OC_SECRET,
       'oc-application': process.env.OC_APPLICATION,
+      'user-agent': 'opencollective-images/1.0 node-fetch/1.0',
     };
     // client = new GraphQLClient(getGraphqlUrl(), { headers });
     client = new ApolloClient({ fetch, headers, uri: getGraphqlUrl({ version: 'v1' }) });
