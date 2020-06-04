@@ -9,9 +9,11 @@ const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
 
 const defaultTtl = oneDayInMilliseconds;
 
-export const cachedRequestPromise = Promise.promisify(cachedRequest, { multiArgs: true });
+const cachedRequestPromise = Promise.promisify(cachedRequest, { multiArgs: true });
 
-export const requestPromise = async (options) => {
+const userAgent = 'opencollective-images/1.0 request/2.88.2';
+
+const requestPromise = async (options) => {
   return new Promise((resolve, reject) => {
     request(options, (error, response, body) => {
       if (error) {
@@ -25,9 +27,9 @@ export const requestPromise = async (options) => {
 
 export const asyncRequest = (requestOptions) => {
   if (process.env.ENABLE_CACHED_REQUEST) {
-    return cachedRequestPromise({ ttl: defaultTtl, ...requestOptions });
+    return cachedRequestPromise({ ttl: defaultTtl, ...requestOptions, headers: { 'user-agent': userAgent } });
   } else {
-    return requestPromise(requestOptions);
+    return requestPromise({ ...requestOptions, headers: { 'user-agent': userAgent } });
   }
 };
 
