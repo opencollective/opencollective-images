@@ -53,7 +53,7 @@
     "prettier:write": "npm run prettier -- --write",
     "prettier:check": "npm run prettier -- --list-different",
     "deploy:production": "./scripts/pre-deploy.sh production && git push production master",
-    "deploy:staging": "./scripts/pre-deploy.sh staging && git push staging master",
+    "deploy:staging": "./scripts/pre-deploy.sh staging && git push -f staging master",
     "graphql:update": "npm-run-all graphql:updateV1 graphql:updateV2",
     "graphql:updateV1": "npx graphql-cli get-schema -p opencollective -e dev && prettier src/graphql/schema.graphql --write",
     "graphql:updateV2": "npx graphql-cli get-schema -p opencollectiveV2 -e dev && prettier src/graphql/schemaV2.graphql --write"
