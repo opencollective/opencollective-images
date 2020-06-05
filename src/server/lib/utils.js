@@ -103,3 +103,11 @@ export const getWebsite = (user) => {
 
   return user.website || twitter || `${process.env.WEBSITE_URL}/${user.slug}`;
 };
+
+export function sleep(ms = 0) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+export function randomInteger(max) {
+  return Math.floor(Math.random() * max);
+}

@@ -8,7 +8,7 @@ import { flatten, uniqBy, pick } from 'lodash';
 // import { GraphQLClient } from 'graphql-request';
 
 import cache from './cache';
-import { queryString, md5 } from './utils';
+import { queryString, md5, sleep, randomInteger } from './utils';
 
 const thirtyMinutesInSeconds = 30 * 60;
 
@@ -48,14 +48,6 @@ function graphqlRequest(query, variables) {
   return getClient()
     .query({ query, variables, fetchPolicy: 'network-only' })
     .then((result) => result.data);
-}
-
-function sleep(ms = 0) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-function randomInteger(max) {
-  return Math.floor(Math.random() * max);
 }
 
 /*
