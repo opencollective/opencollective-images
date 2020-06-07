@@ -10,9 +10,9 @@ import { flatten, uniqBy, pick } from 'lodash';
 import cache from './cache';
 import { queryString, md5, sleep, randomInteger } from './utils';
 
-const thirtyMinutesInSeconds = 30 * 60;
+const oneDayInSeconds = 24 * 60 * 60;
 
-const tenMinutesInSeconds = 10 * 60;
+const thirtyMinutesInSeconds = 30 * 60;
 
 const oneMinuteInSeconds = 60;
 
@@ -86,7 +86,7 @@ export async function fetchCollectiveWithCache(collectiveSlug, options = {}) {
   let collective = await cache.get(cacheKey);
   if (!collective) {
     collective = await fetchCollective(collectiveSlug);
-    cache.set(cacheKey, collective, thirtyMinutesInSeconds + randomInteger(300));
+    cache.set(cacheKey, collective, oneDayInSeconds + randomInteger(3600));
   }
   return collective;
 }
@@ -158,7 +158,7 @@ export async function fetchMembersStatsWithCache(params) {
   let stats = await cache.get(cacheKey);
   if (!stats) {
     stats = await fetchMembersStats(params);
-    cache.set(cacheKey, stats, tenMinutesInSeconds);
+    cache.set(cacheKey, stats, thirtyMinutesInSeconds + randomInteger(300));
   }
   return stats;
 }
@@ -281,7 +281,7 @@ export async function fetchMembersWithCache(params) {
       debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} fetching`);
       cache.set(cacheKeyFetching, true, oneMinuteInSeconds);
       users = await fetchMembers(params);
-      cache.set(cacheKey, users, tenMinutesInSeconds + randomInteger(60));
+      cache.set(cacheKey, users, thirtyMinutesInSeconds + randomInteger(300));
       debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} set`);
       cache.del(cacheKeyFetching);
     }
