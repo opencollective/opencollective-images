@@ -77,7 +77,7 @@ export function generateSvgBanner(usersList, options) {
   let posY = margin;
 
   return Promise.all(promises)
-    .then(responses => {
+    .then((responses) => {
       const images = [];
       for (let i = 0; i < responses.length; i++) {
         const user = users[i];
@@ -128,13 +128,14 @@ export function generateSvgBanner(usersList, options) {
         posX += avatarWidth + margin;
       }
 
-      return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${imageWidth ||
-        posX}" height="${imageHeight || posY + avatarHeight + margin}">
+      return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${
+        imageWidth || posX
+      }" height="${imageHeight || posY + avatarHeight + margin}">
         <style>.opencollective-svg { cursor: pointer; }</style>
         ${images.join('\n')}
       </svg>`;
     })
-    .catch(err => {
+    .catch((err) => {
       logger.error(`svgBanner: ${err.message}`);
       logger.debug(err);
     });

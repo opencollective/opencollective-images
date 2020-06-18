@@ -27,6 +27,6 @@ ENV API_KEY $API_KEY
 
 RUN npm run build
 
-EXPOSE ${PORT}
+EXPOSE $PORT
 
 CMD [ "npm", "run", "start" ]

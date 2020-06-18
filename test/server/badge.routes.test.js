@@ -8,12 +8,12 @@ const timeout = 30000;
 
 const cacheBurst = `cacheBurst=${Math.round(Math.random() * 100000)}`;
 
-const fetchResponse = path => {
+const fetchResponse = (path) => {
   const pathWithCacheBurst = [path, cacheBurst].join(path.indexOf('?') === -1 ? '?' : '&');
   return fetch(`${imagesUrl}${pathWithCacheBurst}`);
 };
 
-const fetchText = path => fetchResponse(path).then(response => response.text());
+const fetchText = (path) => fetchResponse(path).then((response) => response.text());
 
 describe('badge.routes.test.js', () => {
   describe('backerType (backers|sponsors)', () => {

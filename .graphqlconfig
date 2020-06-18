@@ -1,0 +1,22 @@
+{
+  "projects": {
+    "opencollective": {
+      "schemaPath": "src/graphql/schema.graphql",
+      "extensions": {
+        "endpoints": {
+          "dev": "http://localhost:3060/graphql",
+          "prod": "https://api.opencollective.com/graphql"
+        }
+      }
+    },
+    "opencollectiveV2": {
+      "schemaPath": "src/graphql/schemaV2.graphql",
+      "extensions": {
+        "endpoints": {
+          "dev": "http://localhost:3060/graphql/v2",
+          "prod": "https://api.opencollective.com/graphql/v2"
+        }
+      }
+    }
+  }
+}
