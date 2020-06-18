@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 import { logger } from '../logger';
 import { fetchMembersStatsWithCache } from '../lib/graphql';
 
-const fetchText = path => fetch(path).then(response => response.text());
+const fetchText = (path) => fetch(path).then((response) => response.text());
 
 /**
  * Generates a github badge for a backerType (backers|sponsors) or for a tierSlug

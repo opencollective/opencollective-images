@@ -8,7 +8,7 @@ import { getCloudinaryUrl, isValidUrl } from './lib/utils';
 const maxAgeOneDay = maxAge(24 * 60 * 60);
 const maxAgeTwoHours = maxAge(2 * 60 * 60);
 
-export const loadRoutes = app => {
+export const loadRoutes = (app) => {
   app.get('/', (req, res) => {
     res.send('This is the Open Collective images server.');
   });
@@ -29,7 +29,7 @@ export const loadRoutes = app => {
 
     req
       .pipe(request(url, { followRedirect: false }))
-      .on('error', e => {
+      .on('error', (e) => {
         logger.error('>>> Error proxying %s', url, e);
         res.status(500).send(e);
       })
@@ -56,21 +56,18 @@ export const loadRoutes = app => {
     controllers.logo,
   );
 
-  // Same as the following one but with agressive caching
+  // Route for user avatars or organization logos
   app.get(
-    '/:collectiveSlug/:image(avatar|logo)/:style(rounded|square)/:height/:width?.:format(png)',
+    '/:collectiveSlug/:hash?/:image(avatar|logo)/:style(rounded|square)?/:height?/:width?.:format(txt|png|jpg|svg)',
     maxAgeOneDay,
     controllers.logo,
   );
 
-  // Route for user avatars or organization logos
   app.get(
-    '/:collectiveSlug/:image(avatar|logo)/:style(rounded|square)?/:height?/:width?.:format(txt|png|jpg|svg)',
+    '/:collectiveSlug/:hash?/background/:height?/:width?.:format(png|jpg)',
     maxAgeTwoHours,
-    controllers.logo,
+    controllers.background,
   );
-
-  app.get('/:collectiveSlug/background/:height?/:width?.:format(png|jpg)', maxAgeTwoHours, controllers.background);
 
   app.get('/:collectiveSlug/:backerType.svg', controllers.banner);
 

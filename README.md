@@ -1,9 +1,6 @@
 # Open Collective Images
 
-[![Circle CI](https://circleci.com/gh/opencollective/opencollective-images/tree/master.svg?style=shield)](https://circleci.com/gh/opencollective/opencollective-images/tree/master)
-[![Slack Status](https://slack.opencollective.org/badge.svg)](https://slack.opencollective.org)
 [![Dependency Status](https://david-dm.org/opencollective/opencollective-images/status.svg)](https://david-dm.org/opencollective/opencollective-images)
-[![Greenkeeper badge](https://badges.greenkeeper.io/opencollective/opencollective-images.svg)](https://greenkeeper.io/)
 
 ## Foreword
 

@@ -13,7 +13,7 @@ export const PROVIDER_TYPES = {
 
 const debugCache = debug('cache');
 
-export const getProvider = providerType => {
+export const getProvider = (providerType) => {
   switch (providerType) {
     case PROVIDER_TYPES.REDIS:
       return makeRedisProvider({ serverUrl: process.env.REDIS_URL });
@@ -51,7 +51,7 @@ const cache = {
       logger.warn(`Error while clearing cache: ${err.message}`);
     }
   },
-  del: async key => {
+  del: async (key) => {
     try {
       debugCache(`del ${key}`);
       return getDefaultProvider().del(key);
@@ -67,7 +67,7 @@ const cache = {
       logger.warn(`Error while fetching from cache: ${err.message}`);
     }
   },
-  has: async key => {
+  has: async (key) => {
     try {
       debugCache(`has ${key}`);
       return getDefaultProvider().has(key);
