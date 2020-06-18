@@ -5,7 +5,16 @@
   "env": {
     "jest": true,
   },
+  "plugins": ["graphql"],
   "rules": {
-    "no-console": "warn"
+    "no-console": "warn",
+    "graphql/template-strings": [
+      "error",
+      { "env": "apollo", "projectName": "opencollective" },
+      { "env": "apollo", "tagName": "gqlV2", "projectName": "opencollectiveV2" }
+    ],
+    "graphql/named-operations": ["error"],
+    "graphql/capitalized-type-name": ["error"],
+    "graphql/no-deprecated-fields": ["warn"]
   }
 }

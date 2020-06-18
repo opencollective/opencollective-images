@@ -6,12 +6,15 @@ import { logger } from '../logger';
 import { asyncRequest } from '../lib/request';
 import { fetchCollectiveWithCache } from '../lib/graphql';
 
-const getImageData = url => asyncRequest({ url, encoding: null }).then(result => result[1]);
+const getImageData = (url) => asyncRequest({ url, encoding: null }).then((result) => result[1]);
 
 export default async function background(req, res, next) {
+  const collectiveSlug = req.params.collectiveSlug;
+  const hash = req.params.hash;
+
   let collective, imageUrl;
   try {
-    collective = await fetchCollectiveWithCache(req.params.collectiveSlug);
+    collective = await fetchCollectiveWithCache(collectiveSlug, { hash });
     imageUrl = collective.backgroundImage || get(collective, 'parentCollective.backgroundImage');
     if (!imageUrl) {
       return res.status(404).send('Not found (no collective/parentCollective backgroundImage)');
@@ -40,10 +43,12 @@ export default async function background(req, res, next) {
 
   const image = await getImageData(imageUrl);
 
-  const resizedImage = await sharp(image)
-    .resize(params.width, params.height)
-    .toFormat(format)
-    .toBuffer();
+  try {
+    const resizedImage = await sharp(image).resize(params.width, params.height).toFormat(format).toBuffer();
 
-  res.set('Content-Type', mime.lookup(format)).send(resizedImage);
+    res.set('Content-Type', mime.lookup(format)).send(resizedImage);
+  } catch (err) {
+    logger.error(`background: error processing ${imageUrl} (${err.message})`);
+    return res.status(500).send('Internal Server Error');
+  }
 }

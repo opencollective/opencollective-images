@@ -25,8 +25,8 @@ const staticFolder = path.resolve(__dirname, '..', '..', 'static');
 
 const debugLogo = debug('logo');
 
-const getCollectiveImageUrl = async (collectiveSlug, height = defaultHeight) => {
-  const collective = await fetchCollectiveWithCache(collectiveSlug);
+const getCollectiveImageUrl = async (collectiveSlug, { height, hash } = {}) => {
+  const collective = await fetchCollectiveWithCache(collectiveSlug, { hash });
 
   if (collective.type === 'USER' && (!collective.name || collective.name === 'anonymous')) {
     return '/images/anonymous-logo-square.png';
@@ -44,7 +44,7 @@ const getCollectiveImageUrl = async (collectiveSlug, height = defaultHeight) => 
   }
 
   if (collective.type === 'USER') {
-    return getUiAvatarUrl(collective.name, height, false);
+    return getUiAvatarUrl(collective.name, height || defaultHeight, false);
   }
 
   if (collective.type === 'COLLECTIVE') {
@@ -93,7 +93,10 @@ export default async function logo(req, res) {
   let imageUrl;
   try {
     if (collectiveSlug) {
-      imageUrl = await getCollectiveImageUrl(collectiveSlug, params.height || defaultHeight);
+      imageUrl = await getCollectiveImageUrl(collectiveSlug, {
+        height: params.height || defaultHeight,
+        hash: req.params.hash,
+      });
     } else if (githubUsername) {
       imageUrl = await getGithubImageUrl(githubUsername, params.height || defaultHeight);
     }
@@ -122,11 +125,11 @@ export default async function logo(req, res) {
         trim: parseToBooleanDefaultTrue(req.query.trim),
         reverse: parseToBooleanDefaultFalse(req.query.reverse),
       })
-        .then(ascii => {
+        .then((ascii) => {
           res.setHeader('content-type', 'text/plain; charset=us-ascii');
           res.send(`${ascii}\n`);
         })
-        .catch(err => {
+        .catch((err) => {
           logger.error(`logo: unable to generate ascii for ${collectiveSlug} from ${imageUrl} (${err.message})`);
           return res.status(400).send('Unable to create an ASCII art.');
         });
@@ -138,7 +141,7 @@ export default async function logo(req, res) {
         const width = params.width;
 
         let image;
-        if (!imageUrl.includes('https://')) {
+        if (!imageUrl.includes('https://') && !imageUrl.includes('http://')) {
           image = await readFile(path.join(staticFolder, imageUrl));
         }
 
@@ -146,7 +149,11 @@ export default async function logo(req, res) {
           debugLogo(`fetching ${imageUrl}`);
           const response = await fetch(imageUrl);
           if (!response.ok) {
-            logger.error(`logo: error processing ${imageUrl} (status=${response.status} ${response.statusText})`);
+            if (response.status === 404) {
+              logger.info(`logo: not found ${imageUrl} (status=${response.status} ${response.statusText})`);
+            } else {
+              logger.error(`logo: error processing ${imageUrl} (status=${response.status} ${response.statusText})`);
+            }
             return res.status(response.status).send(response.statusText);
           }
           image = await response.buffer();
@@ -183,10 +190,7 @@ export default async function logo(req, res) {
         if (format === 'jpg') {
           // We have to do this special treatment to avoid having a default black background
           const imageWithTransparency = await sharpImage.toFormat('png').toBuffer();
-          finalImageBuffer = await sharp(imageWithTransparency)
-            .flatten({ background: white })
-            .jpeg()
-            .toBuffer();
+          finalImageBuffer = await sharp(imageWithTransparency).flatten({ background: white }).jpeg().toBuffer();
         } else {
           finalImageBuffer = await sharpImage.toFormat(format).toBuffer();
         }

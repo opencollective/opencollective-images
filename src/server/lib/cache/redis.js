@@ -10,7 +10,7 @@ const makeRedisProvider = ({ serverUrl }) => {
   const client = asyncRedis.createClient(serverUrl);
   return {
     clear: async () => client.flushallAsync(),
-    del: async key => client.delAsync(key),
+    del: async (key) => client.delAsync(key),
     get: async (key, { unserialize = JSON.parse } = {}) => {
       const value = await client.getAsync(key);
       if (value) {
@@ -23,7 +23,7 @@ const makeRedisProvider = ({ serverUrl }) => {
         return undefined;
       }
     },
-    has: async key => {
+    has: async (key) => {
       const value = await client.getAsync(key);
       return value !== null;
     },
