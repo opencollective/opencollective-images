@@ -59,7 +59,7 @@
     "graphql:updateV2": "npx graphql-cli get-schema -p opencollectiveV2 -e dev && prettier src/graphql/schemaV2.graphql --write"
   },
   "devDependencies": {
-    "@babel/cli": "^7.10.1",
+    "@babel/cli": "^7.10.3",
     "@babel/core": "^7.10.3",
     "@babel/node": "^7.10.1",
     "@babel/preset-env": "^7.10.2",
