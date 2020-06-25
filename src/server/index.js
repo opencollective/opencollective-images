@@ -15,7 +15,7 @@ const app = express();
 
 app.use('/static', express.static(path.join(__dirname, '..', 'static')));
 
-hyperwatch.setupMiddleware(app);
+hyperwatch.load(app);
 
 app.use(loggerMiddleware.logger);
 
