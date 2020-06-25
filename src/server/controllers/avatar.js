@@ -114,9 +114,15 @@ export default async function avatar(req, res) {
     maxHeight = Number(req.query.avatarHeight);
   } else {
     maxHeight = format === 'svg' ? 128 : 64;
-    if (selector.match(/silver/)) maxHeight *= 1.25;
-    if (selector.match(/gold/)) maxHeight *= 1.5;
-    if (selector.match(/diamond/)) maxHeight *= 2;
+    if (selector.match(/silver/)) {
+      maxHeight *= 1.25;
+    }
+    if (selector.match(/gold/)) {
+      maxHeight *= 1.5;
+    }
+    if (selector.match(/diamond/)) {
+      maxHeight *= 2;
+    }
     maxWidth = maxHeight * 3;
   }
 

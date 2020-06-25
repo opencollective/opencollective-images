@@ -24,9 +24,15 @@ export function getCloudinaryUrl(src, { width, height, query, style, format }) {
 
   if (!query) {
     let size = '';
-    if (width) size += `w_${width},`;
-    if (height) size += `h_${height},`;
-    if (size === '') size = 'w_320,';
+    if (width) {
+      size += `w_${width},`;
+    }
+    if (height) {
+      size += `h_${height},`;
+    }
+    if (size === '') {
+      size = 'w_320,';
+    }
 
     const format = src.match(/\.png$/) ? 'png' : 'jpg';
 
@@ -48,7 +54,9 @@ export const queryString = {
     return str;
   },
   parse: (query) => {
-    if (!query) return {};
+    if (!query) {
+      return {};
+    }
     const vars = query.split('&');
     const res = {};
     for (let i = 0; i < vars.length; i++) {

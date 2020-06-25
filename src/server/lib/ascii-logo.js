@@ -27,7 +27,9 @@ export function generateAsciiLogo(imgsrc, options) {
   return new Promise((resolve, reject) => {
     options.pixels = variants[options.variant || 'wide'];
     imageToAscii(imgsrc, options, (err, ascii) => {
-      if (err) return reject(err);
+      if (err) {
+        return reject(err);
+      }
       if (options.trim) {
         ascii = ascii.replace(/\n^\s*$/gm, '');
       }
