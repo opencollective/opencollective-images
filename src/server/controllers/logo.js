@@ -36,7 +36,7 @@ const getCollectiveImageUrl = async (collectiveSlug, { height, hash } = {}) => {
     return collective.image;
   }
 
-  if (collective.type === 'EVENT') {
+  if (['EVENT', 'PROJECT'].includes(collective.type)) {
     const parentCollectiveImage = get(collective, 'parentCollective.image');
     if (parentCollectiveImage) {
       return parentCollectiveImage;
@@ -47,12 +47,12 @@ const getCollectiveImageUrl = async (collectiveSlug, { height, hash } = {}) => {
     return getUiAvatarUrl(collective.name, height || defaultHeight, false);
   }
 
-  if (collective.type === 'COLLECTIVE') {
-    return '/images/default-collective-logo.png';
-  }
-
   if (collective.type === 'ORGANIZATION') {
     return '/images/default-organization-logo.png';
+  }
+
+  if (['COLLECTIVE', 'FUND', 'EVENT', 'PROJECT'].includes(collective.type)) {
+    return '/images/default-collective-logo.png';
   }
 };
 
