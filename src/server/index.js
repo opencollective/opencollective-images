@@ -17,8 +17,6 @@ app.use('/static', express.static(path.join(__dirname, '..', 'static')));
 
 hyperwatch.load(app);
 
-app.use(loggerMiddleware.logger);
-
 loadRoutes(app);
 
 app.use(loggerMiddleware.errorLogger);
