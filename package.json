@@ -11,7 +11,7 @@
     "npm": "^6.9.0"
   },
   "dependencies": {
-    "@hyperwatch/hyperwatch": "^3.3.0",
+    "@hyperwatch/hyperwatch": "^3.6.0",
     "apollo-boost": "^0.4.9",
     "bluebird": "^3.7.2",
     "cached-request": "^2.0.1",
