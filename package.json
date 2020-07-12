@@ -26,7 +26,7 @@
     "image-size": "^0.8.3",
     "image-to-ascii": "^3.0.12",
     "lodash": "^4.17.19",
-    "lru-cache": "^5.1.1",
+    "lru-cache": "^6.0.0",
     "mime-types": "^2.1.27",
     "node-fetch": "^2.6.0",
     "p-limit": "^3.0.1",
