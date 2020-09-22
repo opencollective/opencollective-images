@@ -14,7 +14,7 @@
     "@hyperwatch/hyperwatch": "^3.7.0",
     "apollo-boost": "^0.4.9",
     "bluebird": "^3.7.2",
-    "cached-request": "^2.0.1",
+    "cached-request": "^3.0.0",
     "debug": "^4.1.1",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
