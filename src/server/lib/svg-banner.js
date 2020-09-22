@@ -123,7 +123,7 @@ export function generateSvgBanner(usersList, options) {
         const imageLink = `<a xlink:href="${website.replace(
           /&/g,
           '&amp;',
-        )}" class="opencollective-svg" target="_blank" id="${user.slug}">${image}</a>`;
+        )}" class="opencollective-svg" target="_blank" rel="nofollow sponsored" id="${user.slug}">${image}</a>`;
         images.push(imageLink);
         posX += avatarWidth + margin;
       }
