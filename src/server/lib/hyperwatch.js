@@ -16,6 +16,15 @@ const {
 export function load(app) {
   const { input, lib, modules, pipeline } = hyperwatch;
 
+  hyperwatch.init({
+    modules: {
+      // Expose the status page
+      status: { active: true },
+      // Expose logs (HTTP and Websocket)
+      logs: { active: true },
+    },
+  });
+
   // Mount Hyperwatch API and Websocket
   if (parseToBooleanDefaultFalse(enabled)) {
     // We need to setup express-ws here to make Hyperwatch's websocket works
@@ -44,7 +53,7 @@ export function load(app) {
 
     // Start
 
-    modules.load();
+    modules.beforeStart();
 
     pipeline.start();
   }
