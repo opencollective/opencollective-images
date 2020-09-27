@@ -280,10 +280,15 @@ export async function fetchMembersWithCache(params) {
     if (!users) {
       debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} fetching`);
       cache.set(cacheKeyFetching, true, oneMinuteInSeconds);
-      users = await fetchMembers(params);
-      cache.set(cacheKey, users, thirtyMinutesInSeconds + randomInteger(300));
-      debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} set`);
-      cache.del(cacheKeyFetching);
+      try {
+        users = await fetchMembers(params);
+        cache.set(cacheKey, users, thirtyMinutesInSeconds + randomInteger(300));
+        debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} set`);
+        cache.del(cacheKeyFetching);
+      } catch (e) {
+        cache.del(cacheKeyFetching);
+        throw e;
+      }
     }
   } else {
     debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} hit`);
