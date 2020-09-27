@@ -1,5 +1,5 @@
 import debug from 'debug';
-import fetch from 'node-fetch';
+
 import gql from 'graphql-tag';
 import ApolloClient from 'apollo-boost';
 import { flatten, uniqBy, pick } from 'lodash';
@@ -8,6 +8,7 @@ import { flatten, uniqBy, pick } from 'lodash';
 // import { GraphQLClient } from 'graphql-request';
 
 import cache from './cache';
+import fetch from './fetch';
 import { queryString, md5, sleep, randomInteger } from './utils';
 
 const oneDayInSeconds = 24 * 60 * 60;
@@ -28,14 +29,8 @@ let client;
 
 function getClient() {
   if (!client) {
-    const headers = {
-      'oc-env': process.env.OC_ENV,
-      'oc-secret': process.env.OC_SECRET,
-      'oc-application': process.env.OC_APPLICATION,
-      'user-agent': 'opencollective-images/1.0',
-    };
     // client = new GraphQLClient(getGraphqlUrl(), { headers });
-    client = new ApolloClient({ fetch, headers, uri: getGraphqlUrl({ version: 'v1' }) });
+    client = new ApolloClient({ fetch, uri: getGraphqlUrl({ version: 'v1' }) });
   }
   return client;
 }
@@ -170,6 +165,11 @@ Used by:
   - banner.js: requires `type`, `name`, `image`, `website` and `slug` (generateSvgBanner)
 */
 export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isActive }) {
+  // Optimize some 404s that are heavily sent
+  if (['angular-universal-pwa', 'vsc-material-theme'].includes(collectiveSlug)) {
+    throw new Error('Collective not found.');
+  }
+
   let query, processResult, type, role;
   if (backerType === 'contributors') {
     query = gql`
