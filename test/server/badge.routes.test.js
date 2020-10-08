@@ -104,7 +104,9 @@ describe('badge.routes.test.js', () => {
       'loads the first member avatar.svg',
       async () => {
         const resText = await fetchText('/apex/tiers/sponsors/0/avatar.svg?isActive=false');
-        expect(resText).toMatch(/<image width="192" height="64"/);
+        expect(resText).toMatch(
+          /<svg xmlns="http:\/\/www.w3.org\/2000\/svg" xmlns:xlink="http:\/\/www.w3.org\/1999\/xlink" width="64" height="64">/,
+        );
       },
       timeout,
     );
