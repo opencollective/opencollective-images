@@ -175,13 +175,13 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
     query = gql`
       query fetchContributors($collectiveSlug: String) {
         Collective(slug: $collectiveSlug) {
-          data
+          githubContributors
         }
       }
     `;
-    processResult = (result) => {
-      const users = result.Collective.data.githubContributors;
-      return Object.keys(users).map((username) => {
+    processResult = result => {
+      const users = result.Collective.githubContributors;
+      return Object.keys(users).map(username => {
         return {
           slug: username,
           type: 'GITHUB_USER',
