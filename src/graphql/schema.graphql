@@ -2,6 +2,16 @@
 # timestamp: Tue Mar 03 2020 23:39:46 GMT+0100 (Central European Standard Time)
 
 """
+Exposes a URL that specifies the behaviour of this scalar.
+"""
+directive @specifiedBy(
+  """
+  The URL that specifies the behaviour of this scalar.
+  """
+  url: String!
+) on SCALAR
+
+"""
 Application model
 """
 type Application {
@@ -83,7 +93,6 @@ type Collective implements CollectiveInterface {
   """
   hasLongDescription: Boolean
   expensePolicy: String
-  mission: String
   tags: [String]
 
   """
@@ -94,20 +103,21 @@ type Collective implements CollectiveInterface {
   startsAt: DateString
   endsAt: DateString
   timezone: String
-  maxAmount: Int
   hostFeePercent: Int
+  platformFeePercent: Int
   currency: String
   image: String
   imageUrl(height: Int, format: ImageFormat): String
   backgroundImage: String
   backgroundImageUrl(height: Int, format: ImageFormat): String
-  settings: JSON
+  settings: JSON!
 
   """
   Defines if a collective is pledged
   """
   isPledged: Boolean
-  data: JSON
+  data: JSON @deprecated(reason: "2020-10-08: This field is not provided anymore and will return an empty object")
+  githubContributors: JSON!
   slug: String
   path: String
 
@@ -179,6 +189,11 @@ type Collective implements CollectiveInterface {
     Only return memberships for active collectives (that have been approved by the host)
     """
     onlyActiveCollectives: Boolean = false
+
+    """
+    Wether incognito profiles should be included in the result. Only works if requesting user is an admin of the account.
+    """
+    includeIncognito: Boolean = true
   ): [Member]
 
   """
@@ -233,11 +248,13 @@ type Collective implements CollectiveInterface {
     """
     includeInactive: Boolean = false
   ): [Event]
+  projects(limit: Int, offset: Int): [Project]
 
   """
   Get all child collectives (with type=COLLECTIVE, doesn't return events)
   """
-  childCollectives: [Collective] @deprecated(reason: "2020/01/08 - Sub-collectives are now handled through members")
+  childCollectives: [Collective]
+    @deprecated(reason: "2020/01/08 - Connected-collectives are now handled through members")
   paymentMethods(
     service: String
     limit: Int
@@ -283,6 +300,8 @@ type Collective implements CollectiveInterface {
   connectedAccounts: [ConnectedAccountType]
   plan: PlanType
   stats: CollectiveStatsType
+  contributionPolicy: String
+  categories: [String]!
 }
 
 """
@@ -307,11 +326,11 @@ input CollectiveAttributesInputType {
   startsAt: String
   endsAt: String
   timezone: String
-  maxAmount: Int
   currency: String
   settings: JSON
   isIncognito: Boolean
   tags: [String]
+  contributionPolicy: String
 }
 
 """
@@ -333,7 +352,6 @@ input CollectiveInputType {
   startsAt: String
   endsAt: String
   timezone: String
-  maxAmount: Int
   currency: String
   image: String
   backgroundImage: String
@@ -350,6 +368,8 @@ input CollectiveInputType {
   firstName: String
   lastName: String
   isIncognito: Boolean
+  isActive: Boolean
+  contributionPolicy: String
 }
 
 """
@@ -371,7 +391,6 @@ interface CollectiveInterface {
   """
   hasLongDescription: Boolean
   expensePolicy: String
-  mission: String
   tags: [String]
 
   """
@@ -382,20 +401,21 @@ interface CollectiveInterface {
   startsAt: DateString
   endsAt: DateString
   timezone: String
-  maxAmount: Int
   hostFeePercent: Int
+  platformFeePercent: Int
   currency: String
   image: String
   imageUrl(height: Int, format: ImageFormat): String
   backgroundImage: String
   backgroundImageUrl(height: Int, format: ImageFormat): String
-  settings: JSON
+  settings: JSON!
 
   """
   Defines if a collective is pledged
   """
   isPledged: Boolean
-  data: JSON
+  data: JSON @deprecated(reason: "2020-10-08: This field is not provided anymore and will return an empty object")
+  githubContributors: JSON!
   slug: String
   path: String
   isHost: Boolean
@@ -447,6 +467,11 @@ interface CollectiveInterface {
     Only return memberships for active collectives (that have been approved by the host)
     """
     onlyActiveCollectives: Boolean = false
+
+    """
+    Wether incognito profiles should be included in the result. Only works if requesting user is an admin of the account.
+    """
+    includeIncognito: Boolean = true
   ): [Member]
 
   """
@@ -502,11 +527,13 @@ interface CollectiveInterface {
     """
     includeInactive: Boolean = false
   ): [Event]
+  projects(limit: Int, offset: Int): [Project]
 
   """
   Get all child collectives (with type=COLLECTIVE, doesn't return events)
   """
-  childCollectives: [Collective] @deprecated(reason: "2020/01/08 - Sub-collectives are now handled through members")
+  childCollectives: [Collective]
+    @deprecated(reason: "2020/01/08 - Connected-collectives are now handled through members")
   paymentMethods(
     service: String
     limit: Int
@@ -531,6 +558,11 @@ interface CollectiveInterface {
     Defines if the organization "collective" payment method should be returned
     """
     includeOrganizationCollectivePaymentMethod: Boolean = false
+
+    """
+    Defines if the host "collective" payment method should be returned
+    """
+    includeHostCollectivePaymentMethod: Boolean = false
   ): [PaymentMethodType]
 
   """
@@ -554,6 +586,12 @@ interface CollectiveInterface {
   ): PaginatedPaymentMethod
   connectedAccounts: [ConnectedAccountType]
   plan: PlanType
+  contributionPolicy: String
+
+  """
+  Categories set by Open Collective to help moderation.
+  """
+  categories: [String]!
 }
 
 """
@@ -594,6 +632,11 @@ enum CollectiveOrderField {
   Order collectives by total donations.
   """
   totalDonations
+
+  """
+  Order collectives by number of financial contributors (unique members).
+  """
+  financialContributors
 }
 
 """
@@ -687,15 +730,20 @@ type CollectiveStatsType {
   """
   Net amount received
   """
-  totalAmountReceived: Int
+  totalAmountReceived(
+    startDate: DateString
+    endDate: DateString
 
-  """
-  Total amount raised through referral
-  """
-  totalAmountRaised: Int @deprecated(reason: "2019-08-22: Referals are not supported anymore")
+    """
+    Computes contributions from the last x months. Cannot be used with startDate/endDate
+    """
+    periodInMonths: Int
+  ): Int
   yearlyBudget: Int
+  yearlyBudgetManaged: Int
   topExpenses: JSON
   topFundingSources: JSON
+  activeRecurringContributions: JSON
 }
 
 """
@@ -705,17 +753,6 @@ input CommentAttributesInputType {
   id: Int
   markdown: String
   html: String
-
-  """
-  Deprecated since 2019-11-25: This field is not editable.
-  """
-  FromCollectiveId: Int
-
-  """
-  Deprecated since 2019-11-25: This field is not editable.
-  """
-  CollectiveId: Int
-  ExpenseId: Int
   UpdateId: Int
 }
 
@@ -827,7 +864,7 @@ type Contributor {
   isBacker: Boolean!
 
   """
-  True if the contributor is a core contributor (admin)
+  True if the contributor is a fundraiser
   """
   isFundraiser: Boolean!
 
@@ -894,7 +931,8 @@ enum ContributorRole {
   FUNDRAISER
   ATTENDEE
   FOLLOWER
-  SUB_COLLECTIVE
+  CONNECTED_COLLECTIVE
+  ACCOUNTANT
 }
 
 """
@@ -959,7 +997,7 @@ scalar DateString
 scalar Email
 
 """
-This represents an Event Collective
+This represents an Event
 """
 type Event implements CollectiveInterface {
   id: Int
@@ -977,7 +1015,6 @@ type Event implements CollectiveInterface {
   """
   hasLongDescription: Boolean
   expensePolicy: String
-  mission: String
   tags: [String]
 
   """
@@ -988,20 +1025,21 @@ type Event implements CollectiveInterface {
   startsAt: DateString
   endsAt: DateString
   timezone: String
-  maxAmount: Int
   hostFeePercent: Int
+  platformFeePercent: Int
   currency: String
   image: String
   imageUrl(height: Int, format: ImageFormat): String
   backgroundImage: String
   backgroundImageUrl(height: Int, format: ImageFormat): String
-  settings: JSON
+  settings: JSON!
 
   """
   Defines if a collective is pledged
   """
   isPledged: Boolean
-  data: JSON
+  data: JSON @deprecated(reason: "2020-10-08: This field is not provided anymore and will return an empty object")
+  githubContributors: JSON!
   slug: String
   path: String
 
@@ -1073,6 +1111,11 @@ type Event implements CollectiveInterface {
     Only return memberships for active collectives (that have been approved by the host)
     """
     onlyActiveCollectives: Boolean = false
+
+    """
+    Wether incognito profiles should be included in the result. Only works if requesting user is an admin of the account.
+    """
+    includeIncognito: Boolean = true
   ): [Member]
 
   """
@@ -1127,11 +1170,13 @@ type Event implements CollectiveInterface {
     """
     includeInactive: Boolean = false
   ): [Event]
+  projects(limit: Int, offset: Int): [Project]
 
   """
   Get all child collectives (with type=COLLECTIVE, doesn't return events)
   """
-  childCollectives: [Collective] @deprecated(reason: "2020/01/08 - Sub-collectives are now handled through members")
+  childCollectives: [Collective]
+    @deprecated(reason: "2020/01/08 - Connected-collectives are now handled through members")
   paymentMethods(
     service: String
     limit: Int
@@ -1177,6 +1222,8 @@ type Event implements CollectiveInterface {
   connectedAccounts: [ConnectedAccountType]
   plan: PlanType
   stats: CollectiveStatsType
+  contributionPolicy: String
+  categories: [String]!
 }
 
 """
@@ -1239,28 +1286,14 @@ type Expense implements Transaction {
 }
 
 """
-Public fields for an expense attachment
+Fields for an expense's attached file
 """
-type ExpenseAttachment {
+type ExpenseAttachedFile {
+  """
+  Unique identifier for this file
+  """
   id: Int!
-  amount: Int!
-  createdAt: IsoDateString!
-  updatedAt: IsoDateString!
-  incurredAt: IsoDateString!
-  deletedAt: IsoDateString
-  description: String
   url: String
-}
-
-"""
-Fields for creating or editing an expense attachment
-"""
-input ExpenseAttachmentInputType {
-  id: Int
-  url: String
-  amount: Int!
-  incurredAt: DateString
-  description: String
 }
 
 """
@@ -1284,9 +1317,35 @@ input ExpenseInputType {
   PayoutMethod: PayoutMethodInput
   privateMessage: String
   attachment: String
-  attachments: [ExpenseAttachmentInputType]
+  attachments: [ExpenseItemInputType]
+  items: [ExpenseItemInputType]
   user: UserInputType
   collective: CollectiveAttributesInputType
+}
+
+"""
+Public fields for an expense item
+"""
+type ExpenseItem {
+  id: Int!
+  amount: Int!
+  createdAt: IsoDateString!
+  updatedAt: IsoDateString!
+  incurredAt: IsoDateString!
+  deletedAt: IsoDateString
+  description: String
+  url: String
+}
+
+"""
+Fields for creating or editing an expense item
+"""
+input ExpenseItemInputType {
+  id: Int
+  url: String
+  amount: Int!
+  incurredAt: DateString
+  description: String
 }
 
 """
@@ -1327,6 +1386,7 @@ enum ExpenseStatus {
   PROCESSING
   ERROR
   PAID
+  SCHEDULED_FOR_PAYMENT
 }
 
 """
@@ -1334,29 +1394,32 @@ This represents an Expense
 """
 type ExpenseType {
   id: Int
+  idV2: String
   amount: Int
   currency: String
   createdAt: DateString
   updatedAt: DateString
   incurredAt: DateString
   description: String
-  category: String
+  category: String @deprecated(reason: "2020-04-01 - Please use tags")
+  tags: [String]
   status: String
   type: String
   payoutMethod: String @deprecated(reason: "2020-01-23 - Please use the private field instead.")
   PayoutMethod: PayoutMethod
-
-  """
-  Informs the frontend about what fields are accessible in the expense for current user
-  """
-  canSeePrivateInfo: ExpenseViewPermissions
   privateMessage: String
   attachment: String
     @deprecated(reason: "2020-01-13 - Expenses now support multiple attachments. Please use attachments instead.")
-  attachments: [ExpenseAttachment]
+  attachments: [ExpenseItem] @deprecated(reason: "2020-04-09 - Please use items")
+  items: [ExpenseItem]
+  attachedFiles: [ExpenseAttachedFile!]
   userTaxFormRequiredBeforePayment: Boolean
   user: UserDetails
   fromCollective: CollectiveInterface
+
+  """
+  Returns the list of comments for this expense, or `null` if user is not allowed to see them
+  """
   comments(limit: Int, offset: Int): CommentListType
   collective: CollectiveInterface
 
@@ -1367,13 +1430,233 @@ type ExpenseType {
 }
 
 """
-Returns info about whether user is allowed to see expense's private info, such as attachment's URLS or payout methods.
+This represents a Fund
 """
-type ExpenseViewPermissions {
-  attachments: Boolean
-  payoutMethod: Boolean
-  userLocation: Boolean
-  invoiceInfo: Boolean
+type Fund implements CollectiveInterface {
+  id: Int
+  createdByUser: UserDetails
+  parentCollective: CollectiveInterface
+  type: String
+  isActive: Boolean
+  name: String
+  company: String
+  description: String
+  longDescription: String
+
+  """
+  Returns true if the collective has a long description
+  """
+  hasLongDescription: Boolean
+  expensePolicy: String
+  tags: [String]
+
+  """
+  Name, address, lat, long of the location.
+  """
+  location: LocationType
+  createdAt: DateString
+  startsAt: DateString
+  endsAt: DateString
+  timezone: String
+  hostFeePercent: Int
+  platformFeePercent: Int
+  currency: String
+  image: String
+  imageUrl(height: Int, format: ImageFormat): String
+  backgroundImage: String
+  backgroundImageUrl(height: Int, format: ImageFormat): String
+  settings: JSON!
+
+  """
+  Defines if a collective is pledged
+  """
+  isPledged: Boolean
+  data: JSON @deprecated(reason: "2020-10-08: This field is not provided anymore and will return an empty object")
+  githubContributors: JSON!
+  slug: String
+  path: String
+
+  """
+  Returns whether this collective can host other collectives (ie. has a Stripe Account connected)
+  """
+  isHost: Boolean
+
+  """
+  Returns whether this host accepts applications for new collectives
+  """
+  canApply: Boolean
+
+  """
+  Returns whether this collectives can be contacted
+  """
+  canContact: Boolean
+
+  """
+  Returns whether this collective is incognito
+  """
+  isIncognito: Boolean
+
+  """
+  Returns whether this collective is archived
+  """
+  isArchived: Boolean
+
+  """
+  Returns whether this collective is approved
+  """
+  isApproved: Boolean
+
+  """
+  Returns whether this collective is deletable
+  """
+  isDeletable: Boolean
+
+  """
+  Get the host collective that is receiving the money on behalf of this collective
+  """
+  host: CollectiveInterface
+
+  """
+  A host might have a collective attached to it
+  """
+  hostCollective: CollectiveInterface
+
+  """
+  Get all the members of this collective (admins, members, backers, followers)
+  """
+  members(limit: Int, offset: Int, type: String, role: String, TierId: Int, tierSlug: String, roles: [String]): [Member]
+
+  """
+  Get all the collective this collective is a member of (as a member, backer, follower, etc.)
+  """
+  memberOf(
+    limit: Int
+    offset: Int
+
+    """
+    Type of collective (COLLECTIVE, EVENT, ORGANIZATION)
+    """
+    type: String
+    role: String
+    roles: [String]
+
+    """
+    Only return memberships for active collectives (that have been approved by the host)
+    """
+    onlyActiveCollectives: Boolean = false
+
+    """
+    Wether incognito profiles should be included in the result. Only works if requesting user is an admin of the account.
+    """
+    includeIncognito: Boolean = true
+  ): [Member]
+
+  """
+  All the persons and entities that contribute to this organization
+  """
+  contributors(limit: Int = 1000, roles: [ContributorRole]): [Contributor]
+  collectives(
+    orderBy: CollectiveOrderField = name
+    orderDirection: OrderDirection = ASC
+    expenseStatus: String = null
+    limit: Int
+    offset: Int
+    isActive: Boolean
+    isArchived: Boolean
+  ): CollectiveSearchResults
+  followers(limit: Int, offset: Int): [CollectiveInterface]
+  notifications(limit: Int, offset: Int, channel: String, type: String, active: Boolean): [NotificationType]
+  maxQuantity: Int
+  tiers(id: Int, slug: String, slugs: [String]): [Tier]
+  orders(status: OrderStatus): [OrderType]
+  ordersFromCollective(subscriptionsOnly: Boolean): [OrderType]
+  transactions(
+    """
+    type of transaction (DEBIT/CREDIT)
+    """
+    type: String
+    limit: Int
+    offset: Int
+
+    """
+    If false, only the transactions not linked to an expense (orders/refunds) will be returned
+    """
+    includeExpenseTransactions: Boolean
+  ): [Transaction]
+  expenses(type: String, limit: Int, offset: Int, includeHostedCollectives: Boolean, status: String): [ExpenseType]
+  role: String
+  twitterHandle: String
+  githubHandle: String
+  website: String
+  updates(limit: Int, offset: Int, onlyPublishedUpdates: Boolean): [UpdateType]
+  events(
+    limit: Int
+    offset: Int
+
+    """
+    Include past events
+    """
+    includePastEvents: Boolean = false
+
+    """
+    Include inactive events
+    """
+    includeInactive: Boolean = false
+  ): [Event]
+  projects(limit: Int, offset: Int): [Project]
+
+  """
+  Get all child collectives (with type=COLLECTIVE, doesn't return events)
+  """
+  childCollectives: [Collective]
+    @deprecated(reason: "2020/01/08 - Connected-collectives are now handled through members")
+  paymentMethods(
+    service: String
+    limit: Int
+    hasBalanceAboveZero: Boolean
+    isConfirmed: Boolean = true
+    types: [String]
+    orderBy: PaymenMethodOrderField = type
+
+    """
+    Defines if the organization "collective" payment method should be returned
+    """
+    includeOrganizationCollectivePaymentMethod: Boolean = false
+
+    """
+    Defines if the host "collective" payment method should be returned
+    """
+    includeHostCollectivePaymentMethod: Boolean = false
+  ): [PaymentMethodType]
+
+  """
+  The list of payout methods that this collective can use to get paid
+  """
+  payoutMethods: [PayoutMethod]
+
+  """
+  List all the gift cards batches emitted by this collective. May include `null` for unbatched gift cards.
+  """
+  virtualCardsBatches: [PaymentMethodBatchInfo]
+
+  """
+  Get the virtual cards created by this collective. RemoteUser must be a collective admin.
+  """
+  createdVirtualCards(
+    limit: Int
+    offset: Int
+    batch: String
+
+    """
+    Wether the virtual card has been claimed or not
+    """
+    isConfirmed: Boolean
+  ): PaginatedPaymentMethod
+  connectedAccounts: [ConnectedAccountType]
+  plan: PlanType
+  stats: CollectiveStatsType
+  contributionPolicy: String
+  categories: [String]!
 }
 
 """
@@ -1429,6 +1712,11 @@ type InvoiceType {
   Title for the invoice. Depending on the type of legal entity, a host should issue an Invoice or a Receipt.
   """
   title: String
+
+  """
+  more info about the invoice, which is then printed on receipts that go to financial contributors.
+  """
+  extraInfo: String
 
   """
   dateFrom and dateTo will be set for any invoice over a period of time. They
@@ -1585,10 +1873,8 @@ type Mutation {
   createCollective(collective: CollectiveInputType!): CollectiveInterface
   createCollectiveFromGithub(collective: CollectiveInputType!): CollectiveInterface
   editCollective(collective: CollectiveInputType!): CollectiveInterface
-  deleteEventCollective(id: Int!): CollectiveInterface
   deleteCollective(id: Int!): CollectiveInterface
   deleteUserCollective(id: Int!): CollectiveInterface
-  claimCollective(id: Int!): CollectiveInterface
 
   """
   Approve a collective
@@ -1671,10 +1957,15 @@ type Mutation {
     Force expense with paypal method to be paid manually
     """
     forceManual: Boolean
+
+    """
+    2FA code for if the host account has it turned on and the transaction is large.
+    """
+    twoFactorAuthenticatorCode: String
   ): ExpenseType
   markOrderAsPaid(id: Int!): OrderType
   markPendingOrderAsExpired(id: Int!): OrderType
-  createExpense(expense: ExpenseInputType!): ExpenseType
+  createExpense(expense: ExpenseInputType!): ExpenseType @deprecated(reason: "2020-09-17: Now using GQLV2 for that")
   editExpense(expense: ExpenseInputType!): ExpenseType
   deleteExpense(id: Int!): ExpenseType
   markExpenseAsUnpaid(id: Int!, processorFeeRefunded: Boolean!): ExpenseType
@@ -1702,10 +1993,9 @@ type Mutation {
   createOrder(order: OrderInputType!): OrderType
   confirmOrder(order: ConfirmOrderInputType!): OrderType
   addFundsToCollective(order: OrderInputType!): OrderType
-  updateOrder(order: OrderInputType!): OrderType
   createUpdate(update: UpdateInputType!): UpdateType
   editUpdate(update: UpdateAttributesInputType!): UpdateType
-  publishUpdate(id: Int!): UpdateType
+  publishUpdate(id: Int!, notificationAudience: UpdateAudienceTypeEnum!): UpdateType
   unpublishUpdate(id: Int!): UpdateType
   deleteUpdate(id: Int!): UpdateType
   createComment(comment: CommentInputType!): CommentType
@@ -1922,6 +2212,26 @@ type Mutation {
     """
     id: Int!
   ): CollectiveInterface
+
+  """
+  Activate budget (For Host Organizations only)
+  """
+  activateBudget(
+    """
+    ID of the "collective" (Host Organization)
+    """
+    id: Int!
+  ): CollectiveInterface
+
+  """
+  Deactivate budget (For Host Organizations only)
+  """
+  deactivateBudget(
+    """
+    ID of the "collective" (Host Organization)
+    """
+    id: Int!
+  ): CollectiveInterface
 }
 
 """
@@ -2013,7 +2323,6 @@ type Order implements Transaction {
   updatedAt: DateString
   paymentMethod: PaymentMethodType
   description: String
-  privateMessage: String
   publicMessage: String
   order: OrderType
   subscription: Subscription
@@ -2061,8 +2370,10 @@ input OrderInputType {
   id: Int
   quantity: Int = 1
   totalAmount: Int
-  hostFeePercent: Int
+  hostFeePercent: Float
   platformFeePercent: Int
+  platformFee: Int
+  isFeesOnTop: Boolean
   currency: String
   interval: String
   description: String
@@ -2096,13 +2407,16 @@ input OrderInputType {
 Possible statuses for an Order
 """
 enum OrderStatus {
-  PENDING
+  NEW
+  REQUIRE_CLIENT_CONFIRMATION
   PAID
+  ERROR
   ACTIVE
   CANCELLED
-  REJECTED
-  ERROR
+  PENDING
   EXPIRED
+  PLEDGED
+  REJECTED
 }
 
 """
@@ -2226,7 +2540,6 @@ type Organization implements CollectiveInterface {
   """
   hasLongDescription: Boolean
   expensePolicy: String
-  mission: String
   tags: [String]
 
   """
@@ -2237,20 +2550,21 @@ type Organization implements CollectiveInterface {
   startsAt: DateString
   endsAt: DateString
   timezone: String
-  maxAmount: Int
   hostFeePercent: Int
+  platformFeePercent: Int
   currency: String
   image: String
   imageUrl(height: Int, format: ImageFormat): String
   backgroundImage: String
   backgroundImageUrl(height: Int, format: ImageFormat): String
-  settings: JSON
+  settings: JSON!
 
   """
   Defines if a collective is pledged
   """
   isPledged: Boolean
-  data: JSON
+  data: JSON @deprecated(reason: "2020-10-08: This field is not provided anymore and will return an empty object")
+  githubContributors: JSON!
   slug: String
   path: String
 
@@ -2322,6 +2636,11 @@ type Organization implements CollectiveInterface {
     Only return memberships for active collectives (that have been approved by the host)
     """
     onlyActiveCollectives: Boolean = false
+
+    """
+    Wether incognito profiles should be included in the result. Only works if requesting user is an admin of the account.
+    """
+    includeIncognito: Boolean = true
   ): [Member]
 
   """
@@ -2376,11 +2695,13 @@ type Organization implements CollectiveInterface {
     """
     includeInactive: Boolean = false
   ): [Event]
+  projects(limit: Int, offset: Int): [Project]
 
   """
   Get all child collectives (with type=COLLECTIVE, doesn't return events)
   """
-  childCollectives: [Collective] @deprecated(reason: "2020/01/08 - Sub-collectives are now handled through members")
+  childCollectives: [Collective]
+    @deprecated(reason: "2020/01/08 - Connected-collectives are now handled through members")
   paymentMethods(
     service: String
     limit: Int
@@ -2426,6 +2747,8 @@ type Organization implements CollectiveInterface {
   connectedAccounts: [ConnectedAccountType]
   plan: PlanType
   stats: CollectiveStatsType
+  contributionPolicy: String
+  categories: [String]!
   email: String
 }
 
@@ -2535,7 +2858,7 @@ type PaymentMethodType {
   To group multiple payment methods. Used for Gift Cards
   """
   batch: String
-  SourcePaymentMethodId: Int
+  SourcePaymentMethodId: Int @deprecated(reason: "2020-09-28: Not used")
   type: String
   data: JSON
   name: String
@@ -2551,7 +2874,7 @@ type PaymentMethodType {
   collective: CollectiveInterface
   emitter: CollectiveInterface
   limitedToTags: JSON
-  limitedToCollectiveIds: [Int]
+  limitedToCollectiveIds: [Int] @deprecated(reason: "2020-08-11: This field does not exist anymore")
   limitedToHostCollectiveIds: [Int]
   orders(
     """
@@ -2592,6 +2915,7 @@ enum PayoutMethodTypeEnum {
   OTHER
   PAYPAL
   BANK_ACCOUNT
+  ACCOUNT_BALANCE
 }
 
 """
@@ -2607,6 +2931,238 @@ type PlanType {
   manualPayments: Boolean
   bankTransfers: Int
   bankTransfersLimit: Int
+  transferwisePayouts: Int
+  transferwisePayoutsLimit: Int
+}
+
+"""
+This represents a Project
+"""
+type Project implements CollectiveInterface {
+  id: Int
+  createdByUser: UserDetails
+  parentCollective: CollectiveInterface
+  type: String
+  isActive: Boolean
+  name: String
+  company: String
+  description: String
+  longDescription: String
+
+  """
+  Returns true if the collective has a long description
+  """
+  hasLongDescription: Boolean
+  expensePolicy: String
+  tags: [String]
+
+  """
+  Name, address, lat, long of the location.
+  """
+  location: LocationType
+  createdAt: DateString
+  startsAt: DateString
+  endsAt: DateString
+  timezone: String
+  hostFeePercent: Int
+  platformFeePercent: Int
+  currency: String
+  image: String
+  imageUrl(height: Int, format: ImageFormat): String
+  backgroundImage: String
+  backgroundImageUrl(height: Int, format: ImageFormat): String
+  settings: JSON!
+
+  """
+  Defines if a collective is pledged
+  """
+  isPledged: Boolean
+  data: JSON @deprecated(reason: "2020-10-08: This field is not provided anymore and will return an empty object")
+  githubContributors: JSON!
+  slug: String
+  path: String
+
+  """
+  Returns whether this collective can host other collectives (ie. has a Stripe Account connected)
+  """
+  isHost: Boolean
+
+  """
+  Returns whether this host accepts applications for new collectives
+  """
+  canApply: Boolean
+
+  """
+  Returns whether this collectives can be contacted
+  """
+  canContact: Boolean
+
+  """
+  Returns whether this collective is incognito
+  """
+  isIncognito: Boolean
+
+  """
+  Returns whether this collective is archived
+  """
+  isArchived: Boolean
+
+  """
+  Returns whether this collective is approved
+  """
+  isApproved: Boolean
+
+  """
+  Returns whether this collective is deletable
+  """
+  isDeletable: Boolean
+
+  """
+  Get the host collective that is receiving the money on behalf of this collective
+  """
+  host: CollectiveInterface
+
+  """
+  A host might have a collective attached to it
+  """
+  hostCollective: CollectiveInterface
+
+  """
+  Get all the members of this collective (admins, members, backers, followers)
+  """
+  members(limit: Int, offset: Int, type: String, role: String, TierId: Int, tierSlug: String, roles: [String]): [Member]
+
+  """
+  Get all the collective this collective is a member of (as a member, backer, follower, etc.)
+  """
+  memberOf(
+    limit: Int
+    offset: Int
+
+    """
+    Type of collective (COLLECTIVE, EVENT, ORGANIZATION)
+    """
+    type: String
+    role: String
+    roles: [String]
+
+    """
+    Only return memberships for active collectives (that have been approved by the host)
+    """
+    onlyActiveCollectives: Boolean = false
+
+    """
+    Wether incognito profiles should be included in the result. Only works if requesting user is an admin of the account.
+    """
+    includeIncognito: Boolean = true
+  ): [Member]
+
+  """
+  All the persons and entities that contribute to this organization
+  """
+  contributors(limit: Int = 1000, roles: [ContributorRole]): [Contributor]
+  collectives(
+    orderBy: CollectiveOrderField = name
+    orderDirection: OrderDirection = ASC
+    expenseStatus: String = null
+    limit: Int
+    offset: Int
+    isActive: Boolean
+    isArchived: Boolean
+  ): CollectiveSearchResults
+  followers(limit: Int, offset: Int): [CollectiveInterface]
+  notifications(limit: Int, offset: Int, channel: String, type: String, active: Boolean): [NotificationType]
+  maxQuantity: Int
+  tiers(id: Int, slug: String, slugs: [String]): [Tier]
+  orders(status: OrderStatus): [OrderType]
+  ordersFromCollective(subscriptionsOnly: Boolean): [OrderType]
+  transactions(
+    """
+    type of transaction (DEBIT/CREDIT)
+    """
+    type: String
+    limit: Int
+    offset: Int
+
+    """
+    If false, only the transactions not linked to an expense (orders/refunds) will be returned
+    """
+    includeExpenseTransactions: Boolean
+  ): [Transaction]
+  expenses(type: String, limit: Int, offset: Int, includeHostedCollectives: Boolean, status: String): [ExpenseType]
+  role: String
+  twitterHandle: String
+  githubHandle: String
+  website: String
+  updates(limit: Int, offset: Int, onlyPublishedUpdates: Boolean): [UpdateType]
+  events(
+    limit: Int
+    offset: Int
+
+    """
+    Include past events
+    """
+    includePastEvents: Boolean = false
+
+    """
+    Include inactive events
+    """
+    includeInactive: Boolean = false
+  ): [Event]
+  projects(limit: Int, offset: Int): [Project]
+
+  """
+  Get all child collectives (with type=COLLECTIVE, doesn't return events)
+  """
+  childCollectives: [Collective]
+    @deprecated(reason: "2020/01/08 - Connected-collectives are now handled through members")
+  paymentMethods(
+    service: String
+    limit: Int
+    hasBalanceAboveZero: Boolean
+    isConfirmed: Boolean = true
+    types: [String]
+    orderBy: PaymenMethodOrderField = type
+
+    """
+    Defines if the organization "collective" payment method should be returned
+    """
+    includeOrganizationCollectivePaymentMethod: Boolean = false
+
+    """
+    Defines if the host "collective" payment method should be returned
+    """
+    includeHostCollectivePaymentMethod: Boolean = false
+  ): [PaymentMethodType]
+
+  """
+  The list of payout methods that this collective can use to get paid
+  """
+  payoutMethods: [PayoutMethod]
+
+  """
+  List all the gift cards batches emitted by this collective. May include `null` for unbatched gift cards.
+  """
+  virtualCardsBatches: [PaymentMethodBatchInfo]
+
+  """
+  Get the virtual cards created by this collective. RemoteUser must be a collective admin.
+  """
+  createdVirtualCards(
+    limit: Int
+    offset: Int
+    batch: String
+
+    """
+    Wether the virtual card has been claimed or not
+    """
+    isConfirmed: Boolean
+  ): PaginatedPaymentMethod
+  connectedAccounts: [ConnectedAccountType]
+  plan: PlanType
+  stats: CollectiveStatsType
+  contributionPolicy: String
+  categories: [String]!
 }
 
 """
@@ -2631,14 +3187,14 @@ type Query {
     Slug of the invoice. Format: :year:2digitMonth.:hostSlug.:fromCollectiveSlug
     """
     invoiceSlug: String!
-  ): InvoiceType
+  ): InvoiceType @deprecated(reason: "2020-03-09: This field was deprecated after introducing InvoiceByDateRange")
   InvoiceByDateRange(
     """
     Like the Slug of the invoice but spilt out into parts and includes dateFrom
     + dateTo for getting an invoice over a date range.
     """
     invoiceInputType: InvoiceInputType!
-  ): InvoiceType
+  ): InvoiceType @deprecated(reason: "2020-09-17: PDF service is now using the GQLV2 transactions endpoint")
   TransactionInvoice(
     """
     Slug of the transaction.
@@ -2808,6 +3364,7 @@ type Query {
   ): CollectiveSearchResults
   allCollectiveTags: [String]
   member(id: Int, CollectiveId: Int, MemberCollectiveId: Int, TierId: Int): Member
+    @deprecated(reason: "2020-09-08: This endpoint does not seems to be used anymore")
   allMembers(
     CollectiveId: Int
     collectiveSlug: String
@@ -2853,7 +3410,7 @@ type Query {
   """
   search(
     """
-    Fetch collectives related to this term based on name, description, tags, slug, mission, and location
+    Fetch collectives related to this term based on name, description, tags, slug, and location
     """
     term: String
 
@@ -2914,11 +3471,6 @@ type StatsMemberType {
   total amount donated by this member either directly or using a virtual card it has emitted
   """
   totalDonations: Int
-
-  """
-  total amount raised by this member
-  """
-  totalRaised: Int @deprecated(reason: "2019-08-22: Referals are not supported anymore")
 }
 
 """
@@ -3001,9 +3553,7 @@ type Tier {
   interval: String
   presets: [Int]
   maxQuantity: Int
-  maxQuantityPerUser: Int
   goal: Int
-  password: String
   customFields: [JSON]
   startsAt: DateString
   endsAt: DateString
@@ -3066,13 +3616,11 @@ input TierInputType {
   maxQuantity: Int
   minimumAmount: Int
   amountType: String
-  maxQuantityPerUser: Int
 
   """
   amount that you are trying to raise with this tier
   """
   goal: Int
-  password: String
   customFields: [CustomFieldsInputType]
 
   """
@@ -3210,6 +3758,8 @@ enum TypeOfCollective {
   ORGANIZATION
   USER
   BOT
+  PROJECT
+  FUND
 }
 
 """
@@ -3227,6 +3777,26 @@ input UpdateAttributesInputType {
   html: String
   fromCollective: CollectiveAttributesInputType
   tier: TierInputType
+}
+
+"""
+Defines targets for an update
+"""
+enum UpdateAudienceTypeEnum {
+  """
+  Will be sent to collective admins and financial contributors
+  """
+  ALL
+
+  """
+  Will be sent to collective admins
+  """
+  COLLECTIVE_ADMINS
+
+  """
+  Will be sent to financial contributors
+  """
+  FINANCIAL_CONTRIBUTORS
 }
 
 """
@@ -3256,6 +3826,7 @@ type UpdateType {
   slug: String
   image: String
   isPrivate: Boolean
+  notificationAudience: UpdateAudienceTypeEnum
   makePublicOn: IsoDateString
 
   """
@@ -3275,6 +3846,7 @@ type UpdateType {
   collective: CollectiveInterface
   tier: Tier
   comments(limit: Int, offset: Int): CommentListType
+    @deprecated(reason: "Deprecated since 2020-03-18: This field has never been active and will be removed soon.")
 }
 
 """
@@ -3296,7 +3868,6 @@ type User implements CollectiveInterface {
   """
   hasLongDescription: Boolean
   expensePolicy: String
-  mission: String
   tags: [String]
 
   """
@@ -3307,20 +3878,21 @@ type User implements CollectiveInterface {
   startsAt: DateString
   endsAt: DateString
   timezone: String
-  maxAmount: Int
   hostFeePercent: Int
+  platformFeePercent: Int
   currency: String
   image: String
   imageUrl(height: Int, format: ImageFormat): String
   backgroundImage: String
   backgroundImageUrl(height: Int, format: ImageFormat): String
-  settings: JSON
+  settings: JSON!
 
   """
   Defines if a collective is pledged
   """
   isPledged: Boolean
-  data: JSON
+  data: JSON @deprecated(reason: "2020-10-08: This field is not provided anymore and will return an empty object")
+  githubContributors: JSON!
   slug: String
   path: String
 
@@ -3392,6 +3964,11 @@ type User implements CollectiveInterface {
     Only return memberships for active collectives (that have been approved by the host)
     """
     onlyActiveCollectives: Boolean = false
+
+    """
+    Wether incognito profiles should be included in the result. Only works if requesting user is an admin of the account.
+    """
+    includeIncognito: Boolean = true
   ): [Member]
 
   """
@@ -3446,11 +4023,13 @@ type User implements CollectiveInterface {
     """
     includeInactive: Boolean = false
   ): [Event]
+  projects(limit: Int, offset: Int): [Project]
 
   """
   Get all child collectives (with type=COLLECTIVE, doesn't return events)
   """
-  childCollectives: [Collective] @deprecated(reason: "2020/01/08 - Sub-collectives are now handled through members")
+  childCollectives: [Collective]
+    @deprecated(reason: "2020/01/08 - Connected-collectives are now handled through members")
   paymentMethods(
     service: String
     limit: Int
@@ -3496,8 +4075,10 @@ type User implements CollectiveInterface {
   connectedAccounts: [ConnectedAccountType]
   plan: PlanType
   stats: CollectiveStatsType
-  firstName: String
-  lastName: String
+  contributionPolicy: String
+  categories: [String]!
+  firstName: String @deprecated(reason: "2020-03-27: These field are now deprecated in favor of collective.name")
+  lastName: String @deprecated(reason: "2020-03-27: These field are now deprecated in favor of collective.name")
   email: String
   applications: [Application]
 }
@@ -3516,7 +4097,14 @@ type UserDetails {
   image: String
   email: String
   emailWaitingForValidation: String
-  memberOf: [Member]
+  memberOf(
+    roles: [String]
+
+    """
+    Wether incognito profiles should be included in the result. Only works if requesting user is an admin of the account.
+    """
+    includeIncognito: Boolean = true
+  ): [Member]
   paypalEmail: String @deprecated(reason: "2020-01-20 - Payout methods are now attached to collectives")
 
   """
@@ -3543,4 +4131,5 @@ input UserInputType {
   website: String
   paypalEmail: String
   newsletterOptIn: Boolean
+  location: LocationInputType
 }
