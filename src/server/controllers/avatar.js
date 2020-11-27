@@ -16,6 +16,7 @@ const imagesUrl = process.env.IMAGES_URL;
 const getSvg = (svgPath) => fs.readFileSync(path.join(__dirname, svgPath), { encoding: 'utf8' });
 
 const anonymousSvg = getSvg('../../static/images/default-anonymous-logo.svg');
+const guestSvg = getSvg('../../static/images/default-guest-logo.svg');
 
 const sendSvg = (res, svg) => {
   res.setHeader('Cache-Control', 'public, max-age=7200');
@@ -136,6 +137,12 @@ export default async function avatar(req, res) {
       return sendSvg(
         res,
         anonymousSvg.replace('width="88"', `width="${imageHeight}"`).replace('height="88"', `height="${imageHeight}"`),
+      );
+    } else if (user.isGuest && user.name === 'Guest') {
+      const imageHeight = Math.round(maxHeight / 2);
+      return sendSvg(
+        res,
+        guestSvg.replace('width="96"', `width="${imageHeight}"`).replace('height="96"', `height="${imageHeight}"`),
       );
     }
 

@@ -85,14 +85,15 @@ export const parseToBooleanDefaultTrue = (value) => {
   return !['off', 'disabled', '0', 'false', 'no', 0].includes(string);
 };
 
-export const getUiAvatarUrl = (name, size, rounded = true) => {
+export const getUiAvatarUrl = (name, size, rounded = true, background = 'E6F3FF', color = '5CA3FF', length = 2) => {
   const url = new URL('https://ui-avatars.com/api/');
 
   url.searchParams.set('rounded', rounded);
   url.searchParams.set('name', name);
-  url.searchParams.set('color', 'F0F2F5');
-  url.searchParams.set('background', '969BA3');
+  url.searchParams.set('color', color);
+  url.searchParams.set('background', background);
   url.searchParams.set('size', size);
+  url.searchParams.set('length', length);
 
   return url.toString();
 };

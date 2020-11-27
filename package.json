@@ -55,8 +55,8 @@
     "deploy:production": "./scripts/pre-deploy.sh production && git push production master",
     "deploy:staging": "./scripts/pre-deploy.sh staging && git push -f staging master",
     "graphql:update": "npm-run-all graphql:updateV1 graphql:updateV2",
-    "graphql:updateV1": "npx graphql-cli get-schema -p opencollective -e dev && prettier src/graphql/schema.graphql --write",
-    "graphql:updateV2": "npx graphql-cli get-schema -p opencollectiveV2 -e dev && prettier src/graphql/schemaV2.graphql --write"
+    "graphql:updateV1": "npx get-graphql-schema http://localhost:3060/graphql > src/graphql/schema.graphql && prettier src/graphql/schema.graphql --write",
+    "graphql:updateV2": "npx get-graphql-schema http://localhost:3060/graphql/v2 > src/graphql/schemaV2.graphql && prettier src/graphql/schemaV2.graphql --write"
   },
   "devDependencies": {
     "@babel/cli": "^7.11.6",

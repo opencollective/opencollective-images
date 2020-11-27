@@ -28,8 +28,13 @@ const debugLogo = debug('logo');
 const getCollectiveImageUrl = async (collectiveSlug, { height, hash } = {}) => {
   const collective = await fetchCollectiveWithCache(collectiveSlug, { hash });
 
-  if (collective.type === 'USER' && (!collective.name || collective.name === 'anonymous')) {
-    return '/images/anonymous-logo-square.png';
+  // Handle guest & incognito
+  if (collective.type === 'USER') {
+    if (!collective.name || collective.name === 'anonymous') {
+      return '/images/anonymous-logo-square.png';
+    } else if (collective.isGuest && collective.name === 'Guest') {
+      return '/images/default-guest-logo.png';
+    }
   }
 
   if (collective.image) {
@@ -48,7 +53,11 @@ const getCollectiveImageUrl = async (collectiveSlug, { height, hash } = {}) => {
   }
 
   if (collective.type === 'ORGANIZATION') {
-    return '/images/default-organization-logo.png';
+    if (collective.name) {
+      return getUiAvatarUrl(collective.name, height || defaultHeight, false, '4E5052', 'F0F1F2', 1);
+    } else {
+      return '/images/default-organization-logo.png';
+    }
   }
 
   if (['COLLECTIVE', 'FUND', 'EVENT', 'PROJECT'].includes(collective.type)) {
