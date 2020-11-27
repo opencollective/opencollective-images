@@ -58,6 +58,7 @@ export async function fetchCollective(collectiveSlug) {
         type
         image
         backgroundImage
+        isGuest
         parentCollective {
           image
           backgroundImage
@@ -233,6 +234,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
                 type
                 slug
                 name
+                isGuest
                 image
                 website
                 twitterHandle
