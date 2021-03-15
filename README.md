@@ -72,7 +72,7 @@ We're currently relying on the following Heroku buildpacks:
 # Before first deployment, configure staging remote
 git remote add staging https://git.heroku.com/oc-staging-image-server.git
 
-# Then deploy master with
+# Then deploy main with
 npm run deploy:staging
 ```
 
@@ -84,7 +84,7 @@ npm run deploy:staging
 # Before first deployment, configure production remote
 git remote add production https://git.heroku.com/oc-prod-image-server.git
 
-# Then deploy master with
+# Then deploy main with
 npm run deploy:production
 ```
 
