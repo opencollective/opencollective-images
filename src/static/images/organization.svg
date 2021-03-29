@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="72px" height="72px" viewBox="0 0 72 72" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg role="presentation" width="72px" height="72px" viewBox="0 0 72 72" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
     <!-- Generator: Sketch 48.2 (47327) - http://www.bohemiancoding.com/sketch -->
-    <title>06 › avatars/organization/64px</title>
+    <title id="default-organization-logo">Organization logo</title>
     <desc>Created with Sketch.</desc>
     <defs>
         <pattern id="pattern-1" patternUnits="objectBoundingBox" x="0%" width="100%" height="100%">

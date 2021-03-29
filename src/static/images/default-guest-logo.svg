@@ -1,6 +1,7 @@
-<svg width="96" height="96" viewBox="0 0 96 96" fill="none"
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" role="presentation"
   xmlns="http://www.w3.org/2000/svg"
   xmlns:xlink="http://www.w3.org/1999/xlink">
+  <title id="Guest logo">Guest logo</title>
   <path d="M0 35.2C0 22.8788 0 16.7183 2.39786 12.0122C4.50707 7.87264 7.87264 4.50707 12.0122 2.39786C16.7183 0 22.8788 0 35.2 0H60.8C73.1212 0 79.2817 0 83.9878 2.39786C88.1274 4.50707 91.4929 7.87264 93.6021 12.0122C96 16.7183 96 22.8788 96 35.2V60.8C96 73.1212 96 79.2817 93.6021 83.9878C91.4929 88.1274 88.1274 91.4929 83.9878 93.6021C79.2817 96 73.1212 96 60.8 96H35.2C22.8788 96 16.7183 96 12.0122 93.6021C7.87264 91.4929 4.50707 88.1274 2.39786 83.9878C0 79.2817 0 73.1212 0 60.8V35.2Z" fill="#F0F1F2"/>
   <mask id="mask0" mask-type="alpha" maskUnits="userSpaceOnUse" x="9" y="9" width="78" height="78">
     <rect x="9" y="9" width="78" height="78" fill="url(#pattern0)"/>
