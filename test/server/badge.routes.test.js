@@ -105,7 +105,7 @@ describe('badge.routes.test.js', () => {
       async () => {
         const resText = await fetchText('/apex/tiers/sponsors/0/avatar.svg?isActive=false');
         expect(resText).toMatch(
-          /<svg xmlns="http:\/\/www.w3.org\/2000\/svg" xmlns:xlink="http:\/\/www.w3.org\/1999\/xlink" width="64" height="64">/,
+          /<svg xmlns="http:\/\/www.w3.org\/2000\/svg" xmlns:xlink="http:\/\/www.w3.org\/1999\/xlink"/,
         );
       },
       timeout,
