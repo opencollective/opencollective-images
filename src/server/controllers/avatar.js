@@ -24,11 +24,11 @@ const sendSvg = (res, svg) => {
   return res.send(svg);
 };
 
-const imageAsSvg = (buffer, { maxHeight, selector, imageformat }) => {
-  const imageHeight = Math.round(maxHeight / 2);
+const imageAsSvg = (buffer, { maxHeight, imageHeight, imageWidth, selector, imageformat }) => {
   const contentType = mime.lookup(imageformat);
 
-  let imageWidth = 64;
+  imageHeight = imageHeight ?? Math.round(maxHeight / 2);
+  imageWidth = imageWidth ?? 64;
 
   if (selector.match(/sponsor/)) {
     try {
@@ -190,7 +190,9 @@ export default async function avatar(req, res) {
       if (image.byteLength === 0) {
         return res.status(400).send('Invalid Image');
       }
-      return sendSvg(res, imageAsSvg(image, { selector, maxHeight, imageFormat }));
+      const imageHeight = Math.round(maxHeight / 2);
+      const imageWidth = Math.round(maxWidth / 2);
+      return sendSvg(res, imageAsSvg(image, { selector, imageHeight, imageWidth, imageFormat }));
     } else {
       return proxyImage(req, res, imageUrl, { imageFormat });
     }
