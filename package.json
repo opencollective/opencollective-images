@@ -5,6 +5,9 @@
     "type": "git",
     "url": "https://github.com/opencollective/opencollective-images.git"
   },
+  "jest": {
+    "testPathIgnorePatterns": ["opencollective-api/"]
+  },
   "private": true,
   "engines": {
     "node": "^12.6.0",
