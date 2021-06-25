@@ -27,7 +27,7 @@
     "express-winston": "^4.0.5",
     "express-ws": "^4.0.0",
     "graphql": "^15.3.0",
-    "graphql-tag": "^2.11.0",
+    "graphql-tag": "2.12.5",
     "image-size": "^0.8.3",
     "image-to-ascii": "^3.0.13",
     "lodash": "^4.17.21",
