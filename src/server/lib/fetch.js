@@ -15,7 +15,7 @@ const getCustomAgent = () => {
     const keepAliveMsecs = FETCH_AGENT_KEEP_ALIVE_MSECS ? Number(FETCH_AGENT_KEEP_ALIVE_MSECS) : 10000;
     const httpAgent = new http.Agent({ keepAlive, keepAliveMsecs });
     const httpsAgent = new https.Agent({ keepAlive, keepAliveMsecs });
-    customAgent = (_parsedURL) => (_parsedURL.protocol == 'http:' ? httpAgent : httpsAgent);
+    customAgent = (_parsedURL) => (_parsedURL.protocol === 'http:' ? httpAgent : httpsAgent);
   }
   return customAgent;
 };
