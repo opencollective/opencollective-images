@@ -95,7 +95,7 @@ export default async function avatar(req, res) {
   const user = position < users.length ? users[position] : {};
 
   // Unexisting position or button
-  if (position == users.length) {
+  if (position === users.length) {
     let buttonImage;
     if (selector.match(/sponsor/)) {
       buttonImage = `${imagesUrl}/static/images/become_sponsor.svg`;

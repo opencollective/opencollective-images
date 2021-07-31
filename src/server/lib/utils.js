@@ -8,7 +8,7 @@ export function getCloudinaryUrl(src, { width, height, query, style, format }) {
     format = 'png';
   }
 
-  if (style == 'rounded') {
+  if (style === 'rounded') {
     query = `/c_thumb,r_max,h_${height},w_${height},bo_2px_solid_rgb:c4c7cc,f_${format}/`;
   }
 
@@ -46,7 +46,7 @@ export const queryString = {
   stringify: (obj) => {
     let str = '';
     for (const key in obj) {
-      if (str != '') {
+      if (str !== '') {
         str += '&';
       }
       str += `${key}=${encodeURIComponent(obj[key])}`;
