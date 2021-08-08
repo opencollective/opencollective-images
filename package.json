@@ -76,7 +76,7 @@
     "eslint-config-opencollective": "3.0.0",
     "eslint-plugin-babel": "5.3.1",
     "eslint-plugin-graphql": "4.0.0",
-    "eslint-plugin-import": "2.23.4",
+    "eslint-plugin-import": "2.24.0",
     "eslint-plugin-node": "11.1.0",
     "eslint-plugin-react": "7.24.0",
     "husky": "4.3.8",
