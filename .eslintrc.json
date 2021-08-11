@@ -1,9 +1,9 @@
 {
-  "extends": [
-    "opencollective",
-  ],
+  "extends": ["opencollective"],
+  "parser": "@babel/eslint-parser",
+  "parserOptions": { "babelOptions": { "configFile": "./.babelrc" } },
   "env": {
-    "jest": true,
+    "jest": true
   },
   "plugins": ["graphql"],
   "rules": {
