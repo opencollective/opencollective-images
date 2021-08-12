@@ -167,7 +167,17 @@ Used by:
 */
 export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isActive }) {
   // Optimize some 404s that are heavily sent
-  if (['angular-universal-pwa', 'vsc-material-theme'].includes(collectiveSlug)) {
+  if (
+    [
+      'algorithmvisualizer',
+      'angular-universal-pwa',
+      'jquery-adaptive-backgrounds',
+      'lottie-web',
+      'postwoman',
+      'react-native-camera-mlkit',
+      'vsc-material-theme',
+    ].includes(collectiveSlug)
+  ) {
     throw new Error('Collective not found.');
   }
 
