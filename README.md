@@ -63,7 +63,7 @@ To deploy to staging or production, you need to be a core member of the Open Col
 We're currently relying on the following Heroku buildpacks:
 
 - https://github.com/heroku/heroku-buildpack-apt
-- https://github.com/bogini/heroku-buildpack-graphicsmagick
+- https://github.com/MikeKoval/heroku-buildpack-graphicsmagick
 - heroku/nodejs
 
 ### Staging (heroku)
