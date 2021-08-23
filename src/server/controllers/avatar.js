@@ -6,7 +6,7 @@ import mime from 'mime-types';
 
 import { logger } from '../logger';
 import { fetchMembersWithCache } from '../lib/graphql';
-import { getCloudinaryUrl, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
+import { parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
 import { imageRequest } from '../lib/request';
 
 const debugAvatar = debug('avatar');
@@ -148,10 +148,6 @@ export default async function avatar(req, res) {
 
     // Normal image
     let imageUrl = `${process.env.IMAGES_URL}/${user.slug}/avatar/rounded/${maxHeight}.${imageFormat}`;
-    // Use Cloudinary directly if internal images disabled
-    if (process.env.DISABLE_BANNER_INTERNAL_IMAGES) {
-      imageUrl = getCloudinaryUrl(user.image, { height: maxHeight, style: 'rounded', format: imageFormat });
-    }
     debugAvatar(`Serving ${imageUrl} for ${user.slug} (type=USER)`);
     try {
       if (format === 'svg') {
@@ -175,10 +171,6 @@ export default async function avatar(req, res) {
 
   // Default case (likely Organizations)
   let imageUrl = `${process.env.IMAGES_URL}/${user.slug}/logo/square/${maxHeight}/${maxWidth}.${imageFormat}`;
-  // Use Cloudinary directly if internal images disabled
-  if (process.env.DISABLE_BANNER_INTERNAL_IMAGES) {
-    imageUrl = getCloudinaryUrl(user.image, { height: maxHeight, width: maxWidth, format: imageFormat });
-  }
   debugAvatar(`Serving ${imageUrl} for ${user.slug} (default)`);
   try {
     if (format === 'svg') {

@@ -4,7 +4,7 @@ import pLimit from 'p-limit';
 import { cloneDeep } from 'lodash';
 
 import { imageRequest } from './request';
-import { getCloudinaryUrl, getWebsite } from './utils';
+import { getWebsite } from './utils';
 import { logger } from '../logger';
 
 const WEBSITE_URL = process.env.WEBSITE_URL;
@@ -14,10 +14,6 @@ const svgBannerRequestLimit = pLimit(process.env.SVG_BANNER_REQUEST_CONCURRENCY 
 const getImageUrlForUser = (user, height, options) => {
   if (!user.image && (!user.name || user.name === 'anonymous') && !options.includeAnonymous) {
     return null;
-  }
-
-  if (user.image && process.env.DISABLE_BANNER_INTERNAL_IMAGES) {
-    return getCloudinaryUrl(user.image, { height, style: 'rounded' });
   }
 
   if (user.type === 'GITHUB_USER') {
