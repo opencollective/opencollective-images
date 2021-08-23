@@ -49,13 +49,6 @@ export const loadRoutes = (app) => {
     }
   });
 
-  // Special route for GitHub avatars
-  app.get(
-    '/github/:githubUsername/:image(avatar)/:style(rounded|square)?/:height?.:format(png)',
-    maxAgeOneDay,
-    controllers.logo,
-  );
-
   // Route for user avatars or organization logos
   app.get(
     '/:collectiveSlug/:hash?/:image(avatar|logo)/:style(rounded|square)?/:height?/:width?.:format(txt|png|jpg|svg)',
