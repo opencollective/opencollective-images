@@ -202,7 +202,9 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
       });
     };
   } else if (backerType) {
-    if (backerType.match(/sponsor/i) || backerType.match(/organization/i)) {
+    if (backerType.match(/financial-contributor/i)) {
+      type = null;
+    } else if (backerType.match(/sponsor/i) || backerType.match(/organization/i)) {
       type = 'ORGANIZATION,COLLECTIVE';
     } else {
       type = 'USER';
