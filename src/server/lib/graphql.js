@@ -99,6 +99,7 @@ export async function fetchMembersStats(variables) {
               all
               users
               organizations
+              collectives
             }
           }
         }
@@ -107,7 +108,7 @@ export async function fetchMembersStats(variables) {
     processResult = (res) => {
       let name, count;
       if (backerType.match(/sponsor/i) || backerType.match(/organization/i)) {
-        count = res.Collective.stats.backers.organizations;
+        count = res.Collective.stats.backers.organizations + res.Collective.stats.backers.collectives;
         name = backerType;
       } else if (backerType.match(/backer/i) || backerType.match(/individual/i)) {
         count = res.Collective.stats.backers.users;
