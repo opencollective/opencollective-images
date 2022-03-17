@@ -54,6 +54,7 @@ export async function fetchCollective(collectiveSlug) {
   const query = gql`
     query fetchCollective($collectiveSlug: String) {
       Collective(slug: $collectiveSlug) {
+        id
         name
         type
         image
