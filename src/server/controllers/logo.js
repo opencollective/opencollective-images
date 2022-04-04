@@ -25,6 +25,22 @@ const staticFolder = path.resolve(__dirname, '..', '..', 'static');
 
 const debugLogo = debug('logo');
 
+const DEFAULT_COLLECTIVE_LOGOS = [
+  '/images/default-collective-logo-1.png',
+  '/images/default-collective-logo-2.png',
+  '/images/default-collective-logo-3.png',
+  '/images/default-collective-logo-4.png',
+];
+const MIN_COLLECTIVE_ID_FOR_RANDOM_AVATARS = 491950;
+
+const getDefaultAvatar = (collective) => {
+  if (collective.id < MIN_COLLECTIVE_ID_FOR_RANDOM_AVATARS) {
+    return '/images/legacy-collective-logo.png';
+  } else {
+    return DEFAULT_COLLECTIVE_LOGOS[collective.id % 4];
+  }
+};
+
 const getCollectiveImageUrl = async (collectiveSlug, { height, hash } = {}) => {
   const collective = await fetchCollectiveWithCache(collectiveSlug, { hash });
 
@@ -61,7 +77,7 @@ const getCollectiveImageUrl = async (collectiveSlug, { height, hash } = {}) => {
   }
 
   if (['COLLECTIVE', 'FUND', 'EVENT', 'PROJECT'].includes(collective.type)) {
-    return '/images/default-collective-logo.png';
+    return getDefaultAvatar(collective);
   }
 };
 
