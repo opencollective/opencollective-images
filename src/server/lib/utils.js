@@ -2,7 +2,8 @@ import crypto from 'crypto';
 import { URL } from 'url';
 
 export function getCloudinaryUrl(src, { width, height, query, style, format }) {
-  const cloudinaryBaseUrl = 'https://res.cloudinary.com/opencollective/image/fetch';
+  const cloudinaryHost = 'res.cloudinary.com';
+  const cloudinaryResizePath = '/opencollective/image/fetch';
 
   if (!format) {
     format = 'png';
@@ -13,11 +14,12 @@ export function getCloudinaryUrl(src, { width, height, query, style, format }) {
   }
 
   // We don't try to resize animated gif, svg or images already processed by cloudinary
+  const parsedURL = new URL(src); // We're supposed to have a valid URL here, so it's ok to throw if it's not
+  const isCloudinaryUrl = parsedURL.host === cloudinaryHost && parsedURL.pathname === cloudinaryResizePath;
   if (
-    src.substr(0, cloudinaryBaseUrl.length) === cloudinaryBaseUrl ||
-    src.match(/\.gif$/) ||
-    (src.match(/\.svg$/) && !query) ||
-    src.match(/localhost:3000/)
+    isCloudinaryUrl ||
+    parsedURL.pathname.match(/\.(gif|svg)$/i) ||
+    (process.env.OC_ENV === 'development' && parsedURL.hostname === 'localhost')
   ) {
     return src;
   }
@@ -39,7 +41,7 @@ export function getCloudinaryUrl(src, { width, height, query, style, format }) {
     query = `/${size}c_pad,f_${format}/`;
   }
 
-  return `${cloudinaryBaseUrl}${query}${encodeURIComponent(src)}`;
+  return `https://${cloudinaryHost}${cloudinaryResizePath}${query}${encodeURIComponent(src)}`;
 }
 
 export const queryString = {
