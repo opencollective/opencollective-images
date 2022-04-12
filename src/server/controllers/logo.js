@@ -31,14 +31,9 @@ const DEFAULT_COLLECTIVE_LOGOS = [
   '/images/default-collective-logo-3.png',
   '/images/default-collective-logo-4.png',
 ];
-const MIN_COLLECTIVE_ID_FOR_RANDOM_AVATARS = 491950;
 
 const getDefaultAvatar = (collective) => {
-  if (collective.id < MIN_COLLECTIVE_ID_FOR_RANDOM_AVATARS) {
-    return '/images/legacy-collective-logo.png';
-  } else {
-    return DEFAULT_COLLECTIVE_LOGOS[collective.id % 4];
-  }
+  return DEFAULT_COLLECTIVE_LOGOS[collective.id % 4];
 };
 
 const getCollectiveImageUrl = async (collectiveSlug, { height, hash } = {}) => {
