@@ -191,7 +191,7 @@ export default async function avatar(req, res) {
         return res.status(400).send('Invalid Image');
       }
       const imageHeight = Math.round(maxHeight / 2);
-      const imageWidth = Math.round(maxWidth / 2);
+      const imageWidth = maxWidth ? Math.round(maxWidth / 2) : undefined;
       return sendSvg(res, imageAsSvg(image, { selector, imageHeight, imageWidth, imageFormat }));
     } else {
       return proxyImage(req, res, imageUrl, { imageFormat });
