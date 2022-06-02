@@ -16,11 +16,7 @@ export function getCloudinaryUrl(src, { width, height, query, style, format }) {
   // We don't try to resize animated gif, svg or images already processed by cloudinary
   const parsedURL = new URL(src); // We're supposed to have a valid URL here, so it's ok to throw if it's not
   const isCloudinaryUrl = parsedURL.host === cloudinaryHost && parsedURL.pathname === cloudinaryResizePath;
-  if (
-    isCloudinaryUrl ||
-    parsedURL.pathname.match(/\.(gif|svg)$/i) ||
-    (process.env.OC_ENV === 'development' && parsedURL.hostname === 'localhost')
-  ) {
+  if (isCloudinaryUrl || (process.env.OC_ENV === 'development' && parsedURL.hostname === 'localhost')) {
     return src;
   }
 
