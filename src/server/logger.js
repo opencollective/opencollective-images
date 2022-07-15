@@ -7,7 +7,7 @@ function getLogLevel() {
   } else if (
     process.env.NODE_ENV === 'production' ||
     process.env.NODE_ENV === 'test' ||
-    process.env.NODE_ENV === 'circleci'
+    process.env.NODE_ENV === 'ci'
   ) {
     return 'warn';
   } else {
