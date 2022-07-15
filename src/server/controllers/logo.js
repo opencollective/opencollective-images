@@ -76,23 +76,12 @@ const getCollectiveImageUrl = async (collectiveSlug, { height, hash } = {}) => {
   }
 };
 
-const getGithubImageUrl = async (githubUsername, height = defaultHeight) => {
-  return `https://avatars.githubusercontent.com/${githubUsername}?s=${height}`;
-};
-
 export default async function logo(req, res) {
   const collectiveSlug = req.params.collectiveSlug;
-  const githubUsername = req.params.githubUsername;
 
-  if (githubUsername) {
-    debugLogo(
-      `generating ${githubUsername} (github): ${JSON.stringify(omit(req.params, ['githubUsername', 'image']))}`,
-    );
-  } else {
-    debugLogo(
-      `generating ${collectiveSlug} (collective): ${JSON.stringify(omit(req.params, ['collectiveSlug', 'image']))}`,
-    );
-  }
+  debugLogo(
+    `generating ${collectiveSlug} (collective): ${JSON.stringify(omit(req.params, ['collectiveSlug', 'image']))}`,
+  );
 
   const format = req.params.format;
 
@@ -117,8 +106,6 @@ export default async function logo(req, res) {
         height: params.height || defaultHeight,
         hash: req.params.hash,
       });
-    } else if (githubUsername) {
-      imageUrl = await getGithubImageUrl(githubUsername, params.height || defaultHeight);
     }
   } catch (err) {
     if (!err.message.match(/No collective found/)) {

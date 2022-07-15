@@ -183,26 +183,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
   }
 
   let query, processResult, type, role;
-  if (backerType === 'contributors') {
-    query = gql`
-      query fetchContributors($collectiveSlug: String) {
-        Collective(slug: $collectiveSlug) {
-          githubContributors
-        }
-      }
-    `;
-    processResult = (result) => {
-      const users = result.Collective.githubContributors;
-      return Object.keys(users).map((username) => {
-        return {
-          slug: username,
-          type: 'GITHUB_USER',
-          image: `https://avatars.githubusercontent.com/${username}?s=96`,
-          website: `https://github.com/${username}`,
-        };
-      });
-    };
-  } else if (backerType) {
+  if (backerType) {
     if (backerType.match(/sponsor/i) || backerType.match(/organization/i)) {
       type = 'ORGANIZATION,COLLECTIVE';
     } else {
