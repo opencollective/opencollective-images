@@ -32,7 +32,7 @@
     "image-to-ascii": "3.0.13",
     "lodash": "4.17.21",
     "lru-cache": "6.0.0",
-    "mime-types": "2.1.32",
+    "mime-types": "2.1.35",
     "node-fetch": "2.6.7",
     "p-limit": "3.1.0",
     "redis": "3.1.2",
