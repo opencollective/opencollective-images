@@ -21,7 +21,7 @@
     "bluebird": "3.7.2",
     "cached-request": "3.0.0",
     "debug": "4.3.4",
-    "dotenv": "10.0.0",
+    "dotenv": "16.0.1",
     "express": "4.18.1",
     "express-basic-auth": "1.2.1",
     "express-winston": "4.2.0",
