@@ -185,7 +185,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
   let query, processResult, type, role;
   if (backerType) {
     if (backerType.match(/sponsor/i) || backerType.match(/organization/i)) {
-      type = 'ORGANIZATION,COLLECTIVE';
+      type = 'ORGANIZATION,COLLECTIVE,FUND';
     } else {
       type = 'USER';
     }
