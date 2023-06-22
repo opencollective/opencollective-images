@@ -16,7 +16,7 @@ const debugCache = debug('cache');
 export const getProvider = (providerType) => {
   switch (providerType) {
     case PROVIDER_TYPES.REDIS:
-      return makeRedisProvider({ serverUrl: process.env.REDIS_URL });
+      return makeRedisProvider();
     case PROVIDER_TYPES.MEMORY:
       return makeMemoryProvider({ max: 1000 });
     default:
