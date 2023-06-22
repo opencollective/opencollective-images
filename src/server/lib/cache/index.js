@@ -1,9 +1,9 @@
 import debug from 'debug';
 
+import { logger } from '../../logger';
+
 import makeMemoryProvider from './memory';
 import makeRedisProvider from './redis';
-
-import { logger } from '../../logger';
 
 export const PROVIDER_TYPES = {
   MEMCACHE: 'MEMCACHE',

@@ -1,13 +1,14 @@
 import fs from 'fs';
 import path from 'path';
-import sizeOf from 'image-size';
+
 import debug from 'debug';
+import sizeOf from 'image-size';
 import mime from 'mime-types';
 
-import { logger } from '../logger';
 import { fetchMembersWithCache } from '../lib/graphql';
-import { getCloudinaryUrl, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
 import { imageRequest } from '../lib/request';
+import { getCloudinaryUrl, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
+import { logger } from '../logger';
 
 const debugAvatar = debug('avatar');
 

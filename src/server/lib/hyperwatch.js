@@ -1,6 +1,6 @@
 import hyperwatch from '@hyperwatch/hyperwatch';
-import expressWs from 'express-ws';
 import expressBasicAuth from 'express-basic-auth';
+import expressWs from 'express-ws';
 
 import { logger } from '../logger';
 

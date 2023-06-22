@@ -1,6 +1,6 @@
 import Promise from 'bluebird';
-import request from 'request';
 import cachedRequestLib from 'cached-request';
+import request from 'request';
 
 const cachedRequest = cachedRequestLib(request);
 cachedRequest.setCacheDirectory('/tmp');

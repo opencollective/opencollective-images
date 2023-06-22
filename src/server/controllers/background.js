@@ -1,10 +1,10 @@
-import sharp from 'sharp';
-import mime from 'mime-types';
 import { get } from 'lodash';
+import mime from 'mime-types';
+import sharp from 'sharp';
 
-import { logger } from '../logger';
-import { asyncRequest } from '../lib/request';
 import { fetchCollectiveWithCache } from '../lib/graphql';
+import { asyncRequest } from '../lib/request';
+import { logger } from '../logger';
 
 const getImageData = (url) => asyncRequest({ url, encoding: null }).then((result) => result[1]);
 
