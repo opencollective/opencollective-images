@@ -60,7 +60,8 @@
     "deploy:staging": "./scripts/pre-deploy.sh staging && git push -f staging main",
     "graphql:update": "npm-run-all graphql:updateV1 graphql:updateV2",
     "graphql:updateV1": "npx get-graphql-schema http://localhost:3060/graphql > src/graphql/schema.graphql && prettier src/graphql/schema.graphql --write",
-    "graphql:updateV2": "npx get-graphql-schema http://localhost:3060/graphql/v2 > src/graphql/schemaV2.graphql && prettier src/graphql/schemaV2.graphql --write"
+    "graphql:updateV2": "npx get-graphql-schema http://localhost:3060/graphql/v2 > src/graphql/schemaV2.graphql && prettier src/graphql/schemaV2.graphql --write",
+    "depcheck": "npx depcheck"
   },
   "devDependencies": {
     "@babel/cli": "^7.18.6",

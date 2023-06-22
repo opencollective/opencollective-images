@@ -101,6 +101,36 @@ jobs:
 
       - run: npm run prettier:check
 
+  depcheck:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # Npm cache
+
+      - name: Restore .npm cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-cache-${{ github.sha }}
+          restore-keys: |
+            - ${{ runner.os }}-npm-cache-${{ github.sha }}
+            - ${{ runner.os }}-npm-cache-
+
+      - name: Restore node_modules
+        uses: actions/cache@v3
+        id: node-modules
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.node-modules.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit
+
+      - run: npm run depcheck
   test:
     runs-on: ubuntu-latest
 
