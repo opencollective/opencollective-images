@@ -1,9 +1,9 @@
 import debug from 'debug';
 
-import { logger } from '../logger';
-import { parseToBooleanDefaultFalse, parseToBooleanDefaultTrue, randomInteger } from '../lib/utils';
 import { fetchMembersWithCache } from '../lib/graphql';
 import { generateSvgBanner } from '../lib/svg-banner';
+import { parseToBooleanDefaultFalse, parseToBooleanDefaultTrue, randomInteger } from '../lib/utils';
+import { logger } from '../logger';
 
 const imagesUrl = process.env.IMAGES_URL;
 

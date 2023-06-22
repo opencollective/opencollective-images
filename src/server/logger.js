@@ -1,5 +1,5 @@
-import winston from 'winston';
 import expressWinston from 'express-winston';
+import winston from 'winston';
 
 function getLogLevel() {
   if (process.env.LOG_LEVEL) {

@@ -1,15 +1,13 @@
-import debug from 'debug';
-
-import gql from 'graphql-tag';
 import ApolloClient from 'apollo-boost';
-import { flatten, uniqBy, pick } from 'lodash';
+import debug from 'debug';
+import gql from 'graphql-tag';
+import { flatten, pick, uniqBy } from 'lodash';
 
 // Alternative setup with GraphQLClient from graphql-request
 // import { GraphQLClient } from 'graphql-request';
-
 import cache from './cache';
 import fetch from './fetch';
-import { queryString, md5, sleep, randomInteger } from './utils';
+import { md5, queryString, randomInteger, sleep } from './utils';
 
 const oneDayInSeconds = 24 * 60 * 60;
 

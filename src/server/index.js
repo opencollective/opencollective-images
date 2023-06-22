@@ -1,13 +1,12 @@
 import './env';
 
 import path from 'path';
+
 import express from 'express';
 
-import { loggerMiddleware, logger } from './logger';
-
-import { loadRoutes } from './routes';
-
 import * as hyperwatch from './lib/hyperwatch';
+import { logger, loggerMiddleware } from './logger';
+import { loadRoutes } from './routes';
 
 const port = process.env.PORT;
 

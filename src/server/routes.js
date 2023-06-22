@@ -1,9 +1,9 @@
 import request from 'request';
 
-import controllers from './controllers';
-import { maxAge } from './middlewares';
-import { logger } from './logger';
 import { getCloudinaryUrl, isValidUrl } from './lib/utils';
+import controllers from './controllers';
+import { logger } from './logger';
+import { maxAge } from './middlewares';
 
 const maxAgeOneDay = maxAge(24 * 60 * 60);
 const maxAgeTwoHours = maxAge(2 * 60 * 60);

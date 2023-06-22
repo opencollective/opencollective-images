@@ -1,7 +1,7 @@
 import fetch from 'node-fetch';
 
-import { logger } from '../logger';
 import { fetchMembersStatsWithCache } from '../lib/graphql';
+import { logger } from '../logger';
 
 const fetchText = (path) => fetch(path).then((response) => response.text());
 
