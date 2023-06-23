@@ -53,7 +53,7 @@ export function load(app) {
 
     // Start
 
-    modules.beforeStart();
+    modules.start();
 
     pipeline.start();
   }
