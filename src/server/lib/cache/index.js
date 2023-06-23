@@ -46,15 +46,17 @@ const cache = {
   clear: async () => {
     try {
       debugCache('clear');
-      return getDefaultProvider().clear();
+      const provider = await getDefaultProvider();
+      return provider.clear();
     } catch (err) {
       logger.warn(`Error while clearing cache: ${err.message}`);
     }
   },
-  del: async (key) => {
+  delete: async (key) => {
     try {
-      debugCache(`del ${key}`);
-      return getDefaultProvider().del(key);
+      debugCache(`delete ${key}`);
+      const provider = await getDefaultProvider();
+      return provider.delete(key);
     } catch (err) {
       logger.warn(`Error while deleting from cache: ${err.message}`);
     }
@@ -62,7 +64,8 @@ const cache = {
   get: async (key, options) => {
     try {
       debugCache(`get ${key}`);
-      return getDefaultProvider().get(key, options);
+      const provider = await getDefaultProvider();
+      return provider.get(key, options);
     } catch (err) {
       logger.warn(`Error while fetching from cache: ${err.message}`);
     }
@@ -70,7 +73,8 @@ const cache = {
   has: async (key) => {
     try {
       debugCache(`has ${key}`);
-      return getDefaultProvider().has(key);
+      const provider = await getDefaultProvider();
+      return provider.has(key);
     } catch (err) {
       logger.warn(`Error while checking from cache: ${err.message}`);
     }
@@ -78,7 +82,8 @@ const cache = {
   set: async (key, value, expirationInSeconds, options) => {
     try {
       debugCache(`set ${key}`);
-      return getDefaultProvider().set(key, value, expirationInSeconds, options);
+      const provider = await getDefaultProvider();
+      return provider.set(key, value, expirationInSeconds, options);
     } catch (err) {
       logger.warn(`Error while writing to cache: ${err.message}`);
     }
