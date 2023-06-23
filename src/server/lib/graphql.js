@@ -276,9 +276,9 @@ export async function fetchMembersWithCache(params) {
         users = await fetchMembers(params);
         cache.set(cacheKey, users, thirtyMinutesInSeconds + randomInteger(300));
         debugGraphql(`fetchMembersWithCache ${params.collectiveSlug} ${cacheKey} set`);
-        cache.del(cacheKeyFetching);
+        cache.delete(cacheKeyFetching);
       } catch (e) {
-        cache.del(cacheKeyFetching);
+        cache.delete(cacheKeyFetching);
         throw e;
       }
     }
