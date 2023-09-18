@@ -220,6 +220,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
         Collective(slug: $collectiveSlug) {
           tiers(slugs: $tierSlug) {
             orders(isActive: $isActive) {
+              id
               fromCollective {
                 type
                 slug
@@ -236,7 +237,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
     `;
     processResult = (result) => {
       const allOrders = flatten(result.Collective.tiers.map((t) => t.orders));
-      const allCollectives = allOrders.map((o) => o.fromCollective);
+      const allCollectives = allOrders.map((o) => o.fromCollective).filter(Boolean);
       return uniqBy(allCollectives, (c) => c.slug);
     };
   }
