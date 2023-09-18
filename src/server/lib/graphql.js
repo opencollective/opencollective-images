@@ -219,8 +219,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
       query fetchMembersWithTier($collectiveSlug: String, $tierSlug: [String], $isActive: Boolean) {
         Collective(slug: $collectiveSlug) {
           tiers(slugs: $tierSlug) {
-            orders(isActive: $isActive) {
-              id
+            orders(isActive: $isActive, isProcessed: true) {
               fromCollective {
                 type
                 slug
