@@ -105,8 +105,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Update apt
+        run: sudo apt-get update || exit 0
+
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
 
       # Npm cache
 
