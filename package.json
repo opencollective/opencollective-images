@@ -26,7 +26,7 @@
     "express-basic-auth": "1.2.1",
     "express-winston": "4.2.0",
     "express-ws": "5.0.2",
-    "graphql": "16.7.1",
+    "graphql": "16.8.1",
     "graphql-tag": "2.12.6",
     "image-size": "1.0.2",
     "image-to-ascii": "3.0.13",
