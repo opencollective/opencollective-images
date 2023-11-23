@@ -13,7 +13,7 @@
   "private": true,
   "engines": {
     "node": "18.x",
-    "npm": "9.x"
+    "npm": "10.x"
   },
   "dependencies": {
     "@hyperwatch/hyperwatch": "4.0.0",
