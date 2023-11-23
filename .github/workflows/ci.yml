@@ -108,6 +108,9 @@ jobs:
       - name: Update apt
         run: sudo apt-get update || exit 0
 
+      - name: Install graphicsmagick
+        run: sudo apt-get install -y graphicsmagick
+
       - name: Checkout
         uses: actions/checkout@v4
 
