@@ -38,7 +38,7 @@
     "redis": "4.6.11",
     "request": "2.88.2",
     "sharp": "0.32.6",
-    "winston": "3.9.0"
+    "winston": "3.11.0"
   },
   "scripts": {
     "start": "NODE_ENV=production node dist/server",
