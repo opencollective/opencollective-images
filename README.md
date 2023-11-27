@@ -10,7 +10,7 @@ If you see a step below that could be improved (or is outdated), please update t
 
 ### Prerequisite
 
-1. Make sure you have Node.js version >= 10. We recommend using version 10, the one used in CI and production.
+1. Make sure you have Node.js version >= 18. We recommend using version 18, the one used in CI and production.
 
 - We recommend using [nvm](https://github.com/creationix/nvm): `nvm install`.
 
