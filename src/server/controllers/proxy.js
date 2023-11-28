@@ -32,7 +32,7 @@ export default async function proxy(req, res) {
   }
 
   const transparent = { r: 0, g: 0, b: 0, alpha: 0 };
-  const resizeWidth = Number(width) || 320;
+  const resizeWidth = Number(width) || (Number(height) ? undefined : 320);
   const resizeHeight = Number(height) || undefined;
   const finalFormat = 'png';
 
