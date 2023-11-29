@@ -9,6 +9,7 @@ libheif-dev
 libice-dev
 libjbig-dev
 libjpeg-dev
+libglib2.0-dev
 liblcms2-dev
 libltdl-dev
 libpng-dev
