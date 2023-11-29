@@ -3,7 +3,9 @@ g++
 gsfonts
 libbz2-dev
 libexif-dev
+libfftw3-dev
 libfreetype6-dev
+libheif-dev
 libice-dev
 libjbig-dev
 libjpeg-dev
@@ -12,6 +14,7 @@ libltdl-dev
 libpng-dev
 libsm-dev
 libtiff-dev
+libwebp-dev
 libwebp-dev
 libwmf-dev
 libx11-dev
