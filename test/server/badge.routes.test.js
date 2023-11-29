@@ -130,9 +130,9 @@ describe('badge.routes.test.js', () => {
 
   describe('collective logo', () => {
     test(
-      'loads the logo in ascii',
+      'loads the logo in png',
       async () => {
-        const res = await fetchResponse('/railsgirlsatl/logo.txt');
+        const res = await fetchResponse('/railsgirlsatl/logo.png');
         expect(res.status).toEqual(200);
         expect(res.headers.get('content-type')).toEqual('text/plain; charset=utf-8');
         expect(res.headers.get('cache-control')).toMatch(/public, max-age=[1-9][0-9]{3,7}/);
