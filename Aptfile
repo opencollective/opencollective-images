@@ -5,11 +5,12 @@ libbz2-dev
 libexif-dev
 libfftw3-dev
 libfreetype6-dev
+libglib2.0-dev
+libgsf-1-dev
 libheif-dev
 libice-dev
 libjbig-dev
 libjpeg-dev
-libglib2.0-dev
 liblcms2-dev
 libltdl-dev
 libpng-dev
