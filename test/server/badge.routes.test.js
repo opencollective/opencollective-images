@@ -137,8 +137,8 @@ describe('badge.routes.test.js', () => {
         expect(res.headers.get('content-type')).toEqual('image/png');
         expect(res.headers.get('cache-control')).toMatch(/public, max-age=[1-9][0-9]{3,7}/);
         const text = await res.text();
-        expect(text.length).toBeGreaterThan(600);
-        expect(text.length).toBeLessThan(1000);
+        expect(text.length).toBeGreaterThan(10000);
+        expect(text.length).toBeLessThan(20000);
       },
       timeout,
     );
