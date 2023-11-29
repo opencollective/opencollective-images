@@ -62,7 +62,8 @@
     "graphql:update": "npm-run-all graphql:updateV1 graphql:updateV2",
     "graphql:updateV1": "npx get-graphql-schema http://localhost:3060/graphql > src/graphql/schema.graphql && prettier src/graphql/schema.graphql --write",
     "graphql:updateV2": "npx get-graphql-schema http://localhost:3060/graphql/v2 > src/graphql/schemaV2.graphql && prettier src/graphql/schemaV2.graphql --write",
-    "depcheck": "npx depcheck"
+    "depcheck": "npx depcheck",
+    "heroku-prebuild": "./scripts/pre-build.sh"
   },
   "devDependencies": {
     "@babel/cli": "^7.23.4",
