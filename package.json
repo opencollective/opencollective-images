@@ -29,7 +29,6 @@
     "graphql": "16.12.0",
     "graphql-tag": "2.12.6",
     "image-size": "1.2.1",
-    "image-to-ascii": "3.2.0",
     "lodash": "4.17.21",
     "lru-cache": "10.4.3",
     "mime-types": "2.1.35",
@@ -62,8 +61,7 @@
     "graphql:update": "npm-run-all graphql:updateV1 graphql:updateV2",
     "graphql:updateV1": "npx get-graphql-schema http://localhost:3060/graphql > src/graphql/schema.graphql && prettier src/graphql/schema.graphql --write",
     "graphql:updateV2": "npx get-graphql-schema http://localhost:3060/graphql/v2 > src/graphql/schemaV2.graphql && prettier src/graphql/schemaV2.graphql --write",
-    "depcheck": "npx depcheck",
-    "heroku-prebuild": "./scripts/pre-build.sh"
+    "depcheck": "npx depcheck"
   },
   "devDependencies": {
     "@babel/cli": "^7.23.4",
