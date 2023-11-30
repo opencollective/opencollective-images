@@ -29,7 +29,6 @@
     "graphql": "16.8.1",
     "graphql-tag": "2.12.6",
     "image-size": "1.0.2",
-    "image-to-ascii": "3.2.0",
     "lodash": "4.17.21",
     "lru-cache": "10.1.0",
     "mime-types": "2.1.35",
@@ -37,7 +36,7 @@
     "p-limit": "3.1.0",
     "redis": "4.6.11",
     "request": "2.88.2",
-    "sharp": "0.32.6",
+    "sharp": "0.33.0",
     "winston": "3.11.0"
   },
   "scripts": {
