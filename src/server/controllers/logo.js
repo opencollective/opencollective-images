@@ -70,6 +70,9 @@ const getCollectiveImageUrl = async (collectiveSlug, { height, hash } = {}) => {
       return '/images/default-organization-logo.png';
     }
   }
+  if (collective.type === 'VENDOR') {
+    return '/images/vendor.svg';
+  }
 
   if (['COLLECTIVE', 'FUND', 'EVENT', 'PROJECT'].includes(collective.type)) {
     return getDefaultAvatar(collective);
