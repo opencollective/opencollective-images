@@ -1,8 +1,4 @@
-import request from 'request';
-
-import { getCloudinaryUrl, isValidUrl } from './lib/utils';
 import controllers from './controllers';
-import { logger } from './logger';
 import { maxAge } from './middlewares';
 
 const maxAgeOneDay = maxAge(24 * 60 * 60);
@@ -14,27 +10,10 @@ export const loadRoutes = (app) => {
   });
 
   /**
-   * Proxy all images so that we can serve them from the opencollective.com domain
-   * and we can cache them at cloudflare level (to reduce bandwidth at cloudinary level)
+   * Proxy images and resize them on the fly
    * Format: /proxy/images?src=:encoded_url&width=:width
    */
-  app.get('/proxy/images', maxAge(7200), (req, res) => {
-    const { src, width, height, query } = req.query;
-
-    if (!isValidUrl(src)) {
-      return res.status(400).send('Invalid parameter: "src"');
-    }
-
-    const url = getCloudinaryUrl(src, { width, height, query });
-
-    req
-      .pipe(request(url, { followRedirect: false }))
-      .on('error', (e) => {
-        logger.error('>>> Error proxying %s', url, e);
-        res.status(500).send(e);
-      })
-      .pipe(res);
-  });
+  app.get('/proxy/images', maxAgeOneDay, controllers.proxy);
 
   /**
    * Prevent indexation from search engines
