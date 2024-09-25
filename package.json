@@ -33,7 +33,7 @@
     "lodash": "4.17.21",
     "lru-cache": "10.1.0",
     "mime-types": "2.1.35",
-    "node-fetch": "2.7.0",
+    "node-fetch": "3.0.0",
     "p-limit": "3.1.0",
     "redis": "4.6.11",
     "request": "2.88.2",
