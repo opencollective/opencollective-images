@@ -55,7 +55,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.node-modules.outputs.cache-hit != 'true'
-        run: npm ci --prefer-offline --no-audit
+        run: npm install
 
       - run: npm run lint:quiet
 
@@ -97,7 +97,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.node-modules.outputs.cache-hit != 'true'
-        run: npm ci --prefer-offline --no-audit
+        run: npm install
 
       - run: npm run prettier:check
 
@@ -139,7 +139,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.node-modules.outputs.cache-hit != 'true'
-        run: npm ci --prefer-offline --no-audit
+        run: npm install
 
       - run: npm run depcheck
   test:
@@ -231,7 +231,7 @@ jobs:
 
       - name: Install dependencies (images)
         if: steps.images-node-modules.outputs.cache-hit != 'true'
-        run: npm ci --prefer-offline --no-audit
+        run: npm install
 
       - name: Build (images)
         run: npm run build
