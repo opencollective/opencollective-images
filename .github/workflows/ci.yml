@@ -231,7 +231,10 @@ jobs:
 
       - name: Install dependencies (images)
         if: steps.images-node-modules.outputs.cache-hit != 'true'
-        run: npm install
+        run:
+          - npm install
+          # Test
+          - npm install --os=linux --cpu=x64 sharp
 
       - name: Build (images)
         run: npm run build
