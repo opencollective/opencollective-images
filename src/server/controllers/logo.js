@@ -32,8 +32,19 @@ const DEFAULT_COLLECTIVE_LOGOS = [
   '/images/default-collective-logo-4.png',
 ];
 
+const DEFAULT_FUND_LOGOS = [
+  '/images/default-fund-logo-1.png',
+  '/images/default-fund-logo-2.png',
+  '/images/default-fund-logo-3.png',
+  '/images/default-fund-logo-4.png',
+];
+
 const getDefaultAvatar = (collective) => {
   return DEFAULT_COLLECTIVE_LOGOS[collective.id % 4];
+};
+
+const getDefaultFundAvatar = (collective) => {
+  return DEFAULT_FUND_LOGOS[collective.id % 4];
 };
 
 const getCollectiveImageUrl = async (collectiveSlug, { height, hash } = {}) => {
@@ -72,6 +83,10 @@ const getCollectiveImageUrl = async (collectiveSlug, { height, hash } = {}) => {
   }
   if (collective.type === 'VENDOR') {
     return '/images/vendor.svg';
+  }
+
+  if (collective.type === 'FUND') {
+    return getDefaultFundAvatar(collective)
   }
 
   if (['COLLECTIVE', 'FUND', 'EVENT', 'PROJECT'].includes(collective.type)) {
