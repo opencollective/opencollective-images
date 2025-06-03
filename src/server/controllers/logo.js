@@ -86,7 +86,7 @@ const getCollectiveImageUrl = async (collectiveSlug, { height, hash } = {}) => {
   }
 
   if (collective.type === 'FUND') {
-    return getDefaultFundAvatar(collective)
+    return getDefaultFundAvatar(collective);
   }
 
   if (['COLLECTIVE', 'FUND', 'EVENT', 'PROJECT'].includes(collective.type)) {
