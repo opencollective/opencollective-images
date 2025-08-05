@@ -3,6 +3,7 @@ import mime from 'mime-types';
 import sharp from 'sharp';
 
 import { fetchCollectiveWithCache } from '../lib/graphql';
+import { normalizeSize } from '../lib/image-size';
 import { asyncRequest } from '../lib/request';
 import { logger } from '../logger';
 
@@ -34,11 +35,14 @@ export default async function background(req, res, next) {
 
   const params = {};
 
+  // Profile page hero uses ~1800x800
   if (Number(width)) {
     params['width'] = Number(width);
+    params.width = normalizeSize(params.width, 1800);
   }
   if (Number(height)) {
     params['height'] = Number(height);
+    params.height = normalizeSize(params.height, 800);
   }
 
   const image = await getImageData(imageUrl);

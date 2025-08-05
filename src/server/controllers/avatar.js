@@ -5,7 +5,9 @@ import debug from 'debug';
 import sizeOf from 'image-size';
 import mime from 'mime-types';
 
+import { MAX_AVATAR_HEIGHT } from '../lib/constants';
 import { fetchMembersWithCache } from '../lib/graphql';
+import { normalizeSize } from '../lib/image-size';
 import { imageRequest } from '../lib/request';
 import { getCloudinaryUrl, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
 import { logger } from '../logger';
@@ -114,6 +116,9 @@ export default async function avatar(req, res) {
 
   if (req.query.avatarHeight) {
     maxHeight = Number(req.query.avatarHeight);
+    if (maxHeight > MAX_AVATAR_HEIGHT) {
+      maxHeight = normalizeSize(maxHeight, MAX_AVATAR_HEIGHT);
+    }
   } else {
     maxHeight = format === 'svg' ? 128 : 64;
     if (selector.match(/silver/)) {
