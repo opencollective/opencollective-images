@@ -9,7 +9,9 @@ import fetch from 'node-fetch';
 import sharp from 'sharp';
 
 import { generateAsciiLogo } from '../lib/ascii-logo';
+import { MAX_AVATAR_HEIGHT } from '../lib/constants';
 import { fetchCollectiveWithCache } from '../lib/graphql';
+import { normalizeSize } from '../lib/image-size';
 import { getUiAvatarUrl, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
 import { logger } from '../logger';
 
@@ -111,10 +113,12 @@ export default async function logo(req, res) {
 
   if (Number(height)) {
     params['height'] = Number(height);
+    params.height = normalizeSize(params.height, MAX_AVATAR_HEIGHT);
   }
 
   if (Number(width)) {
     params['width'] = Number(width);
+    params.width = normalizeSize(params.width, MAX_AVATAR_HEIGHT);
   }
 
   let imageUrl;

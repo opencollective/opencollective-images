@@ -1,4 +1,4 @@
-import ApolloClient from 'apollo-boost';
+import { ApolloClient, ApolloLink, HttpLink, InMemoryCache } from '@apollo/client/core';
 import debug from 'debug';
 import gql from 'graphql-tag';
 import { flatten, pick, uniqBy } from 'lodash';
@@ -25,10 +25,30 @@ const getGraphqlUrl = ({ version = 'v1' } = {}) => {
 
 let client;
 
+/**
+ * @returns {ApolloClient}
+ */
 function getClient() {
   if (!client) {
-    // client = new GraphQLClient(getGraphqlUrl(), { headers });
-    client = new ApolloClient({ fetch, uri: getGraphqlUrl({ version: 'v1' }) });
+    client = new ApolloClient({
+      cache: new InMemoryCache(),
+      link: ApolloLink.from([
+        new HttpLink({
+          fetch,
+          uri: getGraphqlUrl({ version: 'v1' }),
+        }),
+      ]),
+      defaultOptions: {
+        watchQuery: {
+          fetchPolicy: 'no-cache',
+          errorPolicy: 'all',
+        },
+        query: {
+          fetchPolicy: 'no-cache',
+          errorPolicy: 'all',
+        },
+      },
+    });
   }
   return client;
 }
@@ -38,9 +58,7 @@ function graphqlRequest(query, variables) {
   // return getClient().request(query, variables);
 
   // With ApolloClient as client
-  return getClient()
-    .query({ query, variables, fetchPolicy: 'network-only' })
-    .then((result) => result.data);
+  return getClient().query({ query, variables, fetchPolicy: 'no-cache' });
 }
 
 /*
@@ -59,6 +77,7 @@ export async function fetchCollective(collectiveSlug) {
         backgroundImage
         isGuest
         parentCollective {
+          id
           image
           backgroundImage
         }
@@ -66,9 +85,12 @@ export async function fetchCollective(collectiveSlug) {
     }
   `;
 
-  const result = await graphqlRequest(query, { collectiveSlug });
+  const { data, errors } = await graphqlRequest(query, { collectiveSlug });
+  if (errors?.length) {
+    throw new Error(errors[0].message);
+  }
 
-  return result.Collective;
+  return data.Collective;
 }
 
 export async function fetchCollectiveWithCache(collectiveSlug, options = {}) {
@@ -94,7 +116,9 @@ export async function fetchMembersStats(variables) {
     query = gql`
       query fetchMembersStats($collectiveSlug: String) {
         Collective(slug: $collectiveSlug) {
+          id
           stats {
+            id
             backers {
               all
               users
@@ -122,7 +146,9 @@ export async function fetchMembersStats(variables) {
     query = gql`
       query fetchMembersStatsForTier($collectiveSlug: String, $tierSlug: String) {
         Collective(slug: $collectiveSlug) {
+          id
           tiers(slug: $tierSlug) {
+            id
             slug
             name
             stats {
@@ -143,8 +169,11 @@ export async function fetchMembersStats(variables) {
       };
     };
   }
-  const result = await graphqlRequest(query, variables);
-  const count = processResult(result);
+  const { data, errors } = await graphqlRequest(query, variables);
+  if (errors?.length) {
+    throw new Error(errors[0].message);
+  }
+  const count = processResult(data);
   return count;
 }
 
@@ -218,9 +247,13 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
     query = gql`
       query fetchMembersWithTier($collectiveSlug: String, $tierSlug: [String], $isActive: Boolean) {
         Collective(slug: $collectiveSlug) {
+          id
           tiers(slugs: $tierSlug) {
+            id
             orders(isActive: $isActive, isProcessed: true) {
+              id
               fromCollective {
+                id
                 type
                 slug
                 name
@@ -241,14 +274,17 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
     };
   }
 
-  const result = await graphqlRequest(query, {
+  const { data, errors } = await graphqlRequest(query, {
     collectiveSlug,
     tierSlug,
     type,
     role,
     isActive,
   });
-  const members = processResult(result);
+  if (errors?.length) {
+    throw new Error(errors[0].message);
+  }
+  const members = processResult(data);
   return members;
 }
 
