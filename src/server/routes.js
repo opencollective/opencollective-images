@@ -1,5 +1,4 @@
-import request from 'request';
-
+import fetch from './lib/fetch';
 import { getCloudinaryUrl, isValidUrl } from './lib/utils';
 import controllers from './controllers';
 import { logger } from './logger';
@@ -18,7 +17,7 @@ export const loadRoutes = (app) => {
    * and we can cache them at cloudflare level (to reduce bandwidth at cloudinary level)
    * Format: /proxy/images?src=:encoded_url&width=:width
    */
-  app.get('/proxy/images', maxAge(7200), (req, res) => {
+  app.get('/proxy/images', maxAge(7200), async (req, res) => {
     const { src, width, height, query } = req.query;
 
     if (!isValidUrl(src)) {
@@ -27,13 +26,24 @@ export const loadRoutes = (app) => {
 
     const url = getCloudinaryUrl(src, { width, height, query });
 
-    req
-      .pipe(request(url, { followRedirect: false }))
-      .on('error', (e) => {
-        logger.error('>>> Error proxying %s', url, e);
-        res.status(500).send(e);
-      })
-      .pipe(res);
+    try {
+      const response = await fetch(url, { redirect: 'manual' });
+      // Forward status and content-type headers
+      res.status(response.status);
+      const contentType = response.headers.get('content-type');
+      if (contentType) {
+        res.setHeader('Content-Type', contentType);
+      }
+      // Forward redirect location if present
+      const location = response.headers.get('location');
+      if (location) {
+        res.setHeader('Location', location);
+      }
+      response.body.pipe(res);
+    } catch (e) {
+      logger.error('>>> Error proxying %s', url, e);
+      res.status(500).send(e.message);
+    }
   });
 
   /**

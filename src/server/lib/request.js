@@ -1,40 +1,21 @@
-import Promise from 'bluebird';
-import cachedRequestLib from 'cached-request';
-import request from 'request';
+import fetch from './fetch';
 
-const cachedRequest = cachedRequestLib(request);
-cachedRequest.setCacheDirectory('/tmp');
+export const asyncRequest = async (requestOptions) => {
+  const { url, encoding } = typeof requestOptions === 'string' ? { url: requestOptions } : requestOptions;
 
-const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
+  const fetchResponse = await fetch(url);
 
-const defaultTtl = oneDayInMilliseconds;
+  const body = encoding === null ? Buffer.from(await fetchResponse.arrayBuffer()) : await fetchResponse.text();
 
-const cachedRequestPromise = Promise.promisify(cachedRequest, { multiArgs: true });
-
-const requestPromise = async (options) => {
-  return new Promise((resolve, reject) => {
-    request(options, (error, response, body) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve([response, body]);
-      }
-    });
-  });
-};
-
-export const asyncRequest = (requestOptions) => {
-  const headers = {
-    'oc-env': process.env.OC_ENV,
-    'oc-secret': process.env.OC_SECRET,
-    'oc-application': process.env.OC_APPLICATION,
-    'user-agent': 'opencollective-images/1.0',
+  // Return a response shape compatible with the old request module
+  const response = {
+    statusCode: fetchResponse.status,
+    statusMessage: fetchResponse.statusText,
+    headers: Object.fromEntries(fetchResponse.headers.entries()),
+    body,
   };
-  if (process.env.ENABLE_CACHED_REQUEST) {
-    return cachedRequestPromise({ ttl: defaultTtl, ...requestOptions, headers });
-  } else {
-    return requestPromise({ ...requestOptions, headers });
-  }
+
+  return [response, body];
 };
 
 export const imageRequest = (url) =>
