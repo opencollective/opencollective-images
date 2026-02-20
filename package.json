@@ -75,7 +75,7 @@
     "commitizen": "^4.3.0",
     "cz-conventional-changelog": "^3.3.0",
     "eslint": "^9.24.0",
-    "eslint-config-opencollective": "^6.1.0",
+    "eslint-config-opencollective": "^6.2.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-n": "^17.17.0",
     "eslint-plugin-react": "^7.37.5",
