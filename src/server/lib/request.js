@@ -1,40 +1,86 @@
-import Promise from 'bluebird';
-import cachedRequestLib from 'cached-request';
-import request from 'request';
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
-const cachedRequest = cachedRequestLib(request);
-cachedRequest.setCacheDirectory('/tmp');
+import fetch from './fetch';
 
+const CACHE_DIR = '/tmp/cached-requests';
 const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
 
-const defaultTtl = oneDayInMilliseconds;
-
-const cachedRequestPromise = Promise.promisify(cachedRequest, { multiArgs: true });
-
-const requestPromise = async (options) => {
-  return new Promise((resolve, reject) => {
-    request(options, (error, response, body) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve([response, body]);
-      }
-    });
-  });
+const ensureCacheDir = () => {
+  if (!fs.existsSync(CACHE_DIR)) {
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+  }
 };
 
-export const asyncRequest = (requestOptions) => {
-  const headers = {
-    'oc-env': process.env.OC_ENV,
-    'oc-secret': process.env.OC_SECRET,
-    'oc-application': process.env.OC_APPLICATION,
-    'user-agent': 'opencollective-images/1.0',
-  };
-  if (process.env.ENABLE_CACHED_REQUEST) {
-    return cachedRequestPromise({ ttl: defaultTtl, ...requestOptions, headers });
-  } else {
-    return requestPromise({ ...requestOptions, headers });
+const getCachePath = (url) => {
+  const hash = crypto.createHash('sha256').update(url).digest('hex');
+  return path.join(CACHE_DIR, hash);
+};
+
+const readCache = (url) => {
+  try {
+    const filePath = getCachePath(url);
+    const stat = fs.statSync(filePath);
+    if (Date.now() - stat.mtimeMs > oneDayInMilliseconds) {
+      fs.unlinkSync(filePath);
+      return null;
+    }
+    const raw = fs.readFileSync(filePath, 'utf8');
+    const cached = JSON.parse(raw);
+    cached.body = Buffer.from(cached.body, 'base64');
+    return cached;
+  } catch {
+    return null;
   }
+};
+
+const writeCache = (url, response, body) => {
+  try {
+    ensureCacheDir();
+    const data = {
+      statusCode: response.statusCode,
+      statusMessage: response.statusMessage,
+      headers: response.headers,
+      body: body.toString('base64'),
+    };
+    fs.writeFileSync(getCachePath(url), JSON.stringify(data));
+  } catch {
+    // Silently ignore cache write failures
+  }
+};
+
+export const asyncRequest = async (requestOptions) => {
+  const { url, encoding } = typeof requestOptions === 'string' ? { url: requestOptions } : requestOptions;
+
+  // Check file cache
+  if (process.env.ENABLE_CACHED_REQUEST) {
+    const cached = readCache(url);
+    if (cached) {
+      const body = encoding === null ? cached.body : cached.body.toString('utf8');
+      return [{ ...cached, body }, body];
+    }
+  }
+
+  const fetchResponse = await fetch(url);
+
+  const body = encoding === null ? Buffer.from(await fetchResponse.arrayBuffer()) : await fetchResponse.text();
+
+  // Return a response shape compatible with the old request module
+  const response = {
+    statusCode: fetchResponse.status,
+    statusMessage: fetchResponse.statusText,
+    headers: Object.fromEntries(fetchResponse.headers.entries()),
+    body,
+  };
+
+  // Write to file cache
+  if (process.env.ENABLE_CACHED_REQUEST) {
+    const bufferBody = encoding === null ? body : Buffer.from(body);
+    writeCache(url, response, bufferBody);
+  }
+
+  return [response, body];
 };
 
 export const imageRequest = (url) =>

@@ -1,4 +1,3 @@
-import Promise from 'bluebird';
 import sizeOf from 'image-size';
 import { cloneDeep } from 'lodash';
 import pLimit from 'p-limit';
