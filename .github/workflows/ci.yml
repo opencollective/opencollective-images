@@ -28,7 +28,7 @@ jobs:
         run: sudo apt-get install -y graphicsmagick
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup node
         uses: actions/setup-node@v4
@@ -70,7 +70,7 @@ jobs:
         run: sudo apt-get install -y graphicsmagick
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup node
         uses: actions/setup-node@v4
@@ -112,7 +112,7 @@ jobs:
         run: sudo apt-get install -y graphicsmagick
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup node
         uses: actions/setup-node@v4
@@ -186,10 +186,10 @@ jobs:
       # Checkouts
 
       - name: Checkout (images)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout (api)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: opencollective/opencollective-api
           path: opencollective-api
