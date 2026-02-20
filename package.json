@@ -29,7 +29,7 @@
     "graphql": "16.12.0",
     "graphql-tag": "2.12.6",
     "image-size": "1.2.1",
-    "image-to-ascii": "3.2.0",
+    "image-to-ascii": "3.3.0",
     "lodash": "4.17.23",
     "lru-cache": "10.4.3",
     "mime-types": "2.1.35",
