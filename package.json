@@ -20,7 +20,7 @@
     "@hyperwatch/hyperwatch": "4.2.0",
     "bluebird": "3.7.2",
     "cached-request": "3.0.0",
-    "debug": "4.3.4",
+    "debug": "4.4.3",
     "dotenv": "16.6.1",
     "express": "4.22.1",
     "express-basic-auth": "1.2.1",
