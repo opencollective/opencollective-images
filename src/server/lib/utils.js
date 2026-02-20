@@ -1,45 +1,6 @@
 import crypto from 'crypto';
 import { URL } from 'url';
 
-export function getCloudinaryUrl(src, { width, height, query, style, format }) {
-  const cloudinaryHost = 'res.cloudinary.com';
-  const cloudinaryResizePath = '/opencollective/image/fetch';
-
-  if (!format) {
-    format = 'png';
-  }
-
-  if (style === 'rounded') {
-    query = `/c_thumb,r_max,h_${height},w_${height},bo_2px_solid_rgb:c4c7cc,f_${format}/`;
-  }
-
-  // We don't try to resize animated gif, svg or images already processed by cloudinary
-  const parsedURL = new URL(src); // We're supposed to have a valid URL here, so it's ok to throw if it's not
-  const isCloudinaryUrl = parsedURL.host === cloudinaryHost && parsedURL.pathname === cloudinaryResizePath;
-  if (isCloudinaryUrl || (process.env.OC_ENV === 'development' && parsedURL.hostname === 'localhost')) {
-    return src;
-  }
-
-  if (!query) {
-    let size = '';
-    if (width) {
-      size += `w_${width},`;
-    }
-    if (height) {
-      size += `h_${height},`;
-    }
-    if (size === '') {
-      size = 'w_320,';
-    }
-
-    const format = src.match(/\.png$/) ? 'png' : 'jpg';
-
-    query = `/${size}c_pad,f_${format}/`;
-  }
-
-  return `https://${cloudinaryHost}${cloudinaryResizePath}${query}${encodeURIComponent(src)}`;
-}
-
 export const queryString = {
   stringify: (obj) => {
     let str = '';

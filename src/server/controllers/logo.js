@@ -8,11 +8,10 @@ import mime from 'mime-types';
 import fetch from 'node-fetch';
 import sharp from 'sharp';
 
-import { generateAsciiLogo } from '../lib/ascii-logo';
 import { MAX_AVATAR_HEIGHT } from '../lib/constants';
 import { fetchCollectiveWithCache } from '../lib/graphql';
 import { normalizeSize } from '../lib/image-size';
-import { getUiAvatarUrl, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
+import { getUiAvatarUrl } from '../lib/utils';
 import { logger } from '../logger';
 
 const white = 'white';
@@ -139,31 +138,6 @@ export default async function logo(req, res) {
   }
 
   switch (format) {
-    case 'txt':
-      debugLogo(`generating ascii for ${collectiveSlug} from ${imageUrl}`);
-      generateAsciiLogo(imageUrl, {
-        bg: parseToBooleanDefaultFalse(req.query.bg),
-        fg: parseToBooleanDefaultFalse(req.query.fg),
-        white_bg: parseToBooleanDefaultTrue(req.query.white_bg),
-        colored: parseToBooleanDefaultTrue(req.query.colored),
-        size: {
-          height: params.height || 20,
-          width: params.width,
-        },
-        variant: req.query.variant || 'wide',
-        trim: parseToBooleanDefaultTrue(req.query.trim),
-        reverse: parseToBooleanDefaultFalse(req.query.reverse),
-      })
-        .then((ascii) => {
-          res.setHeader('content-type', 'text/plain; charset=us-ascii');
-          res.send(`${ascii}\n`);
-        })
-        .catch((err) => {
-          logger.error(`logo: unable to generate ascii for ${collectiveSlug} from ${imageUrl} (${err.message})`);
-          return res.status(400).send('Unable to create an ASCII art.');
-        });
-      break;
-
     default:
       try {
         const height = params.height || defaultHeight;
