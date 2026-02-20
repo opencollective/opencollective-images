@@ -1,0 +1,7 @@
+{
+  "ignores": [
+    "@eslint/js",
+    "typescript",
+    "typescript-eslint"
+  ]
+}
