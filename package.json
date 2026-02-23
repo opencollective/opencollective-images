@@ -16,7 +16,7 @@
     "npm": "11.x"
   },
   "dependencies": {
-    "@apollo/client": "^3.13.9",
+    "@apollo/client": "^4.0.0",
     "@hyperwatch/hyperwatch": "4.2.0",
     "bluebird": "3.7.2",
     "cached-request": "3.0.0",
