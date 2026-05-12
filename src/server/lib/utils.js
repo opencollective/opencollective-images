@@ -96,10 +96,14 @@ export const getUiAvatarUrl = (name, size, rounded = true, background = 'E6F3FF'
   return url.toString();
 };
 
-export const isValidUrl = (string) => {
+export const isValidHttpUrl = (string) => {
+  if (typeof string !== 'string') {
+    return false;
+  }
+
   try {
-    new URL(string);
-    return true;
+    const url = new URL(string);
+    return ['http:', 'https:'].includes(url.protocol);
   } catch (err) {
     return false;
   }
