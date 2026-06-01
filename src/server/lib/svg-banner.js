@@ -32,7 +32,7 @@ export function generateSvgBanner(usersList, options) {
   // usersList might come from LRU-cache and we don't want to modify it
   const users = cloneDeep(usersList);
 
-  const { limit, collectiveSlug } = options;
+  const { limit, collectiveSlug, doFollow = false } = options;
 
   const imageWidth = options.width;
   const imageHeight = options.height;
@@ -124,7 +124,9 @@ export function generateSvgBanner(usersList, options) {
         const imageLink = `<a xlink:href="${website.replace(
           /&/g,
           '&amp;',
-        )}" class="opencollective-svg" target="_blank" rel="nofollow sponsored" id="${user.slug}">${image}</a>`;
+        )}" class="opencollective-svg" target="_blank" rel=${doFollow ? 'sponsored' : 'nofollow sponsored'} id="${
+          user.slug
+        }">${image}</a>`;
         images.push(imageLink);
         posX += avatarWidth + margin;
       }

@@ -18,6 +18,7 @@ export default async function banner(req, res) {
   const height = Number(req.query.height) || 0;
   const { avatarHeight, margin } = req.query;
   const showBtn = parseToBooleanDefaultTrue(req.query.button);
+  const doFollow = parseToBooleanDefaultFalse(req.query.doFollow);
 
   // handle includeAnonymous, default to true for tiers
   let includeAnonymous;
@@ -70,6 +71,7 @@ export default async function banner(req, res) {
     margin,
     collectiveSlug,
     includeAnonymous,
+    doFollow,
   })
     .then((content) => {
       res.setHeader('Content-Type', 'image/svg+xml;charset=utf-8');
