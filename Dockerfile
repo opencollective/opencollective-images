@@ -1,4 +1,4 @@
-FROM node:24
+FROM node:24@sha256:40ad9f3064e67d6860b4bc3fe1880b2953934fd6320ada990e45fe0efa6badd7
 
 RUN apt-get update -y && apt-get install -y graphicsmagick
 
