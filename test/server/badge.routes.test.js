@@ -91,6 +91,25 @@ describe('badge.routes.test.js', () => {
       timeout,
     );
 
+    test(
+      'keeps tier banner links nofollow by default',
+      async () => {
+        const resText = await fetchText('/ancientbeast/tiers/sponsor.svg?limit=1');
+        expect(resText).toMatch(/rel="nofollow sponsored"/);
+      },
+      timeout,
+    );
+
+    test(
+      'removes rel from tier banner links when follow=true',
+      async () => {
+        const resText = await fetchText('/ancientbeast/tiers/sponsor.svg?limit=1&follow=true');
+        expect(resText).toMatch(/target="_blank"/);
+        expect(resText).not.toMatch(/rel="nofollow sponsored"/);
+      },
+      timeout,
+    );
+
     test.skip(
       'loads the banner (png)',
       async () => {
