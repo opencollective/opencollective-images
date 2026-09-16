@@ -6,7 +6,8 @@ WORKDIR /usr/src/frontend
 
 COPY package*.json ./
 
-RUN npm install --unsafe-perm
+RUN npm install -g npm@12.0.2
+RUN npm install
 
 COPY . .
 
