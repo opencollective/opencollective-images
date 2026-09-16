@@ -29,8 +29,6 @@ cd opencollective/images
 npm install
 ```
 
-Node.js 24.x and npm 12.x are required.
-
 ### Environment variables
 
 This project requires an access to the Open Collective API.

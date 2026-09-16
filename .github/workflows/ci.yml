@@ -47,9 +47,6 @@ jobs:
         with:
           node-version-file: 'package.json'
 
-      - name: Enable npm 12
-        run: npm install -g npm@12.0.2
-
       # Npm cache
 
       - name: Restore .npm cache
@@ -92,9 +89,6 @@ jobs:
         with:
           node-version-file: 'package.json'
 
-      - name: Enable npm 12
-        run: npm install -g npm@12.0.2
-
       # Npm cache
 
       - name: Restore .npm cache
@@ -136,9 +130,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
-
-      - name: Enable npm 12
-        run: npm install -g npm@12.0.2
 
       # Npm cache
 
@@ -221,9 +212,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
-
-      - name: Enable npm 12
-        run: npm install -g npm@12.0.2
 
       # Prepare API
 
