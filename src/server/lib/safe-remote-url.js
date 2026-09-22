@@ -172,6 +172,8 @@ const assertResolvedAddressesAllowed = async (hostname) => {
       throw new RemoteImageUrlNotAllowedError('Remote image URL resolves to a disallowed address');
     }
   }
+
+  return addresses;
 };
 
 export const assertSafeRemoteImageUrl = async (url) => {
