@@ -20,15 +20,31 @@ const getCustomAgent = () => {
   return customAgent;
 };
 
+function isInternalApiUrl(url) {
+  const apiUrl = process.env.API_URL;
+  const href = typeof url === 'string' ? url : url instanceof URL ? url.href : null;
+  if (!apiUrl || !href) {
+    return false;
+  }
+
+  try {
+    return new URL(href).origin === new URL(apiUrl).origin;
+  } catch {
+    return false;
+  }
+}
+
 async function fetch(url, options = {}) {
   options.agent = getCustomAgent();
 
-  // Add headers to help the API identify origin of requests
+  // Internal service headers identify this app to the API. They must not be sent anywhere else.
   options.headers = options.headers || {};
-  options.headers['oc-env'] = process.env.OC_ENV;
-  options.headers['oc-secret'] = process.env.OC_SECRET;
-  options.headers['oc-application'] = process.env.OC_APPLICATION;
   options.headers['user-agent'] = 'opencollective-images/1.0';
+  if (isInternalApiUrl(url)) {
+    options.headers['oc-env'] = process.env.OC_ENV;
+    options.headers['oc-secret'] = process.env.OC_SECRET;
+    options.headers['oc-application'] = process.env.OC_APPLICATION;
+  }
 
   // Start benchmarking if the request is server side
   const start = process.hrtime.bigint();

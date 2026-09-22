@@ -12,6 +12,7 @@ import { generateAsciiLogo } from '../lib/ascii-logo';
 import { MAX_AVATAR_HEIGHT } from '../lib/constants';
 import { fetchCollectiveWithCache } from '../lib/graphql';
 import { normalizeSize } from '../lib/image-size';
+import { isRemoteImageUrl, resolveBundledImagePath } from '../lib/static-image';
 import { getUiAvatarUrl, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
 import { logger } from '../logger';
 
@@ -170,11 +171,7 @@ export default async function logo(req, res) {
         const width = params.width;
 
         let image;
-        if (!imageUrl.includes('https://') && !imageUrl.includes('http://')) {
-          image = await readFile(path.join(staticFolder, imageUrl));
-        }
-
-        if (!image) {
+        if (isRemoteImageUrl(imageUrl)) {
           debugLogo(`fetching ${imageUrl}`);
           const response = await fetch(imageUrl);
           if (!response.ok) {
@@ -190,6 +187,13 @@ export default async function logo(req, res) {
             logger.error(`logo: error processing ${imageUrl} (Invalid Image)`);
             return res.status(400).send('Invalid Image');
           }
+        } else {
+          const bundledPath = resolveBundledImagePath(imageUrl, staticFolder);
+          if (!bundledPath) {
+            logger.error(`logo: invalid bundled image path for ${collectiveSlug}`);
+            return res.status(400).send('Invalid image URL');
+          }
+          image = await readFile(bundledPath);
         }
 
         let sharpImage;
