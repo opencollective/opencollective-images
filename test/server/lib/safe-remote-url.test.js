@@ -1,10 +1,36 @@
 import dns from 'dns';
 
-import { assertSafeRemoteImageUrl, RemoteImageUrlNotAllowedError } from '../../../src/server/lib/safe-remote-url';
+import {
+  assertSafeRemoteImageUrl,
+  isRemoteImageHttpUrl,
+  RemoteImageUrlNotAllowedError,
+} from '../../../src/server/lib/safe-remote-url';
 
 describe('src/server/lib/safe-remote-url.js', () => {
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  describe('isRemoteImageHttpUrl', () => {
+    it('treats absolute HTTP(S) and protocol-relative URLs as remote', () => {
+      expect(isRemoteImageHttpUrl('https://gravatar.com/avatar/test')).toBe(true);
+      expect(isRemoteImageHttpUrl('http://example.com/logo.png')).toBe(true);
+      expect(isRemoteImageHttpUrl('  HTTPS://Example.COM/x  ')).toBe(true);
+      expect(isRemoteImageHttpUrl('//cdn.example.com/logo.png')).toBe(true);
+    });
+
+    it('does not treat local static paths as remote when http appears elsewhere', () => {
+      expect(isRemoteImageHttpUrl('/images/default-collective-logo-1.png')).toBe(false);
+      expect(isRemoteImageHttpUrl('/images/path-with-https://not-a-scheme.png')).toBe(false);
+      expect(isRemoteImageHttpUrl('/images/foo?redirect=https://evil.example')).toBe(false);
+    });
+
+    it('rejects non-http schemes and invalid values', () => {
+      expect(isRemoteImageHttpUrl('file:///etc/passwd')).toBe(false);
+      expect(isRemoteImageHttpUrl('javascript:alert(1)')).toBe(false);
+      expect(isRemoteImageHttpUrl('')).toBe(false);
+      expect(isRemoteImageHttpUrl(null)).toBe(false);
+    });
   });
 
   const withEnv = async (env, fn) => {

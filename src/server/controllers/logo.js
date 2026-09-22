@@ -14,7 +14,7 @@ import { MAX_AVATAR_HEIGHT } from '../lib/constants';
 import { fetchCollectiveWithCache } from '../lib/graphql';
 import { normalizeSize } from '../lib/image-size';
 import { fetchRemoteImageBody } from '../lib/request';
-import { RemoteImageUrlNotAllowedError } from '../lib/safe-remote-url';
+import { isRemoteImageHttpUrl, RemoteImageUrlNotAllowedError } from '../lib/safe-remote-url';
 import { getUiAvatarUrl, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
 import { logger } from '../logger';
 
@@ -84,8 +84,6 @@ const writeTempImage = async (body, imageUrl, contentType) => {
   await writeFile(filePath, body);
   return filePath;
 };
-
-const isRemoteImageUrl = (imageUrl) => imageUrl.includes('https://') || imageUrl.includes('http://');
 
 const debugLogo = debug('logo');
 
@@ -206,7 +204,7 @@ export default async function logo(req, res) {
       let tempImagePath;
       try {
         let imageSource = imageUrl;
-        if (isRemoteImageUrl(imageUrl)) {
+        if (isRemoteImageHttpUrl(imageUrl)) {
           const { response, body } = await fetchRemoteImageBody(imageUrl);
           if (response.statusCode !== 200 || !body || body.byteLength === 0) {
             logger.error(
@@ -253,7 +251,7 @@ export default async function logo(req, res) {
         const width = params.width;
 
         let image;
-        if (!isRemoteImageUrl(imageUrl)) {
+        if (!isRemoteImageHttpUrl(imageUrl)) {
           image = await readFile(path.join(staticFolder, imageUrl));
         }
 

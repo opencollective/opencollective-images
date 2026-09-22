@@ -115,6 +115,28 @@ const isTrustedImageProviderHost = (hostname) => {
   return normalized.endsWith('.gravatar.com');
 };
 
+export const isRemoteImageHttpUrl = (url) => {
+  if (typeof url !== 'string') {
+    return false;
+  }
+
+  const trimmed = url.trim();
+  if (!trimmed) {
+    return false;
+  }
+
+  if (trimmed.startsWith('//')) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    return ['http:', 'https:'].includes(parsed.protocol) && Boolean(parsed.hostname);
+  } catch {
+    return false;
+  }
+};
+
 const parseRemoteImageHttpUrl = (url) => {
   let parsed;
 
