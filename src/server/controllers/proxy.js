@@ -29,12 +29,6 @@ function parseDimension(value) {
   return Math.min(Math.round(parsed), MAX_PROXY_IMAGE_DIMENSION);
 }
 
-// node-fetch rejects on timeout or over the size limit without closing the
-// download, so we have to release the connection ourselves
-function releaseConnection(response) {
-  response?.body?.destroy();
-}
-
 async function handleProxy(req, res) {
   const { src: imageUrl, width, height } = req.query;
 
@@ -53,6 +47,9 @@ async function handleProxy(req, res) {
   const requestedHeight = parseDimension(height);
 
   debugProxy(`fetching ${imageUrl}`);
+  // node-fetch hands over a stream piped from the socket, so destroying the body
+  // leaves the download running. Only aborting the request closes the connection.
+  const controller = new AbortController();
   let response;
   try {
     response = await fetch(imageUrl, {
@@ -60,13 +57,15 @@ async function handleProxy(req, res) {
       agent: (url) => useAgent(url.href, { allowPrivateIPAddress, allowMetaIPAddress: false }),
       timeout: PROXY_FETCH_TIMEOUT,
       size: MAX_PROXY_IMAGE_BYTES,
+      signal: controller.signal,
     });
   } catch (err) {
+    controller.abort();
     logger.info(`proxy: blocked or invalid ${imageUrl} (${err.message})`);
     return res.status(400).send('Invalid parameter: "src"');
   }
   if (!response.ok) {
-    releaseConnection(response);
+    controller.abort();
     if (response.status === 404) {
       logger.info(`proxy: not found ${imageUrl} (status=${response.status} ${response.statusText})`);
     } else {
@@ -79,7 +78,7 @@ async function handleProxy(req, res) {
   try {
     image = await response.buffer();
   } catch (err) {
-    releaseConnection(response);
+    controller.abort();
     logger.info(`proxy: unable to download ${imageUrl} (${err.message})`);
     return res.status(400).send('Invalid parameter: "src"');
   }
