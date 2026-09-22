@@ -5,6 +5,7 @@ import { useAgent } from 'request-filtering-agent';
 import sharp from 'sharp';
 
 import { MAX_PROXY_IMAGE_BYTES, MAX_PROXY_IMAGE_DIMENSION, PROXY_FETCH_TIMEOUT } from '../lib/constants';
+import { parseToBooleanDefaultFalse } from '../lib/utils';
 import { logger } from '../logger';
 
 const debugProxy = debug('proxy');
@@ -12,9 +13,11 @@ const debugProxy = debug('proxy');
 const transparent = { r: 0, g: 0, b: 0, alpha: 0 };
 const white = { r: 255, g: 255, b: 255, alpha: 1 };
 
-// Locally and on CI, the sources we proxy are served from localhost. The previous
-// Cloudinary based implementation had the same carve-out for development.
-const allowPrivateIPAddress = ['development', 'test', 'ci'].includes(process.env.OC_ENV);
+// Private and loopback addresses are rejected, except where the sources we proxy
+// are served from localhost: local development, and the test harness, which opts
+// in explicitly because it starts this server with NODE_ENV=production.
+const allowPrivateIPAddress =
+  process.env.OC_ENV === 'development' || parseToBooleanDefaultFalse(process.env.PROXY_ALLOW_PRIVATE_IP);
 
 // Express turns a repeated or bracketed query parameter into an array or an object,
 // and coercing those can throw, so we only ever look at scalars

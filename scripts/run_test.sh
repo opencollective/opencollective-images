@@ -16,7 +16,9 @@ if [ -z "$IMAGES_FOLDER" ]; then
 else
   cd $IMAGES_FOLDER
 fi
-npm start &
+# "npm start" forces NODE_ENV=production, and the proxy tests serve their sources
+# from localhost, so the private address check has to be opted out of explicitly
+PROXY_ALLOW_PRIVATE_IP=true npm start &
 IMAGES_PID=$!
 cd -
 
