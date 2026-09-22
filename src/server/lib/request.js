@@ -1,8 +1,9 @@
+import net from 'net';
+import { URL } from 'url';
+
 import Promise from 'bluebird';
 import cachedRequestLib from 'cached-request';
-import net from 'net';
 import request from 'request';
-import { URL } from 'url';
 
 import { assertSafeRemoteImageUrl } from './safe-remote-url';
 
@@ -14,6 +15,7 @@ const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
 const defaultTtl = oneDayInMilliseconds;
 
 const REMOTE_IMAGE_TIMEOUT_MS = 30000;
+const MAX_REMOTE_IMAGE_REDIRECTS = 10;
 
 const cachedRequestPromise = Promise.promisify(cachedRequest, { multiArgs: true });
 
@@ -33,6 +35,8 @@ const buildRemoteImageRequestOptions = (url) => ({
   url,
   encoding: null,
   followRedirect: false,
+  // Connect directly instead of inheriting HTTP(S)_PROXY.
+  proxy: null,
   timeout: REMOTE_IMAGE_TIMEOUT_MS,
   headers: {
     'user-agent': 'opencollective-images/1.0',
@@ -45,7 +49,14 @@ const buildValidatedLookup = (addresses) => {
   }
 
   return (hostname, options, callback) => {
-    const matchingAddresses = addresses.filter((address) => !options.family || net.isIP(address) === options.family);
+    if (typeof options === 'function') {
+      callback = options;
+      options = {};
+    }
+    options = options || {};
+
+    const family = options.family;
+    const matchingAddresses = addresses.filter((address) => !family || net.isIP(address) === family);
     if (matchingAddresses.length === 0) {
       callback(new Error(`No validated address available for ${hostname}`));
       return;
@@ -70,16 +81,18 @@ const remoteImageRequest = async (requestOptions, addresses) => {
     lookup: buildValidatedLookup(addresses),
   };
 
-  for (let redirectCount = 0; redirectCount <= 5; redirectCount += 1) {
+  for (let redirectCount = 0; redirectCount <= MAX_REMOTE_IMAGE_REDIRECTS; redirectCount += 1) {
     const [response, body] = process.env.ENABLE_CACHED_REQUEST
       ? await cachedRequestPromise({ ttl: defaultTtl, ...currentRequestOptions })
       : await requestPromise(currentRequestOptions);
 
-    if (![301, 302, 303, 307, 308].includes(response.statusCode) || !response.headers.location) {
+    const locationHeader = response.headers.location;
+    const location = Array.isArray(locationHeader) ? locationHeader[0] : locationHeader;
+    if (![301, 302, 303, 307, 308].includes(response.statusCode) || !location) {
       return [response, body];
     }
 
-    const redirectUrl = new URL(response.headers.location, currentRequestOptions.url).toString();
+    const redirectUrl = new URL(location, currentRequestOptions.url).toString();
     const redirectAddresses = await assertSafeRemoteImageUrl(redirectUrl);
     currentRequestOptions = {
       ...buildRemoteImageRequestOptions(redirectUrl),

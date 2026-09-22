@@ -5,17 +5,7 @@ import ipaddr from 'ipaddr.js';
 
 const DISALLOWED_HOSTNAME_SUFFIXES = ['.internal', '.localhost', '.local'];
 const DISALLOWED_HOSTNAMES = new Set(['localhost', 'metadata.google.internal']);
-const DISALLOWED_IP_RANGES = new Set([
-  'broadcast',
-  'carrierGradeNat',
-  'linkLocal',
-  'loopback',
-  'multicast',
-  'private',
-  'reserved',
-  'uniqueLocal',
-  'unspecified',
-]);
+const DEV_LOOPBACK_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
 
 const TRUSTED_IMAGE_PROVIDER_HOSTS = new Set([
   'gravatar.com',
@@ -36,12 +26,18 @@ export class RemoteImageUrlNotAllowedError extends Error {
 }
 
 const isDevelopmentEnv = () => {
-  const ocEnv = process.env.OC_ENV || process.env.NODE_ENV || 'development';
+  const ocEnv = process.env.OC_ENV || process.env.NODE_ENV;
   return ocEnv === 'development';
 };
 
+const normalizeHostname = (hostname) =>
+  hostname
+    .toLowerCase()
+    .replace(/\.+$/, '')
+    .replace(/^\[|\]$/g, '');
+
 const isDisallowedHostname = (hostname) => {
-  const normalizedHostname = hostname.toLowerCase().replace(/\.$/, '');
+  const normalizedHostname = normalizeHostname(hostname);
 
   if (DISALLOWED_HOSTNAMES.has(normalizedHostname)) {
     return true;
@@ -68,11 +64,19 @@ const isDisallowedIpAddress = (ip) => {
 
 const isLiteralIpHostname = (hostname) => {
   try {
-    ipaddr.parse(hostname);
+    ipaddr.parse(normalizeHostname(hostname));
     return true;
   } catch {
     return false;
   }
+};
+
+const devLoopbackAddresses = (hostname) => {
+  if (normalizeHostname(hostname) === '::1') {
+    return ['::1'];
+  }
+
+  return ['127.0.0.1'];
 };
 
 const isSameServiceUrl = (url) => {
@@ -103,7 +107,7 @@ const isProtectedFilesUrl = (parsed) => {
 };
 
 const isTrustedImageProviderHost = (hostname) => {
-  const normalized = hostname.toLowerCase();
+  const normalized = normalizeHostname(hostname);
   if (TRUSTED_IMAGE_PROVIDER_HOSTS.has(normalized)) {
     return true;
   }
@@ -126,18 +130,6 @@ const parseRemoteImageHttpUrl = (url) => {
 
   if (!parsed.hostname) {
     throw new RemoteImageUrlNotAllowedError('Remote image URL must include a hostname');
-  }
-
-  if (isDevelopmentEnv() && ['localhost', '127.0.0.1'].includes(parsed.hostname)) {
-    return parsed;
-  }
-
-  if (isLiteralIpHostname(parsed.hostname)) {
-    throw new RemoteImageUrlNotAllowedError('IP addresses cannot be used as remote image URLs');
-  }
-
-  if (isDisallowedHostname(parsed.hostname)) {
-    throw new RemoteImageUrlNotAllowedError('Remote image URL hostname is not allowed');
   }
 
   return parsed;
@@ -166,14 +158,13 @@ const resolveHostnameAddresses = async (hostname) => {
 
 const assertResolvedAddressesAllowed = async (hostname) => {
   const addresses = await resolveHostnameAddresses(hostname);
+  const allowedAddresses = addresses.filter((address) => !isDisallowedIpAddress(address));
 
-  for (const address of addresses) {
-    if (isDisallowedIpAddress(address)) {
-      throw new RemoteImageUrlNotAllowedError('Remote image URL resolves to a disallowed address');
-    }
+  if (allowedAddresses.length === 0) {
+    throw new RemoteImageUrlNotAllowedError('Remote image URL resolves to a disallowed address');
   }
 
-  return addresses;
+  return allowedAddresses;
 };
 
 export const assertSafeRemoteImageUrl = async (url) => {
@@ -182,10 +173,23 @@ export const assertSafeRemoteImageUrl = async (url) => {
   }
 
   const parsed = parseRemoteImageHttpUrl(url);
+  const hostname = normalizeHostname(parsed.hostname);
 
-  if (isProtectedFilesUrl(parsed) || isTrustedImageProviderHost(parsed.hostname)) {
+  if (isDevelopmentEnv() && DEV_LOOPBACK_HOSTNAMES.has(hostname)) {
+    return devLoopbackAddresses(hostname);
+  }
+
+  if (isLiteralIpHostname(hostname)) {
+    throw new RemoteImageUrlNotAllowedError('IP addresses cannot be used as remote image URLs');
+  }
+
+  if (isDisallowedHostname(hostname)) {
+    throw new RemoteImageUrlNotAllowedError('Remote image URL hostname is not allowed');
+  }
+
+  if (isProtectedFilesUrl(parsed) || isTrustedImageProviderHost(hostname)) {
     return undefined;
   }
 
-  return assertResolvedAddressesAllowed(parsed.hostname);
+  return assertResolvedAddressesAllowed(hostname);
 };

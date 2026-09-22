@@ -1,4 +1,6 @@
+import crypto from 'crypto';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { promisify } from 'util';
 
@@ -23,8 +25,67 @@ const transparent = { r: 0, g: 0, b: 0, alpha: 0 };
 const defaultHeight = 128;
 
 const readFile = promisify(fs.readFile);
+const writeFile = promisify(fs.writeFile);
+const unlink = promisify(fs.unlink);
 
 const staticFolder = path.resolve(__dirname, '..', '..', 'static');
+
+const SAFE_IMAGE_EXTENSION = /^\.[a-z0-9]{1,5}$/;
+
+const extensionFromBuffer = (body) => {
+  if (!body || body.length < 3) {
+    return '';
+  }
+  if (body[0] === 0x89 && body[1] === 0x50 && body[2] === 0x4e && body[3] === 0x47) {
+    return '.png';
+  }
+  if (body[0] === 0xff && body[1] === 0xd8 && body[2] === 0xff) {
+    return '.jpg';
+  }
+  if (body.slice(0, 3).toString() === 'GIF') {
+    return '.gif';
+  }
+  const head = body.slice(0, 256).toString('utf8').trimStart().toLowerCase();
+  if (head.startsWith('<svg') || head.startsWith('<?xml')) {
+    return '.svg';
+  }
+  return '';
+};
+
+const imageFileExtension = (imageUrl, contentType, body) => {
+  const sniffed = extensionFromBuffer(body);
+  if (sniffed) {
+    return sniffed;
+  }
+
+  try {
+    const ext = path.extname(new URL(imageUrl).pathname).toLowerCase();
+    if (SAFE_IMAGE_EXTENSION.test(ext)) {
+      return ext;
+    }
+  } catch {
+    // Fall through to the content type.
+  }
+
+  const type = typeof contentType === 'string' ? contentType.split(';')[0].trim() : '';
+  const fromType = type ? mime.extension(type) : false;
+  if (fromType && SAFE_IMAGE_EXTENSION.test(`.${fromType}`)) {
+    return `.${fromType}`;
+  }
+
+  return '.img';
+};
+
+const writeTempImage = async (body, imageUrl, contentType) => {
+  const filePath = path.join(
+    os.tmpdir(),
+    `oc-logo-${crypto.randomBytes(16).toString('hex')}${imageFileExtension(imageUrl, contentType, body)}`,
+  );
+  await writeFile(filePath, body);
+  return filePath;
+};
+
+const isRemoteImageUrl = (imageUrl) => imageUrl.includes('https://') || imageUrl.includes('http://');
 
 const debugLogo = debug('logo');
 
@@ -140,30 +201,51 @@ export default async function logo(req, res) {
   }
 
   switch (format) {
-    case 'txt':
+    case 'txt': {
       debugLogo(`generating ascii for ${collectiveSlug} from ${imageUrl}`);
-      generateAsciiLogo(imageUrl, {
-        bg: parseToBooleanDefaultFalse(req.query.bg),
-        fg: parseToBooleanDefaultFalse(req.query.fg),
-        white_bg: parseToBooleanDefaultTrue(req.query.white_bg),
-        colored: parseToBooleanDefaultTrue(req.query.colored),
-        size: {
-          height: params.height || 20,
-          width: params.width,
-        },
-        variant: req.query.variant || 'wide',
-        trim: parseToBooleanDefaultTrue(req.query.trim),
-        reverse: parseToBooleanDefaultFalse(req.query.reverse),
-      })
-        .then((ascii) => {
-          res.setHeader('content-type', 'text/plain; charset=us-ascii');
-          res.send(`${ascii}\n`);
-        })
-        .catch((err) => {
-          logger.error(`logo: unable to generate ascii for ${collectiveSlug} from ${imageUrl} (${err.message})`);
-          return res.status(400).send('Unable to create an ASCII art.');
+      let tempImagePath;
+      try {
+        let imageSource = imageUrl;
+        if (isRemoteImageUrl(imageUrl)) {
+          const { response, body } = await fetchRemoteImageBody(imageUrl);
+          if (response.statusCode !== 200 || !body || body.byteLength === 0) {
+            logger.error(
+              `logo: unable to generate ascii for ${collectiveSlug} from ${imageUrl} (status=${response.statusCode})`,
+            );
+            return res.status(400).send('Unable to create an ASCII art.');
+          }
+          tempImagePath = await writeTempImage(body, imageUrl, response.headers['content-type']);
+          imageSource = tempImagePath;
+        }
+
+        const ascii = await generateAsciiLogo(imageSource, {
+          bg: parseToBooleanDefaultFalse(req.query.bg),
+          fg: parseToBooleanDefaultFalse(req.query.fg),
+          white_bg: parseToBooleanDefaultTrue(req.query.white_bg),
+          colored: parseToBooleanDefaultTrue(req.query.colored),
+          size: {
+            height: params.height || 20,
+            width: params.width,
+          },
+          variant: req.query.variant || 'wide',
+          trim: parseToBooleanDefaultTrue(req.query.trim),
+          reverse: parseToBooleanDefaultFalse(req.query.reverse),
         });
-      break;
+        res.setHeader('content-type', 'text/plain; charset=us-ascii');
+        return res.send(`${ascii}\n`);
+      } catch (err) {
+        if (err instanceof RemoteImageUrlNotAllowedError) {
+          logger.error(`logo: blocked remote image URL ${imageUrl} (${err.message})`);
+          return res.status(400).send('Invalid image URL');
+        }
+        logger.error(`logo: unable to generate ascii for ${collectiveSlug} from ${imageUrl} (${err.message})`);
+        return res.status(400).send('Unable to create an ASCII art.');
+      } finally {
+        if (tempImagePath) {
+          unlink(tempImagePath).catch(() => {});
+        }
+      }
+    }
 
     default:
       try {
@@ -171,7 +253,7 @@ export default async function logo(req, res) {
         const width = params.width;
 
         let image;
-        if (!imageUrl.includes('https://') && !imageUrl.includes('http://')) {
+        if (!isRemoteImageUrl(imageUrl)) {
           image = await readFile(path.join(staticFolder, imageUrl));
         }
 
