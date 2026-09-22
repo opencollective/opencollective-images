@@ -5,13 +5,14 @@ import { promisify } from 'util';
 import debug from 'debug';
 import { get, omit } from 'lodash';
 import mime from 'mime-types';
-import fetch from 'node-fetch';
 import sharp from 'sharp';
 
 import { generateAsciiLogo } from '../lib/ascii-logo';
 import { MAX_AVATAR_HEIGHT } from '../lib/constants';
 import { fetchCollectiveWithCache } from '../lib/graphql';
 import { normalizeSize } from '../lib/image-size';
+import { fetchRemoteImageBody } from '../lib/request';
+import { RemoteImageUrlNotAllowedError } from '../lib/safe-remote-url';
 import { getUiAvatarUrl, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
 import { logger } from '../logger';
 
@@ -176,19 +177,29 @@ export default async function logo(req, res) {
 
         if (!image) {
           debugLogo(`fetching ${imageUrl}`);
-          const response = await fetch(imageUrl);
-          if (!response.ok) {
-            if (response.status === 404) {
-              logger.info(`logo: not found ${imageUrl} (status=${response.status} ${response.statusText})`);
-            } else {
-              logger.error(`logo: error processing ${imageUrl} (status=${response.status} ${response.statusText})`);
+          try {
+            const { response, body } = await fetchRemoteImageBody(imageUrl);
+            if (response.statusCode !== 200) {
+              if (response.statusCode === 404) {
+                logger.info(`logo: not found ${imageUrl} (status=${response.statusCode} ${response.statusMessage})`);
+              } else {
+                logger.error(
+                  `logo: error processing ${imageUrl} (status=${response.statusCode} ${response.statusMessage})`,
+                );
+              }
+              return res.status(response.statusCode).send(response.statusMessage);
             }
-            return res.status(response.status).send(response.statusText);
-          }
-          image = await response.buffer();
-          if (image.byteLength === 0) {
-            logger.error(`logo: error processing ${imageUrl} (Invalid Image)`);
-            return res.status(400).send('Invalid Image');
+            image = body;
+            if (image.byteLength === 0) {
+              logger.error(`logo: error processing ${imageUrl} (Invalid Image)`);
+              return res.status(400).send('Invalid Image');
+            }
+          } catch (err) {
+            if (err instanceof RemoteImageUrlNotAllowedError) {
+              logger.error(`logo: blocked remote image URL ${imageUrl} (${err.message})`);
+              return res.status(400).send('Invalid image URL');
+            }
+            throw err;
           }
         }
 

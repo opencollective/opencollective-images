@@ -4,10 +4,17 @@ import sharp from 'sharp';
 
 import { fetchCollectiveWithCache } from '../lib/graphql';
 import { normalizeSize } from '../lib/image-size';
-import { asyncRequest } from '../lib/request';
+import { imageRequest } from '../lib/request';
+import { RemoteImageUrlNotAllowedError } from '../lib/safe-remote-url';
 import { logger } from '../logger';
 
-const getImageData = (url) => asyncRequest({ url, encoding: null }).then((result) => result[1]);
+const getImageData = async (url) => {
+  const response = await imageRequest(url);
+  if (response.statusCode !== 200) {
+    throw new Error(`Failed to fetch image: ${response.statusCode}`);
+  }
+  return response.body;
+};
 
 export default async function background(req, res, next) {
   const collectiveSlug = req.params.collectiveSlug;
@@ -45,7 +52,17 @@ export default async function background(req, res, next) {
     params.height = normalizeSize(params.height, 800);
   }
 
-  const image = await getImageData(imageUrl);
+  let image;
+  try {
+    image = await getImageData(imageUrl);
+  } catch (err) {
+    if (err instanceof RemoteImageUrlNotAllowedError) {
+      logger.error(`background: blocked remote image URL ${imageUrl} (${err.message})`);
+      return res.status(400).send('Invalid image URL');
+    }
+    logger.error(`background: error fetching ${imageUrl} (${err.message})`);
+    return res.status(502).send('Bad Gateway');
+  }
 
   try {
     const resizedImage = await sharp(image).resize(params.width, params.height).toFormat(format).toBuffer();

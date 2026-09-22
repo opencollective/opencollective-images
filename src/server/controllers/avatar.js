@@ -171,7 +171,7 @@ export default async function avatar(req, res) {
         }
         return sendSvg(res, imageAsSvg(image, { selector, maxHeight, imageFormat }));
       } else {
-        return proxyImage(req, res, imageUrl, { imageFormat });
+        return await proxyImage(req, res, imageUrl, { imageFormat });
       }
     } catch (err) {
       logger.error(`avatar: unable to serve ${imageUrl} for ${user.slug}: ${err.message}`);
@@ -200,7 +200,7 @@ export default async function avatar(req, res) {
       const imageWidth = maxWidth ? Math.round(maxWidth / 2) : undefined;
       return sendSvg(res, imageAsSvg(image, { selector, imageHeight, imageWidth, imageFormat }));
     } else {
-      return proxyImage(req, res, imageUrl, { imageFormat });
+      return await proxyImage(req, res, imageUrl, { imageFormat });
     }
   } catch (err) {
     logger.error(`avatar: unable to serve ${imageUrl} for ${user.slug}: ${err.message}`);
