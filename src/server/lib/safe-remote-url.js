@@ -63,7 +63,7 @@ const isDisallowedIpAddress = (ip) => {
     address = address.toIPv4Address();
   }
 
-  return DISALLOWED_IP_RANGES.has(address.range());
+  return address.range() !== 'unicast';
 };
 
 const isLiteralIpHostname = (hostname) => {
