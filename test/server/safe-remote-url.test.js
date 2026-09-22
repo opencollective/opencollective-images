@@ -51,6 +51,6 @@ describe('safe-remote-url', () => {
     jest.spyOn(dns.promises, 'resolve4').mockResolvedValue(['8.8.8.8']);
     jest.spyOn(dns.promises, 'resolve6').mockRejectedValue(new Error('no AAAA'));
 
-    await expect(assertSafeRemoteImageUrl('https://images.example.test/banner.png')).resolves.toBeUndefined();
+    await expect(assertSafeRemoteImageUrl('https://images.example.test/banner.png')).resolves.toEqual(['8.8.8.8']);
   });
 });

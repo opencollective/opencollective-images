@@ -176,14 +176,14 @@ const assertResolvedAddressesAllowed = async (hostname) => {
 
 export const assertSafeRemoteImageUrl = async (url) => {
   if (isSameServiceUrl(url)) {
-    return;
+    return undefined;
   }
 
   const parsed = parseRemoteImageHttpUrl(url);
 
   if (isProtectedFilesUrl(parsed) || isTrustedImageProviderHost(parsed.hostname)) {
-    return;
+    return undefined;
   }
 
-  await assertResolvedAddressesAllowed(parsed.hostname);
+  return assertResolvedAddressesAllowed(parsed.hostname);
 };
