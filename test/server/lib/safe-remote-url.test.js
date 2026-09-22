@@ -1,8 +1,8 @@
 import dns from 'dns';
 
-import { assertSafeRemoteImageUrl, RemoteImageUrlNotAllowedError } from '../../src/server/lib/safe-remote-url';
+import { assertSafeRemoteImageUrl, RemoteImageUrlNotAllowedError } from '../../../src/server/lib/safe-remote-url';
 
-describe('safe-remote-url', () => {
+describe('src/server/lib/safe-remote-url.js', () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
