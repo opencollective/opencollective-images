@@ -2,6 +2,8 @@ import Promise from 'bluebird';
 import cachedRequestLib from 'cached-request';
 import request from 'request';
 
+import { isRemoteImageUrl } from './static-image';
+
 const cachedRequest = cachedRequestLib(request);
 cachedRequest.setCacheDirectory('/tmp');
 
@@ -24,6 +26,10 @@ const requestPromise = async (options) => {
 };
 
 export const asyncRequest = (requestOptions) => {
+  if (!isRemoteImageUrl(requestOptions.url)) {
+    return Promise.reject(new TypeError('Image URL must be an absolute HTTP(S) URL'));
+  }
+
   // Image fetches are user-controlled. Never attach internal service headers.
   const headers = {
     'user-agent': 'opencollective-images/1.0',
