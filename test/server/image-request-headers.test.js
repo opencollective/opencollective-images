@@ -1,4 +1,12 @@
-import { imageRequest } from '../../src/server/lib/request';
+import { asyncRequest, imageRequest } from '../../src/server/lib/request';
+
+jest.mock('cached-request', () =>
+  jest.fn(() => {
+    const cachedRequest = jest.fn();
+    cachedRequest.setCacheDirectory = jest.fn();
+    return cachedRequest;
+  }),
+);
 
 jest.mock('request', () => {
   const request = jest.fn((options, callback) => {
@@ -8,10 +16,12 @@ jest.mock('request', () => {
 });
 
 const request = jest.requireMock('request');
+const cachedRequest = jest.requireMock('cached-request').mock.results[0].value;
 
 describe('image request headers', () => {
   beforeEach(() => {
     request.mockClear();
+    cachedRequest.mockClear();
     delete process.env.ENABLE_CACHED_REQUEST;
     process.env.OC_SECRET = 'top-secret';
     process.env.OC_ENV = 'production';
@@ -29,5 +39,16 @@ describe('image request headers', () => {
     expect(options.headers['oc-secret']).toBeUndefined();
     expect(options.headers['oc-env']).toBeUndefined();
     expect(options.headers['oc-application']).toBeUndefined();
+  });
+
+  test('rejects invalid image URLs before using the cached request stream', async () => {
+    process.env.ENABLE_CACHED_REQUEST = 'true';
+
+    await expect(asyncRequest({ url: 'undefined/1500x500', encoding: null })).rejects.toThrow(
+      'Image URL must be an absolute HTTP(S) URL',
+    );
+
+    expect(cachedRequest).not.toHaveBeenCalled();
+    expect(request).not.toHaveBeenCalled();
   });
 });

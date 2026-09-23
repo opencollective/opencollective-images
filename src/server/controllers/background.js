@@ -45,7 +45,13 @@ export default async function background(req, res, next) {
     params.height = normalizeSize(params.height, 800);
   }
 
-  const image = await getImageData(imageUrl);
+  let image;
+  try {
+    image = await getImageData(imageUrl);
+  } catch (err) {
+    logger.error(`background: error fetching ${imageUrl} (${err.message})`);
+    return res.status(502).send('Unable to fetch background image');
+  }
 
   try {
     const resizedImage = await sharp(image).resize(params.width, params.height).toFormat(format).toBuffer();
