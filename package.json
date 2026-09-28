@@ -18,6 +18,7 @@
   "dependencies": {
     "@apollo/client": "^3.13.9",
     "@hyperwatch/hyperwatch": "4.2.0",
+    "@sentry/node": "^10.20.0",
     "bluebird": "3.7.2",
     "cached-request": "3.0.0",
     "debug": "4.4.3",

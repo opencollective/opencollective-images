@@ -3,7 +3,7 @@ import request from 'request';
 import { getCloudinaryUrl, isValidUrl } from './lib/utils';
 import controllers from './controllers';
 import { logger } from './logger';
-import { maxAge } from './middlewares';
+import { asyncHandler, maxAge } from './middlewares';
 
 const maxAgeOneDay = maxAge(24 * 60 * 60);
 const maxAgeTwoHours = maxAge(2 * 60 * 60);
@@ -53,32 +53,36 @@ export const loadRoutes = (app) => {
   app.get(
     '/:collectiveSlug/:hash?/:image(avatar|logo)/:style(rounded|square)?/:height?/:width?.:format(txt|png|jpg|svg)',
     maxAgeOneDay,
-    controllers.logo,
+    asyncHandler(controllers.logo),
   );
 
   app.get(
     '/:collectiveSlug/:hash?/background/:height?/:width?.:format(png|jpg)',
     maxAgeTwoHours,
-    controllers.background,
+    asyncHandler(controllers.background),
   );
 
-  app.get('/:collectiveSlug/:backerType.svg', controllers.banner);
+  app.get('/:collectiveSlug/:backerType.svg', asyncHandler(controllers.banner));
 
-  app.get('/:collectiveSlug/:backerType/badge.svg', controllers.badge);
+  app.get('/:collectiveSlug/:backerType/badge.svg', asyncHandler(controllers.badge));
 
-  app.get('/:collectiveSlug/:backerType/:position/website', controllers.website);
+  app.get('/:collectiveSlug/:backerType/:position/website', asyncHandler(controllers.website));
 
-  app.get('/:collectiveSlug/:backerType/:position/avatar(.:format(png|jpg|svg))?', maxAgeTwoHours, controllers.avatar);
+  app.get(
+    '/:collectiveSlug/:backerType/:position/avatar(.:format(png|jpg|svg))?',
+    maxAgeTwoHours,
+    asyncHandler(controllers.avatar),
+  );
 
-  app.get('/:collectiveSlug/tiers/:tierSlug.svg', controllers.banner);
+  app.get('/:collectiveSlug/tiers/:tierSlug.svg', asyncHandler(controllers.banner));
 
-  app.get('/:collectiveSlug/tiers/:tierSlug/badge.svg', controllers.badge);
+  app.get('/:collectiveSlug/tiers/:tierSlug/badge.svg', asyncHandler(controllers.badge));
 
-  app.get('/:collectiveSlug/tiers/:tierSlug/:position/website', controllers.website);
+  app.get('/:collectiveSlug/tiers/:tierSlug/:position/website', asyncHandler(controllers.website));
 
   app.get(
     '/:collectiveSlug/tiers/:tierSlug/:position/avatar(.:format(png|jpg|svg))?',
     maxAgeTwoHours,
-    controllers.avatar,
+    asyncHandler(controllers.avatar),
   );
 };

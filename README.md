@@ -40,6 +40,20 @@ If case you want to connect to the Open Collective API running locally:
 - clone, install and start [opencollective-api](https://github.com/opencollective/opencollective-api)
 - in this project, copy [`.env.local`](.env.local) to `.env`.
 
+#### Sentry error reporting
+
+Sentry is disabled unless `SENTRY_DSN` is set. Never commit a real DSN. Deployments may configure:
+
+- `SENTRY_DSN`: the project DSN that enables reporting.
+- `SENTRY_RELEASE`: the deploy-provided release identifier (for example, a Git SHA).
+- `OC_ENV`: the Sentry environment; `NODE_ENV` is used as a fallback.
+- `SENTRY_TRACES_SAMPLE_RATE`: optional transaction sample rate from `0` to `1`.
+- `SENTRY_PROFILES_SAMPLE_RATE`: optional profile sample rate from `0` to `1`.
+- `SENTRY_FLUSH_TIMEOUT`: optional fatal-event flush deadline in milliseconds (defaults to `2000`).
+
+Personally identifiable information is not sent by default. Authentication, cookie, API-key, and Open Collective
+secret headers are redacted before events are sent.
+
 ### Start
 
 ```

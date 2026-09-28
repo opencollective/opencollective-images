@@ -23,7 +23,9 @@ const winstonConsole = new winston.transports.Console({
 });
 
 logger.add(winstonConsole);
-logger.exceptions.handle(winstonConsole);
+// Fatal process errors are owned by instrument.js so they can be reported once,
+// flushed, and followed by a non-zero exit. Do not add a competing Winston
+// exception handler here.
 
 const loggerMiddleware = {
   errorLogger: expressWinston.errorLogger({
