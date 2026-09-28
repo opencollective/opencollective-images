@@ -1,4 +1,3 @@
-import Promise from 'bluebird';
 import imageToAscii from 'image-to-ascii';
 
 export function generateAsciiLogo(imgsrc, options) {

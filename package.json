@@ -18,8 +18,6 @@
   "dependencies": {
     "@apollo/client": "^4.0.0",
     "@hyperwatch/hyperwatch": "5.1.0",
-    "bluebird": "3.7.2",
-    "cached-request": "3.0.0",
     "debug": "4.4.3",
     "dotenv": "17.4.2",
     "express": "5.2.1",
@@ -35,7 +33,6 @@
     "node-fetch": "2.7.0",
     "p-limit": "7.3.3",
     "redis": "4.7.1",
-    "request": "2.88.2",
     "rxjs": "7.8.2",
     "sharp": "0.35.4",
     "winston": "3.19.0"
