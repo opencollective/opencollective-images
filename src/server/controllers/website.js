@@ -3,8 +3,6 @@ import { URL } from 'url';
 import { fetchMembersWithCache } from '../lib/graphql';
 import { getWebsite, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
 
-const websiteUrl = process.env.WEBSITE_URL;
-
 export default async function website(req, res) {
   if (req.params.backerType && req.params.backerType === 'contributors') {
     return res.status(404).send('Not found');
@@ -38,12 +36,22 @@ export default async function website(req, res) {
 
   let redirectUrl;
   if (position === users.length) {
-    redirectUrl = `${websiteUrl}/${collectiveSlug}#support`;
+    redirectUrl = `${process.env.WEBSITE_URL}/${collectiveSlug}#support`;
   } else {
     redirectUrl = getWebsite(user);
   }
 
-  const parsedUrl = new URL(redirectUrl);
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(redirectUrl);
+  } catch (e) {
+    return res.sendStatus(404);
+  }
+
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    return res.sendStatus(404);
+  }
+
   if (!parsedUrl.searchParams.has('utm_source')) {
     parsedUrl.searchParams.set('utm_source', 'opencollective');
   }
