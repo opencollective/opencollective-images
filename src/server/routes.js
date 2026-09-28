@@ -8,13 +8,6 @@ import { maxAge } from './middlewares';
 const maxAgeOneDay = maxAge(24 * 60 * 60);
 const maxAgeTwoHours = maxAge(2 * 60 * 60);
 
-const only = (param, values) => (req, res, next) => {
-  if (values.includes(req.params[param])) {
-    return next();
-  }
-  return next('route');
-};
-
 export const loadRoutes = (app) => {
   app.get('/', (req, res) => {
     res.send('This is the Open Collective images server.');
@@ -56,22 +49,20 @@ export const loadRoutes = (app) => {
     }
   });
 
+  // Express 5 (path-to-regexp v8) dropped optional and regex-constrained params from string patterns.
+  // These routes keep the exact Express 4 matching (optional hash, style, height and width; format
+  // whitelist) with regular expressions; named groups populate req.params like before. The `i` flag
+  // and the optional trailing slash mirror Express's default case-insensitive, non-strict routing.
+
   // Route for user avatars or organization logos
   app.get(
-    [
-      '/:collectiveSlug/:image{/:style}{/:height}{/:width}.:format',
-      '/:collectiveSlug/:hash/:image{/:style}{/:height}{/:width}.:format',
-    ],
-    only('image', ['avatar', 'logo']),
-    only('style', ['rounded', 'square', undefined]),
-    only('format', ['txt', 'png', 'jpg', 'svg']),
+    /^\/(?<collectiveSlug>[^/]+?)(?:\/(?<hash>[^/]+?))?\/(?<image>avatar|logo)(?:\/(?<style>rounded|square))?(?:\/(?<height>[^/]+?))?(?:\/(?<width>[^/]+?))?\.(?<format>txt|png|jpg|svg)\/?$/i,
     maxAgeOneDay,
     controllers.logo,
   );
 
   app.get(
-    '/:collectiveSlug{/:hash}/background{/:height}{/:width}.:format',
-    only('format', ['png', 'jpg']),
+    /^\/(?<collectiveSlug>[^/]+?)(?:\/(?<hash>[^/]+?))?\/background(?:\/(?<height>[^/]+?))?(?:\/(?<width>[^/]+?))?\.(?<format>png|jpg)\/?$/i,
     maxAgeTwoHours,
     controllers.background,
   );
@@ -83,8 +74,7 @@ export const loadRoutes = (app) => {
   app.get('/:collectiveSlug/:backerType/:position/website', controllers.website);
 
   app.get(
-    '/:collectiveSlug/:backerType/:position/avatar{.:format}',
-    only('format', ['png', 'jpg', 'svg', undefined]),
+    /^\/(?<collectiveSlug>[^/]+?)\/(?<backerType>[^/]+?)\/(?<position>[^/]+?)\/avatar(?:\.(?<format>png|jpg|svg))?\/?$/i,
     maxAgeTwoHours,
     controllers.avatar,
   );
@@ -96,8 +86,7 @@ export const loadRoutes = (app) => {
   app.get('/:collectiveSlug/tiers/:tierSlug/:position/website', controllers.website);
 
   app.get(
-    '/:collectiveSlug/tiers/:tierSlug/:position/avatar{.:format}',
-    only('format', ['png', 'jpg', 'svg', undefined]),
+    /^\/(?<collectiveSlug>[^/]+?)\/tiers\/(?<tierSlug>[^/]+?)\/(?<position>[^/]+?)\/avatar(?:\.(?<format>png|jpg|svg))?\/?$/i,
     maxAgeTwoHours,
     controllers.avatar,
   );
