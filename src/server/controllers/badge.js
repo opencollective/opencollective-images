@@ -29,14 +29,23 @@ export default async function badge(req, res) {
         label = req.query.label || 'financial contributors';
       }
 
-      imageUrl = `https://img.shields.io/opencollective/${backerType}/${req.params.collectiveSlug}.svg?color=${color}&style=${style}&label=${label}`;
+      const slug = encodeURIComponent(req.params.collectiveSlug);
+      const url = new URL(`https://img.shields.io/opencollective/${backerType}/${slug}.svg`);
+      url.searchParams.set('color', color);
+      url.searchParams.set('style', style);
+      url.searchParams.set('label', label);
+      imageUrl = url.toString();
     }
 
     if (!imageUrl) {
       try {
         const stats = await fetchMembersStatsWithCache(req.params);
-        const filename = `${req.query.label || stats.name}-${stats.count ? stats.count : 0}-${color}.svg`;
-        imageUrl = `https://img.shields.io/badge/${filename}?style=${style}`;
+        const filename = encodeURIComponent(
+          `${req.query.label || stats.name}-${stats.count ? stats.count : 0}-${color}.svg`,
+        );
+        const url = new URL(`https://img.shields.io/badge/${filename}`);
+        url.searchParams.set('style', style);
+        imageUrl = url.toString();
       } catch (err) {
         // Invalid collectiveSlug (not found) or No collective found with slug
         if (err.message.match(/not found/) || err.message.match(/No collective found/)) {
