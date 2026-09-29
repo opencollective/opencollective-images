@@ -38,7 +38,7 @@ const imageAsSvg = (buffer, { maxHeight, imageHeight, imageWidth, selector, imag
       const dimensions = sizeOf(buffer);
       imageWidth = Math.round((dimensions.width / dimensions.height) * imageHeight);
     } catch (err) {
-      throw new Error('Unable to get image size.');
+      throw new Error('Unable to get image size.', { cause: err });
     }
   }
 
