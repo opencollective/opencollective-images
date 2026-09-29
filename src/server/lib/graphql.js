@@ -1,4 +1,4 @@
-import { ApolloClient, ApolloLink, HttpLink, InMemoryCache } from '@apollo/client/core';
+import { ApolloClient, ApolloLink, CombinedGraphQLErrors, HttpLink, InMemoryCache } from '@apollo/client/core';
 import debug from 'debug';
 import gql from 'graphql-tag';
 import { flatten, pick, uniqBy } from 'lodash';
@@ -53,12 +53,21 @@ function getClient() {
   return client;
 }
 
-function graphqlRequest(query, variables) {
+async function graphqlRequest(query, variables) {
   // With GraphQLClient from graphql-request
   // return getClient().request(query, variables);
 
   // With ApolloClient as client
-  return getClient().query({ query, variables, fetchPolicy: 'no-cache' });
+  const { data, error } = await getClient().query({ query, variables, fetchPolicy: 'no-cache' });
+  if (!error) {
+    return { data };
+  }
+  // With `errorPolicy: 'all'`, Apollo Client 4 returns GraphQL errors as a single `error`:
+  // expose them as `errors` like before, and throw network errors like Apollo Client 3 did
+  if (CombinedGraphQLErrors.is(error)) {
+    return { data, errors: error.errors };
+  }
+  throw error;
 }
 
 /*
