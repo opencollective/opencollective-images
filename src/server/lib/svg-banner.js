@@ -99,7 +99,7 @@ export function generateSvgBanner(usersList, options) {
           continue;
         }
 
-        let avatarWidth = avatarHeight;
+        let avatarWidth;
         try {
           // We make sure the image loaded properly
           const dimensions = sizeOf(rawImage);
