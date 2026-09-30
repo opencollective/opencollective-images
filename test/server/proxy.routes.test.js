@@ -158,6 +158,29 @@ describe('proxy.routes.test.js', () => {
     );
   });
 
+  describe('upstream errors', () => {
+    test(
+      'does not reflect the upstream status text',
+      async () => {
+        const origin = createOrigin((req, res) => {
+          res.writeHead(404, '<script>alert(1)</script>', { 'Content-Type': 'text/html' });
+          res.end('<script>alert(2)</script>');
+        });
+        const src = await origin.listen('/missing.png');
+
+        try {
+          const res = await fetchProxy(src);
+          expect(res.status).toEqual(404);
+          expect(res.headers.get('content-type')).toMatch(/^text\/plain/);
+          expect(await res.text()).not.toContain('<script>');
+        } finally {
+          await origin.close();
+        }
+      },
+      timeout,
+    );
+  });
+
   describe('oversized sources', () => {
     test(
       'closes the upstream connection when the response goes over the size limit',

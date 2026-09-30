@@ -74,7 +74,8 @@ async function handleProxy(req, res) {
     } else {
       logger.error(`proxy: error processing ${imageUrl} (status=${response.status} ${response.statusText})`);
     }
-    return res.status(response.status).send(response.statusText);
+    // The upstream status text is attacker-controlled: never reflect it (Express sends strings as HTML)
+    return res.sendStatus(response.status);
   }
 
   let image;
