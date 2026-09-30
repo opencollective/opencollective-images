@@ -1,5 +1,6 @@
 import './env';
 
+import http from 'http';
 import path from 'path';
 
 import express from 'express';
@@ -11,15 +12,16 @@ import { loadRoutes } from './routes';
 const port = process.env.PORT;
 
 const app = express();
+const server = http.createServer(app);
 
 app.use('/static', express.static(path.join(__dirname, '..', 'static')));
 
-hyperwatch.load(app);
+hyperwatch.load(app, { server });
 
 loadRoutes(app);
 
 app.use(loggerMiddleware.errorLogger);
 
-app.listen(port, () => {
+server.listen(port, () => {
   logger.info(`Ready on http://localhost:${port}`);
 });

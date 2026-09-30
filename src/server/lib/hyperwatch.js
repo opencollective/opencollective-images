@@ -1,6 +1,5 @@
 import hyperwatch from '@hyperwatch/hyperwatch';
 import expressBasicAuth from 'express-basic-auth';
-import expressWs from 'express-ws';
 
 import { logger } from '../logger';
 
@@ -13,7 +12,7 @@ const {
   HYPERWATCH_SECRET: secret,
 } = process.env;
 
-export function load(app) {
+export function load(app, { server }) {
   const { input, lib, modules, pipeline } = hyperwatch;
 
   hyperwatch.init({
@@ -27,15 +26,16 @@ export function load(app) {
 
   // Mount Hyperwatch API and Websocket
   if (parseToBooleanDefaultFalse(enabled)) {
-    // We need to setup express-ws here to make Hyperwatch's websocket works
+    // Mount Hyperwatch API and Websocket: basic auth applies to both HTTP and WebSocket upgrades
     if (secret) {
-      expressWs(app);
-      const hyperwatchBasicAuth = expressBasicAuth({
-        users: { [username || 'opencollective']: secret },
-        challenge: true,
+      hyperwatch.app.mount(app, {
+        server,
+        path: path || '/_hyperwatch',
+        middleware: expressBasicAuth({
+          users: { [username || 'opencollective']: secret },
+          challenge: true,
+        }),
       });
-      app.use(path || '/_hyperwatch', hyperwatchBasicAuth, hyperwatch.app.api);
-      app.use(path || '/_hyperwatch', hyperwatchBasicAuth, hyperwatch.app.websocket);
     }
 
     // Configure input
