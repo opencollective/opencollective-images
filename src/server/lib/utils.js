@@ -17,6 +17,9 @@ export function getProxyFetchUrl(url) {
   if (parsedURL.origin === 'https://res.cloudinary.com') {
     return `https://res.cloudinary.com/${path}`;
   } else if (process.env.OC_ENV === 'development' && parsedURL.hostname === 'localhost') {
+    if (parsedURL.protocol === 'https:') {
+      return `https://localhost:${Number(parsedURL.port) || 443}/${path}`;
+    }
     return `http://localhost:${Number(parsedURL.port) || 80}/${path}`;
   } else {
     return null;

@@ -37,6 +37,8 @@ describe('getProxyFetchUrl', () => {
     expect(getProxyFetchUrl('http://localhost:9000/bucket/logo.png?v=1')).toBe(
       'http://localhost:9000/bucket/logo.png?v=1',
     );
+    expect(getProxyFetchUrl('https://localhost:8443/logo.png')).toBe('https://localhost:8443/logo.png');
+    expect(getProxyFetchUrl('https://localhost/logo.png')).toBe('https://localhost:443/logo.png');
     expect(getProxyFetchUrl('http://127.0.0.1:3000/logo.png')).toBeNull();
   });
 });
