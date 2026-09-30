@@ -184,6 +184,43 @@ describe('proxy.routes.test.js', () => {
 
   describe('upstream errors', () => {
     test(
+      'does not cache a transient upstream failure',
+      async () => {
+        const origin = createOrigin((req) => req.socket.destroy());
+        const src = await origin.listen('/reset.png');
+
+        try {
+          const res = await fetchProxy(src);
+          expect(res.status).toEqual(502);
+          expect(res.headers.get('cache-control')).toEqual('no-store');
+        } finally {
+          await origin.close();
+        }
+      },
+      timeout,
+    );
+
+    test(
+      'does not cache an upstream server error',
+      async () => {
+        const origin = createOrigin((req, res) => {
+          res.writeHead(503);
+          res.end();
+        });
+        const src = await origin.listen('/unavailable.png');
+
+        try {
+          const res = await fetchProxy(src);
+          expect(res.status).toEqual(503);
+          expect(res.headers.get('cache-control')).toEqual('no-store');
+        } finally {
+          await origin.close();
+        }
+      },
+      timeout,
+    );
+
+    test(
       'does not reflect the upstream status text',
       async () => {
         const origin = createOrigin((req, res) => {

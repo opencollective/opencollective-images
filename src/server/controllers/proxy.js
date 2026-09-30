@@ -40,6 +40,17 @@ function parseDimension(value) {
   return Math.min(Math.round(parsed), MAX_PROXY_IMAGE_DIMENSION);
 }
 
+// A blocked address (request-filtering-agent) or an oversized download is the source's fault: a
+// cacheable 400. Anything else (timeout, reset, DNS failure) is transient and must not be cached.
+function isInvalidSourceError(err) {
+  return err.type === 'max-size' || /is not allowed/.test(err.message);
+}
+
+function sendUpstreamFailure(res, err) {
+  res.set('Cache-Control', 'no-store');
+  return res.sendStatus(err.type === 'request-timeout' || err.type === 'body-timeout' ? 504 : 502);
+}
+
 async function handleProxy(req, res) {
   const { src: imageUrl, width, height } = req.query;
 
@@ -72,6 +83,10 @@ async function handleProxy(req, res) {
     });
   } catch (err) {
     controller.abort();
+    if (!isInvalidSourceError(err)) {
+      logger.warn(`proxy: unable to reach ${imageUrl} (${err.message})`);
+      return sendUpstreamFailure(res, err);
+    }
     logger.info(`proxy: blocked or invalid ${imageUrl} (${err.message})`);
     return res.status(400).send('Invalid parameter: "src"');
   }
@@ -82,6 +97,9 @@ async function handleProxy(req, res) {
     } else {
       logger.error(`proxy: error processing ${imageUrl} (status=${response.status} ${response.statusText})`);
     }
+    if (response.status >= 500) {
+      res.set('Cache-Control', 'no-store');
+    }
     // The upstream status text is attacker-controlled: never reflect it (Express sends strings as HTML)
     return res.sendStatus(response.status);
   }
@@ -91,6 +109,10 @@ async function handleProxy(req, res) {
     image = await response.buffer();
   } catch (err) {
     controller.abort();
+    if (!isInvalidSourceError(err)) {
+      logger.warn(`proxy: unable to download ${imageUrl} (${err.message})`);
+      return sendUpstreamFailure(res, err);
+    }
     logger.info(`proxy: unable to download ${imageUrl} (${err.message})`);
     return res.status(400).send('Invalid parameter: "src"');
   }
