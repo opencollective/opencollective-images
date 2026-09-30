@@ -4,7 +4,12 @@ import fetch from 'node-fetch';
 import { useAgent } from 'request-filtering-agent';
 import sharp from 'sharp';
 
-import { MAX_PROXY_IMAGE_BYTES, MAX_PROXY_IMAGE_DIMENSION, PROXY_FETCH_TIMEOUT } from '../lib/constants';
+import {
+  MAX_PROXY_IMAGE_BYTES,
+  MAX_PROXY_IMAGE_DIMENSION,
+  MAX_PROXY_IMAGE_PIXELS,
+  PROXY_FETCH_TIMEOUT,
+} from '../lib/constants';
 import { parseToBooleanDefaultFalse } from '../lib/utils';
 import { logger } from '../logger';
 
@@ -12,6 +17,9 @@ const debugProxy = debug('proxy');
 
 const transparent = { r: 0, g: 0, b: 0, alpha: 0 };
 const white = { r: 255, g: 255, b: 255, alpha: 1 };
+
+// A small file can declare a huge image: Sharp rejects sources over this pixel count before decoding them
+const sharpOptions = { limitInputPixels: MAX_PROXY_IMAGE_PIXELS };
 
 // Private and loopback addresses are rejected, except where the sources we proxy
 // are served from localhost: local development, and the test harness, which opts
@@ -97,7 +105,7 @@ async function handleProxy(req, res) {
   try {
     // Only keep the alpha channel when the source has one, otherwise we're
     // inflating photographic images by serving them as PNG
-    const { hasAlpha } = await sharp(image).metadata();
+    const { hasAlpha } = await sharp(image, sharpOptions).metadata();
     const format = hasAlpha ? 'png' : 'jpeg';
     const background = hasAlpha ? transparent : white;
 
@@ -105,7 +113,7 @@ async function handleProxy(req, res) {
     // so we pass the limit for the free axis to bound the output either way
     const fit = resizeWidth && resizeHeight ? 'contain' : 'inside';
 
-    const finalImageBuffer = await sharp(image)
+    const finalImageBuffer = await sharp(image, sharpOptions)
       // Applies the EXIF orientation, which is otherwise dropped from the output
       .rotate()
       .resize(resizeWidth || MAX_PROXY_IMAGE_DIMENSION, resizeHeight || MAX_PROXY_IMAGE_DIMENSION, { fit, background })

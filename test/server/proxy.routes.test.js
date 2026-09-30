@@ -158,6 +158,30 @@ describe('proxy.routes.test.js', () => {
     );
   });
 
+  describe('decompression bombs', () => {
+    test(
+      'rejects a small source that declares too many pixels',
+      async () => {
+        // 10000x10000 solid PNG: a few hundred KB on the wire, 400 MB once decoded
+        const source = await sharp({
+          create: { width: 10000, height: 10000, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 1 } },
+        })
+          .png({ compressionLevel: 9 })
+          .toBuffer();
+        const origin = serveBuffer(source);
+        const src = await origin.listen('/bomb.png');
+
+        try {
+          const res = await fetchProxy(src, '&width=100');
+          expect(res.status).toEqual(400);
+        } finally {
+          await origin.close();
+        }
+      },
+      timeout,
+    );
+  });
+
   describe('upstream errors', () => {
     test(
       'does not reflect the upstream status text',
