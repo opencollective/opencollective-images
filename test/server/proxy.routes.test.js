@@ -200,20 +200,44 @@ describe('proxy.routes.test.js', () => {
       timeout,
     );
 
-    test(
-      'does not cache an upstream server error',
-      async () => {
+    test.each([503, 429, 408])(
+      'does not cache a transient upstream %s',
+      async (status) => {
         const origin = createOrigin((req, res) => {
-          res.writeHead(503);
+          res.writeHead(status);
           res.end();
         });
         const src = await origin.listen('/unavailable.png');
 
         try {
           const res = await fetchProxy(src);
-          expect(res.status).toEqual(503);
+          expect(res.status).toEqual(status);
           expect(res.headers.get('cache-control')).toEqual('no-store');
         } finally {
+          await origin.close();
+        }
+      },
+      timeout,
+    );
+
+    test(
+      'gives up on a body that drips in slowly',
+      async () => {
+        // Headers arrive at once, then one byte per second: the download itself must have a deadline
+        let interval;
+        const origin = createOrigin((req, res) => {
+          res.writeHead(200, { 'Content-Type': 'image/png' });
+          interval = setInterval(() => res.write(Buffer.from([0])), 1000);
+          res.on('close', () => clearInterval(interval));
+        });
+        const src = await origin.listen('/drip.png');
+
+        try {
+          const res = await fetchProxy(src);
+          expect(res.status).toEqual(504);
+          expect(res.headers.get('cache-control')).toEqual('no-store');
+        } finally {
+          clearInterval(interval);
           await origin.close();
         }
       },
