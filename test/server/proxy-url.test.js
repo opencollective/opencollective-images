@@ -1,28 +1,42 @@
-import { getCloudinaryUrl, isProxyableUrl } from '../../src/server/lib/utils';
+import { getCloudinaryUrl, getProxyFetchUrl } from '../../src/server/lib/utils';
 
-describe('isProxyableUrl', () => {
+describe('getProxyFetchUrl', () => {
   const OC_ENV = process.env.OC_ENV;
   afterEach(() => {
     process.env.OC_ENV = OC_ENV;
   });
 
-  test('accepts the Cloudinary URLs built by getCloudinaryUrl', () => {
+  test('keeps the Cloudinary URLs built by getCloudinaryUrl', () => {
     const src = 'https://example.com/logo.png';
-    expect(isProxyableUrl(getCloudinaryUrl(src, { width: 100 }))).toBe(true);
-    expect(isProxyableUrl(getCloudinaryUrl(src, { query: '/../../other/' }))).toBe(true);
+    const url = getCloudinaryUrl(src, { width: 100 });
+    expect(getProxyFetchUrl(url)).toBe(url);
+    expect(getProxyFetchUrl(getCloudinaryUrl(src, { query: '/../../other/' }))).toMatch(
+      /^https:\/\/res\.cloudinary\.com\//,
+    );
+  });
+
+  test('never leaves the Cloudinary host', () => {
+    expect(getProxyFetchUrl('https://res.cloudinary.com//evil.com/x.png')).toBe(
+      'https://res.cloudinary.com//evil.com/x.png',
+    );
+    expect(new URL(getProxyFetchUrl('https://res.cloudinary.com//evil.com/x.png')).host).toBe('res.cloudinary.com');
   });
 
   test('rejects any other host', () => {
-    expect(isProxyableUrl('https://example.com/logo.png')).toBe(false);
-    expect(isProxyableUrl('http://169.254.169.254/latest/meta-data/')).toBe(false);
-    expect(isProxyableUrl('https://res.cloudinary.com.evil.com/x.png')).toBe(false);
-    expect(isProxyableUrl('https://res.cloudinary.com@evil.com/x.png')).toBe(false);
-    expect(isProxyableUrl('http://localhost:3000/logo.png')).toBe(false);
+    expect(getProxyFetchUrl('https://example.com/logo.png')).toBeNull();
+    expect(getProxyFetchUrl('http://169.254.169.254/latest/meta-data/')).toBeNull();
+    expect(getProxyFetchUrl('https://res.cloudinary.com.evil.com/x.png')).toBeNull();
+    expect(getProxyFetchUrl('https://res.cloudinary.com@evil.com/x.png')).toBeNull();
+    expect(getProxyFetchUrl('http://res.cloudinary.com/x.png')).toBeNull();
+    expect(getProxyFetchUrl('http://localhost:3000/logo.png')).toBeNull();
+    expect(getProxyFetchUrl('not a url')).toBeNull();
   });
 
   test('accepts localhost only in development', () => {
     process.env.OC_ENV = 'development';
-    expect(isProxyableUrl('http://localhost:3000/logo.png')).toBe(true);
-    expect(isProxyableUrl('http://127.0.0.1:3000/logo.png')).toBe(false);
+    expect(getProxyFetchUrl('http://localhost:9000/bucket/logo.png?v=1')).toBe(
+      'http://localhost:9000/bucket/logo.png?v=1',
+    );
+    expect(getProxyFetchUrl('http://127.0.0.1:3000/logo.png')).toBeNull();
   });
 });

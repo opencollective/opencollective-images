@@ -1,21 +1,25 @@
 import crypto from 'crypto';
 import { URL } from 'url';
 
-const CLOUDINARY_URL_PREFIX = 'https://res.cloudinary.com/';
-
 /**
- * The image proxy fetches URLs built from user input: only allow Cloudinary, plus localhost in development
- * (where getCloudinaryUrl returns localhost URLs as-is).
+ * The image proxy fetches URLs built from user input. Rebuild the URL on a fixed origin: Cloudinary,
+ * or localhost in development (where getCloudinaryUrl returns localhost URLs as-is). Returns null otherwise.
  */
-export function isProxyableUrl(url) {
-  if (url.startsWith(CLOUDINARY_URL_PREFIX)) {
-    return true;
+export function getProxyFetchUrl(url) {
+  let parsedURL;
+  try {
+    parsedURL = new URL(url);
+  } catch {
+    return null;
   }
 
-  try {
-    return process.env.OC_ENV === 'development' && new URL(url).hostname === 'localhost';
-  } catch {
-    return false;
+  const path = `${parsedURL.pathname.slice(1)}${parsedURL.search}`;
+  if (parsedURL.origin === 'https://res.cloudinary.com') {
+    return `https://res.cloudinary.com/${path}`;
+  } else if (process.env.OC_ENV === 'development' && parsedURL.hostname === 'localhost') {
+    return `http://localhost:${Number(parsedURL.port) || 80}/${path}`;
+  } else {
+    return null;
   }
 }
 

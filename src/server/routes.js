@@ -1,7 +1,7 @@
 import { pipeline } from 'stream';
 
 import { fetchExternal } from './lib/fetch';
-import { getCloudinaryUrl, isProxyableUrl, isValidUrl } from './lib/utils';
+import { getCloudinaryUrl, getProxyFetchUrl, isValidUrl } from './lib/utils';
 import controllers from './controllers';
 import { logger } from './logger';
 import { maxAge } from './middlewares';
@@ -26,8 +26,8 @@ export const loadRoutes = (app) => {
       return res.status(400).send('Invalid parameter: "src"');
     }
 
-    const url = getCloudinaryUrl(src, { width, height, query });
-    if (!isProxyableUrl(url)) {
+    const url = getProxyFetchUrl(getCloudinaryUrl(src, { width, height, query }));
+    if (!url) {
       return res.status(400).send('Invalid parameter: "src"');
     }
 
