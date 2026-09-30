@@ -19,8 +19,8 @@ const white = { r: 255, g: 255, b: 255, alpha: 1 };
 const allowPrivateIPAddress =
   process.env.OC_ENV === 'development' || parseToBooleanDefaultFalse(process.env.PROXY_ALLOW_PRIVATE_IP);
 
-// Express turns a repeated or bracketed query parameter into an array or an object,
-// and coercing those can throw, so we only ever look at scalars
+// Express turns a repeated query parameter into an array, and coercing that can
+// throw, so we only ever look at scalars
 function parseDimension(value) {
   if (typeof value !== 'string' && typeof value !== 'number') {
     return undefined;
@@ -119,8 +119,8 @@ async function handleProxy(req, res) {
 }
 
 export default async function proxy(req, res) {
-  // Express 4 does not route a rejected async handler to the error middleware,
-  // so anything unexpected here would take the process down
+  // Unexpected errors are answered here, logged as proxy errors, and a response
+  // that is already being sent is left alone
   try {
     await handleProxy(req, res);
   } catch (err) {

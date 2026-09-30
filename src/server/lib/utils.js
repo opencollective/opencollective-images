@@ -57,15 +57,6 @@ export const getUiAvatarUrl = (name, size, rounded = true, background = 'E6F3FF'
   return url.toString();
 };
 
-export const isValidUrl = (string) => {
-  try {
-    new URL(string);
-    return true;
-  } catch (err) {
-    return false;
-  }
-};
-
 export const getWebsite = (user) => {
   const twitter = user.twitterHandle ? `https://twitter.com/${user.twitterHandle}` : null;
 
