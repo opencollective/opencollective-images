@@ -1,6 +1,31 @@
 import crypto from 'crypto';
 import { URL } from 'url';
 
+/**
+ * The image proxy fetches URLs built from user input. Rebuild the URL on a fixed origin: Cloudinary,
+ * or localhost in development (where getCloudinaryUrl returns localhost URLs as-is). Returns null otherwise.
+ */
+export function getProxyFetchUrl(url) {
+  let parsedURL;
+  try {
+    parsedURL = new URL(url);
+  } catch {
+    return null;
+  }
+
+  const path = `${parsedURL.pathname.slice(1)}${parsedURL.search}`;
+  if (parsedURL.origin === 'https://res.cloudinary.com') {
+    return `https://res.cloudinary.com/${path}`;
+  } else if (process.env.OC_ENV === 'development' && parsedURL.hostname === 'localhost') {
+    if (parsedURL.protocol === 'https:') {
+      return `https://localhost:${Number(parsedURL.port) || 443}/${path}`;
+    }
+    return `http://localhost:${Number(parsedURL.port) || 80}/${path}`;
+  } else {
+    return null;
+  }
+}
+
 export function getCloudinaryUrl(src, { width, height, query, style, format }) {
   const cloudinaryHost = 'res.cloudinary.com';
   const cloudinaryResizePath = '/opencollective/image/fetch';

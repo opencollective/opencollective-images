@@ -1,6 +1,7 @@
-import request from 'request';
+import { pipeline } from 'stream';
 
-import { getCloudinaryUrl, isValidUrl } from './lib/utils';
+import { fetchExternal } from './lib/fetch';
+import { getCloudinaryUrl, getProxyFetchUrl, isValidUrl } from './lib/utils';
 import controllers from './controllers';
 import { logger } from './logger';
 import { maxAge } from './middlewares';
@@ -18,22 +19,41 @@ export const loadRoutes = (app) => {
    * and we can cache them at cloudflare level (to reduce bandwidth at cloudinary level)
    * Format: /proxy/images?src=:encoded_url&width=:width
    */
-  app.get('/proxy/images', maxAge(7200), (req, res) => {
+  app.get('/proxy/images', maxAge(7200), async (req, res) => {
     const { src, width, height, query } = req.query;
 
     if (!isValidUrl(src)) {
       return res.status(400).send('Invalid parameter: "src"');
     }
 
-    const url = getCloudinaryUrl(src, { width, height, query });
+    const url = getProxyFetchUrl(getCloudinaryUrl(src, { width, height, query }));
+    if (!url) {
+      return res.status(400).send('Invalid parameter: "src"');
+    }
 
-    req
-      .pipe(request(url, { followRedirect: false }))
-      .on('error', (e) => {
-        logger.error('>>> Error proxying %s', url, e);
-        res.status(500).send(e);
-      })
-      .pipe(res);
+    let response;
+    try {
+      // User-controlled URL: no internal service headers, redirects are forwarded rather than followed
+      response = await fetchExternal(url, { redirect: 'manual' });
+    } catch (e) {
+      logger.error('>>> Error proxying %s', url, e);
+      return res.status(500).send('Error proxying image');
+    }
+
+    res.status(response.status);
+    for (const header of ['content-type', 'location']) {
+      const value = response.headers.get(header);
+      if (value) {
+        res.setHeader(header, value);
+      }
+    }
+    pipeline(response.body, res, (e) => {
+      if (e) {
+        // Headers may already be sent: drop the connection instead of leaving it hanging
+        logger.error('>>> Error streaming proxied %s', url, e);
+        res.destroy();
+      }
+    });
   });
 
   /**

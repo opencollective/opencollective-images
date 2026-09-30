@@ -34,6 +34,18 @@ function isInternalApiUrl(url) {
   }
 }
 
+/**
+ * Fetch for user-controlled URLs (images, proxied assets): keep-alive agent and user-agent only.
+ * Never attaches the internal service headers and skips the GraphQL benchmarking.
+ */
+export async function fetchExternal(url, options = {}) {
+  return nodeFetch(url, {
+    ...options,
+    agent: getCustomAgent(),
+    headers: { ...options.headers, 'user-agent': 'opencollective-images/1.0' },
+  });
+}
+
 async function fetch(url, options = {}) {
   options.agent = getCustomAgent();
 
