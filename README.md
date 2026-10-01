@@ -42,7 +42,7 @@ If case you want to connect to the Open Collective API running locally:
 
 ### Error tracking (Sentry)
 
-Errors are reported to Sentry (new `images` project) when `SENTRY_DSN` is set.
+Errors are reported to the `oc-images` Sentry project when `SENTRY_DSN` is set.
 Traces are controlled by `SENTRY_TRACES_SAMPLE_RATE` (default `0`, disabled).
 `SENTRY_ENVIRONMENT` defaults to `OC_ENV`.
 

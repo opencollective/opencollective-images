@@ -39,7 +39,7 @@ const redactEventRequest = (event) => {
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
   environment: process.env.SENTRY_ENVIRONMENT || process.env.OC_ENV || process.env.NODE_ENV || 'development',
-  release: process.env.HEROKU_SLUG_COMMIT || `opencollective-images@${process.env.npm_package_version || 'dev'}`,
+  release: process.env.HEROKU_SLUG_COMMIT || `oc-images@${process.env.npm_package_version || 'dev'}`,
   tracesSampleRate: getTracesSampleRate(),
   sendDefaultPii: false,
   attachStacktrace: true,
