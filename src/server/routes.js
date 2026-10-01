@@ -1,9 +1,4 @@
-import { pipeline } from 'stream';
-
-import { fetchExternal } from './lib/fetch';
-import { getCloudinaryUrl, getProxyFetchUrl, isValidUrl } from './lib/utils';
 import controllers from './controllers';
-import { logger } from './logger';
 import { maxAge } from './middlewares';
 
 const maxAgeOneDay = maxAge(24 * 60 * 60);
@@ -15,46 +10,10 @@ export const loadRoutes = (app) => {
   });
 
   /**
-   * Proxy all images so that we can serve them from the opencollective.com domain
-   * and we can cache them at cloudflare level (to reduce bandwidth at cloudinary level)
+   * Proxy images and resize them on the fly
    * Format: /proxy/images?src=:encoded_url&width=:width
    */
-  app.get('/proxy/images', maxAge(7200), async (req, res) => {
-    const { src, width, height, query } = req.query;
-
-    if (!isValidUrl(src)) {
-      return res.status(400).send('Invalid parameter: "src"');
-    }
-
-    const url = getProxyFetchUrl(getCloudinaryUrl(src, { width, height, query }));
-    if (!url) {
-      return res.status(400).send('Invalid parameter: "src"');
-    }
-
-    let response;
-    try {
-      // User-controlled URL: no internal service headers, redirects are forwarded rather than followed
-      response = await fetchExternal(url, { redirect: 'manual' });
-    } catch (e) {
-      logger.error('>>> Error proxying %s', url, e);
-      return res.status(500).send('Error proxying image');
-    }
-
-    res.status(response.status);
-    for (const header of ['content-type', 'location']) {
-      const value = response.headers.get(header);
-      if (value) {
-        res.setHeader(header, value);
-      }
-    }
-    pipeline(response.body, res, (e) => {
-      if (e) {
-        // Headers may already be sent: drop the connection instead of leaving it hanging
-        logger.error('>>> Error streaming proxied %s', url, e);
-        res.destroy();
-      }
-    });
-  });
+  app.get('/proxy/images', maxAgeOneDay, controllers.proxy);
 
   /**
    * Prevent indexation from search engines
@@ -76,7 +35,7 @@ export const loadRoutes = (app) => {
 
   // Route for user avatars or organization logos
   app.get(
-    /^\/(?<collectiveSlug>[^/]+?)(?:\/(?<hash>[^/]+?))?\/(?<image>avatar|logo)(?:\/(?<style>rounded|square))?(?:\/(?<height>[^/]+?))?(?:\/(?<width>[^/]+?))?\.(?<format>txt|png|jpg|svg)\/?$/i,
+    /^\/(?<collectiveSlug>[^/]+?)(?:\/(?<hash>[^/]+?))?\/(?<image>avatar|logo)(?:\/(?<style>rounded|square))?(?:\/(?<height>[^/]+?))?(?:\/(?<width>[^/]+?))?\.(?<format>png|jpg|svg)\/?$/i,
     maxAgeOneDay,
     controllers.logo,
   );
