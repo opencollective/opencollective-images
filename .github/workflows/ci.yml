@@ -155,7 +155,7 @@ jobs:
 
       - run: npm run depcheck
   test:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     services:
       redis:
