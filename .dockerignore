@@ -1,5 +1,6 @@
 *
 !.babelrc
+!.npmrc
 !src
 !package.json
 !package-lock.json
