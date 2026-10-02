@@ -43,7 +43,9 @@ If case you want to connect to the Open Collective API running locally:
 ### Error tracking (Sentry)
 
 Errors are reported to the `oc-images` Sentry project when `SENTRY_DSN` is set.
-Traces are controlled by `SENTRY_TRACES_SAMPLE_RATE` (default `0`, disabled).
+Following the [Sentry Node docs](https://docs.sentry.io/platforms/javascript/guides/node/),
+the SDK is initialized in `src/server/instrument.js`, which is the first import
+of the server. Traces are controlled by `SENTRY_TRACES_SAMPLE_RATE` (default `0`, disabled).
 `SENTRY_ENVIRONMENT` defaults to `OC_ENV`.
 
 ### Start

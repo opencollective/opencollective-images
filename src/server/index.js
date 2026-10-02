@@ -1,5 +1,5 @@
+import './instrument';
 import './env';
-import './lib/sentry';
 
 import http from 'http';
 import path from 'path';

@@ -7,8 +7,9 @@ export const maxAge = (maxAge = 60) => {
   };
 };
 
-// Express 4 does not catch rejected promises from async handlers.
-// Wrap every async controller so rejections reach the global error handler (and Sentry).
+// Express forwards async rejections to the error handler natively.
+// This wrapper is kept as belt-and-braces so every rejection ends up in the
+// global error handler (and Sentry) even if a handler is reused elsewhere.
 export const asyncHandler = (fn) => {
   return (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);

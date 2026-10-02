@@ -1,4 +1,5 @@
-const SENTRY_MODULE = '../../src/server/lib/sentry';
+const INSTRUMENT_MODULE = '../../src/server/instrument';
+const SENTRY_LIB_MODULE = '../../src/server/lib/sentry';
 
 const mockScope = {
   setLevel: jest.fn(),
@@ -15,6 +16,10 @@ jest.mock('@sentry/node', () => ({
   captureException: jest.fn(),
   captureMessage: jest.fn(),
   setupExpressErrorHandler: jest.fn(),
+}));
+
+jest.mock('dotenv', () => ({
+  config: jest.fn(),
 }));
 
 jest.mock('../../src/server/logger', () => ({
@@ -36,11 +41,11 @@ describe('sentry lib', () => {
   let savedEnv;
   let processOnSpy;
 
-  const loadSentry = () => {
+  const loadModule = (path) => {
     jest.resetModules();
     return {
       Sentry: jest.requireMock('@sentry/node'),
-      sentryLib: require(SENTRY_MODULE),
+      mod: require(path),
       logger: jest.requireMock('../../src/server/logger').logger,
     };
   };
@@ -77,15 +82,15 @@ describe('sentry lib', () => {
     }
   });
 
-  describe('Sentry.init', () => {
-    test('passes DSN, environment, release and disables PII', () => {
+  describe('instrument', () => {
+    test('initializes Sentry with DSN, environment, release and no PII', () => {
       process.env.NODE_ENV = 'production';
       process.env.SENTRY_DSN = 'https://example@sentry.io/1';
       process.env.SENTRY_ENVIRONMENT = 'production';
       process.env.HEROKU_SLUG_COMMIT = 'abc123';
       process.env.SENTRY_TRACES_SAMPLE_RATE = '0.1';
 
-      const { Sentry } = loadSentry();
+      const { Sentry } = loadModule(INSTRUMENT_MODULE);
       const config = getInitConfig(Sentry);
 
       expect(config.dsn).toBe('https://example@sentry.io/1');
@@ -102,7 +107,7 @@ describe('sentry lib', () => {
       process.env.SENTRY_DSN = 'https://example@sentry.io/1';
       process.env.SENTRY_ENVIRONMENT = 'custom';
 
-      const { Sentry } = loadSentry();
+      const { Sentry } = loadModule(INSTRUMENT_MODULE);
 
       expect(getInitConfig(Sentry).environment).toBe('custom');
     });
@@ -112,7 +117,7 @@ describe('sentry lib', () => {
       process.env.OC_ENV = 'staging';
       process.env.SENTRY_DSN = 'https://example@sentry.io/1';
 
-      const { Sentry } = loadSentry();
+      const { Sentry } = loadModule(INSTRUMENT_MODULE);
 
       expect(getInitConfig(Sentry).environment).toBe('staging');
     });
@@ -121,7 +126,7 @@ describe('sentry lib', () => {
       process.env.NODE_ENV = 'production';
       process.env.SENTRY_DSN = 'https://example@sentry.io/1';
 
-      const { Sentry } = loadSentry();
+      const { Sentry } = loadModule(INSTRUMENT_MODULE);
 
       expect(getInitConfig(Sentry).release).toBe('oc-images@dev');
     });
@@ -138,7 +143,7 @@ describe('sentry lib', () => {
         process.env.SENTRY_TRACES_SAMPLE_RATE = value;
       }
 
-      const { Sentry } = loadSentry();
+      const { Sentry } = loadModule(INSTRUMENT_MODULE);
 
       expect(getInitConfig(Sentry).tracesSampleRate).toBe(expected);
     });
@@ -146,7 +151,7 @@ describe('sentry lib', () => {
     test('is disabled without a DSN', () => {
       process.env.NODE_ENV = 'production';
 
-      const { Sentry } = loadSentry();
+      const { Sentry } = loadModule(INSTRUMENT_MODULE);
 
       expect(getInitConfig(Sentry).enabled).toBe(false);
     });
@@ -155,7 +160,7 @@ describe('sentry lib', () => {
       process.env.NODE_ENV = 'test';
       process.env.SENTRY_DSN = 'https://example@sentry.io/1';
 
-      const { Sentry } = loadSentry();
+      const { Sentry } = loadModule(INSTRUMENT_MODULE);
 
       expect(getInitConfig(Sentry).enabled).toBe(false);
     });
@@ -166,7 +171,7 @@ describe('sentry lib', () => {
       process.env.NODE_ENV = 'production';
       process.env.SENTRY_DSN = 'https://example@sentry.io/1';
 
-      const { Sentry } = loadSentry();
+      const { Sentry } = loadModule(INSTRUMENT_MODULE);
       const { beforeSend } = getInitConfig(Sentry);
       const event = beforeSend({
         request: {
@@ -195,12 +200,28 @@ describe('sentry lib', () => {
       process.env.NODE_ENV = 'production';
       process.env.SENTRY_DSN = 'https://example@sentry.io/1';
 
-      const { Sentry } = loadSentry();
+      const { Sentry } = loadModule(INSTRUMENT_MODULE);
       const { beforeSend } = getInitConfig(Sentry);
       const event = { message: 'no request here' };
 
       expect(beforeSend(event)).toBe(event);
       expect(beforeSend(undefined)).toBe(undefined);
+    });
+  });
+
+  describe('checkIfSentryConfigured', () => {
+    test.each([
+      ['with a DSN', 'https://example@sentry.io/1', true],
+      ['without a DSN', undefined, false],
+    ])('returns %s -> %s', (_, dsn, expected) => {
+      process.env.NODE_ENV = 'production';
+      if (dsn !== undefined) {
+        process.env.SENTRY_DSN = dsn;
+      }
+
+      const { mod } = loadModule(SENTRY_LIB_MODULE);
+
+      expect(mod.checkIfSentryConfigured()).toBe(expected);
     });
   });
 
@@ -214,8 +235,8 @@ describe('sentry lib', () => {
       process.env.NODE_ENV = 'production';
       process.env.SENTRY_DSN = 'https://example@sentry.io/1';
 
-      const { Sentry, sentryLib } = loadSentry();
-      sentryLib.reportErrorToSentry(err);
+      const { Sentry, mod } = loadModule(SENTRY_LIB_MODULE);
+      mod.reportErrorToSentry(err);
 
       expect(Sentry.captureException).not.toHaveBeenCalled();
     });
@@ -224,10 +245,10 @@ describe('sentry lib', () => {
       process.env.NODE_ENV = 'production';
       process.env.SENTRY_DSN = 'https://example@sentry.io/1';
 
-      const { Sentry, sentryLib } = loadSentry();
+      const { Sentry, mod } = loadModule(SENTRY_LIB_MODULE);
       const err = new Error('sharp failed');
       const req = { ip: '127.0.0.1' };
-      sentryLib.reportErrorToSentry(err, {
+      mod.reportErrorToSentry(err, {
         severity: 'fatal',
         tags: { handler: 'logo' },
         extra: { imageUrl: 'https://example.com/logo.png', count: 3 },
@@ -246,8 +267,8 @@ describe('sentry lib', () => {
       process.env.NODE_ENV = 'production';
       process.env.SENTRY_DSN = 'https://example@sentry.io/1';
 
-      const { Sentry, sentryLib } = loadSentry();
-      sentryLib.reportErrorToSentry(undefined);
+      const { Sentry, mod } = loadModule(SENTRY_LIB_MODULE);
+      mod.reportErrorToSentry(undefined);
 
       expect(Sentry.captureException).not.toHaveBeenCalled();
     });
@@ -256,8 +277,8 @@ describe('sentry lib', () => {
       process.env.NODE_ENV = 'test';
       process.env.SENTRY_DSN = 'https://example@sentry.io/1';
 
-      const { Sentry, sentryLib } = loadSentry();
-      sentryLib.reportErrorToSentry(new Error('boom'));
+      const { Sentry, mod } = loadModule(SENTRY_LIB_MODULE);
+      mod.reportErrorToSentry(new Error('boom'));
 
       expect(Sentry.captureException).not.toHaveBeenCalled();
     });
@@ -265,9 +286,9 @@ describe('sentry lib', () => {
     test('falls back to the logger when Sentry is not configured', () => {
       process.env.NODE_ENV = 'production';
 
-      const { Sentry, sentryLib, logger } = loadSentry();
+      const { Sentry, mod, logger } = loadModule(SENTRY_LIB_MODULE);
       const err = new Error('boom');
-      sentryLib.reportErrorToSentry(err);
+      mod.reportErrorToSentry(err);
 
       expect(Sentry.captureException).not.toHaveBeenCalled();
       expect(logger.error).toHaveBeenCalledWith(err.stack);
@@ -279,8 +300,8 @@ describe('sentry lib', () => {
       process.env.NODE_ENV = 'production';
       process.env.SENTRY_DSN = 'https://example@sentry.io/1';
 
-      const { Sentry, sentryLib } = loadSentry();
-      sentryLib.reportMessageToSentry('something odd', { severity: 'warning', tags: { handler: 'proxy' } });
+      const { Sentry, mod } = loadModule(SENTRY_LIB_MODULE);
+      mod.reportMessageToSentry('something odd', { severity: 'warning', tags: { handler: 'proxy' } });
 
       expect(mockScope.setLevel).toHaveBeenCalledWith('warning');
       expect(mockScope.setTag).toHaveBeenCalledWith('handler', 'proxy');
@@ -290,52 +311,23 @@ describe('sentry lib', () => {
     test('falls back to the logger when Sentry is not configured', () => {
       process.env.NODE_ENV = 'production';
 
-      const { Sentry, sentryLib, logger } = loadSentry();
-      sentryLib.reportMessageToSentry('something odd');
+      const { Sentry, mod, logger } = loadModule(SENTRY_LIB_MODULE);
+      mod.reportMessageToSentry('something odd');
 
       expect(Sentry.captureMessage).not.toHaveBeenCalled();
       expect(logger.error).toHaveBeenCalledWith('[Sentry fallback] something odd');
     });
   });
 
-  describe('process fallbacks', () => {
-    test('reports unhandled rejections as fatal', () => {
+  describe('process-level errors', () => {
+    test('registers no custom handlers, relying on the SDK default integrations', () => {
       process.env.NODE_ENV = 'production';
       process.env.SENTRY_DSN = 'https://example@sentry.io/1';
 
-      const { Sentry } = loadSentry();
-      const { unhandledRejection } = getProcessHandlers();
-      unhandledRejection(new Error('async boom'));
+      loadModule(SENTRY_LIB_MODULE);
+      loadModule(INSTRUMENT_MODULE);
 
-      expect(mockScope.setLevel).toHaveBeenCalledWith('fatal');
-      expect(mockScope.setTag).toHaveBeenCalledWith('handler', 'fallback');
-      expect(Sentry.captureException).toHaveBeenCalledWith(expect.objectContaining({ message: 'async boom' }));
-    });
-
-    test('wraps non-error rejection reasons', () => {
-      process.env.NODE_ENV = 'production';
-      process.env.SENTRY_DSN = 'https://example@sentry.io/1';
-
-      const { Sentry } = loadSentry();
-      const { unhandledRejection } = getProcessHandlers();
-      unhandledRejection('string reason');
-
-      expect(Sentry.captureException).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'Unhandled Rejection: string reason' }),
-      );
-    });
-
-    test('reports uncaught exceptions as fatal', () => {
-      process.env.NODE_ENV = 'production';
-      process.env.SENTRY_DSN = 'https://example@sentry.io/1';
-
-      const { Sentry } = loadSentry();
-      const { uncaughtException } = getProcessHandlers();
-      const err = new Error('sync boom');
-      uncaughtException(err);
-
-      expect(Sentry.captureException).toHaveBeenCalledWith(err);
-      expect(mockScope.setLevel).toHaveBeenCalledWith('fatal');
+      expect(getProcessHandlers()).toEqual({});
     });
   });
 });
