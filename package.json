@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@apollo/client": "^4.0.0",
-    "@hyperwatch/hyperwatch": "5.1.0",
+    "@hyperwatch/hyperwatch": "5.2.0",
     "debug": "4.4.3",
     "dotenv": "18.0.4",
     "express": "5.2.1",
