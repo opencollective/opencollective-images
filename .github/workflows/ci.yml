@@ -241,3 +241,6 @@ jobs:
 
       - name: Run test
         run: ./scripts/run_test.sh
+        env:
+          # The cache provider tests run against the job's Redis service
+          TEST_REDIS_URL: redis://localhost:6379/15
