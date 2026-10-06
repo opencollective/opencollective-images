@@ -1,6 +1,6 @@
 import { ApolloClient, ApolloLink, CombinedGraphQLErrors, HttpLink, InMemoryCache } from '@apollo/client/core';
 import debug from 'debug';
-import gql from 'graphql-tag';
+import gqlV1 from 'graphql-tag';
 import { flatten, pick, uniqBy } from 'lodash';
 
 // Alternative setup with GraphQLClient from graphql-request
@@ -76,8 +76,8 @@ Used by:
   - background.js: requires `backgroundImage`
 */
 export async function fetchCollective(collectiveSlug) {
-  const query = gql`
-    query fetchCollective($collectiveSlug: String) {
+  const query = gqlV1 /* GraphQL */ `
+    query Collective($collectiveSlug: String) {
       Collective(slug: $collectiveSlug) {
         id
         name
@@ -122,8 +122,8 @@ export async function fetchMembersStats(variables) {
   let query, processResult;
 
   if (backerType) {
-    query = gql`
-      query fetchMembersStats($collectiveSlug: String) {
+    query = gqlV1 /* GraphQL */ `
+      query MembersStats($collectiveSlug: String) {
         Collective(slug: $collectiveSlug) {
           id
           stats {
@@ -152,8 +152,8 @@ export async function fetchMembersStats(variables) {
       return { name, count };
     };
   } else if (tierSlug) {
-    query = gql`
-      query fetchMembersStatsForTier($collectiveSlug: String, $tierSlug: String) {
+    query = gqlV1 /* GraphQL */ `
+      query MembersStatsForTier($collectiveSlug: String, $tierSlug: String) {
         Collective(slug: $collectiveSlug) {
           id
           tiers(slug: $tierSlug) {
@@ -226,8 +226,8 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
       type = 'USER';
     }
     role = 'BACKER';
-    query = gql`
-      query fetchMembersWithRole($collectiveSlug: String!, $type: String!, $role: String!, $isActive: Boolean) {
+    query = gqlV1 /* GraphQL */ `
+      query MembersWithRole($collectiveSlug: String!, $type: String!, $role: String!, $isActive: Boolean) {
         allMembers(
           collectiveSlug: $collectiveSlug
           type: $type
@@ -253,8 +253,8 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
       );
   } else if (tierSlug) {
     tierSlug = tierSlug.split(',');
-    query = gql`
-      query fetchMembersWithTier($collectiveSlug: String, $tierSlug: [String], $isActive: Boolean) {
+    query = gqlV1 /* GraphQL */ `
+      query MembersWithTier($collectiveSlug: String, $tierSlug: [String], $isActive: Boolean) {
         Collective(slug: $collectiveSlug) {
           id
           tiers(slugs: $tierSlug) {
