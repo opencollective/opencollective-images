@@ -6,11 +6,24 @@
  * Process-level crashes (uncaughtException/unhandledRejection) are covered
  * by the SDK's default integrations, so no custom handlers here.
  */
+import crypto from 'crypto';
+
 import * as Sentry from '@sentry/node';
 
 import { logger } from '../logger';
 
 export const checkIfSentryConfigured = () => Boolean(process.env.SENTRY_DSN);
+
+export const isValidDebugSentryKey = (provided) => {
+  const expected = process.env.DEBUG_SENTRY_KEY;
+  if (!expected || typeof provided !== 'string' || !provided) {
+    return false;
+  }
+
+  const providedBuffer = Buffer.from(provided);
+  const expectedBuffer = Buffer.from(expected);
+  return providedBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(providedBuffer, expectedBuffer);
+};
 
 const shouldIgnoreError = (err) => {
   const message = err?.message || '';

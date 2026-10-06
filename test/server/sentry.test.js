@@ -28,6 +28,7 @@ jest.mock('../../src/server/logger', () => ({
 }));
 
 const ENV_KEYS = [
+  'DEBUG_SENTRY_KEY',
   'SENTRY_DSN',
   'SENTRY_ENVIRONMENT',
   'SENTRY_TRACES_SAMPLE_RATE',
@@ -183,6 +184,7 @@ describe('sentry lib', () => {
             'content-type': 'image/png',
           },
           cookies: { session: 'abc' },
+          query_string: 'key=secret&safe=value',
         },
       });
 
@@ -194,6 +196,7 @@ describe('sentry lib', () => {
         'content-type': 'image/png',
       });
       expect(event.request.cookies).toBe('[Filtered]');
+      expect(event.request.query_string).toBe('key=[Filtered]&safe=value');
     });
 
     test('returns events without a request untouched', () => {
@@ -222,6 +225,29 @@ describe('sentry lib', () => {
       const { mod } = loadModule(SENTRY_LIB_MODULE);
 
       expect(mod.checkIfSentryConfigured()).toBe(expected);
+    });
+
+    describe('isValidDebugSentryKey', () => {
+      test.each([
+        ['matching key', 'shared-secret', true],
+        ['wrong key', 'wrong-secret', false],
+        ['array value', ['shared-secret'], false],
+      ])('validates %s', (_, provided, expected) => {
+        process.env.NODE_ENV = 'production';
+        process.env.DEBUG_SENTRY_KEY = 'shared-secret';
+
+        const { mod } = loadModule(SENTRY_LIB_MODULE);
+
+        expect(mod.isValidDebugSentryKey(provided)).toBe(expected);
+      });
+
+      test('is disabled when no key is configured', () => {
+        process.env.NODE_ENV = 'production';
+
+        const { mod } = loadModule(SENTRY_LIB_MODULE);
+
+        expect(mod.isValidDebugSentryKey('shared-secret')).toBe(false);
+      });
     });
   });
 

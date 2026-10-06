@@ -19,6 +19,34 @@ const getTracesSampleRate = () => {
 };
 
 const SENSITIVE_HEADERS = ['cookie', 'authorization', 'api-key', 'personal-token', 'oc-secret', 'x-api-key'];
+const SENSITIVE_QUERY_KEYS = new Set(['key']);
+
+const redactQueryString = (query) => {
+  if (typeof query === 'string') {
+    return query
+      .split('&')
+      .map((pair) => {
+        const separatorIndex = pair.indexOf('=');
+        const key = separatorIndex === -1 ? pair : pair.slice(0, separatorIndex);
+        let normalizedKey = key;
+        try {
+          normalizedKey = decodeURIComponent(key);
+        } catch {
+          // Keep the raw key if it cannot be decoded
+        }
+        return SENSITIVE_QUERY_KEYS.has(normalizedKey.toLowerCase()) ? `${key}=[Filtered]` : pair;
+      })
+      .join('&');
+  }
+  if (query && typeof query === 'object' && !Array.isArray(query)) {
+    const redacted = {};
+    for (const [key, value] of Object.entries(query)) {
+      redacted[key] = SENSITIVE_QUERY_KEYS.has(key.toLowerCase()) ? '[Filtered]' : value;
+    }
+    return redacted;
+  }
+  return query;
+};
 
 const redactEventRequest = (event) => {
   if (!event?.request) {
@@ -37,6 +65,9 @@ const redactEventRequest = (event) => {
     }
     if (request.cookies) {
       request.cookies = '[Filtered]';
+    }
+    if (request.query_string !== undefined) {
+      request.query_string = redactQueryString(request.query_string);
     }
     event.request = request;
   } catch {

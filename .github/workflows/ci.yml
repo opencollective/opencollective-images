@@ -33,12 +33,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Update apt
-        run: sudo apt-get update || exit 0
-
-      - name: Install graphicsmagick
-        run: sudo apt-get install -y graphicsmagick
-
       - name: Checkout
         uses: actions/checkout@v7
 
@@ -75,12 +69,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Update apt
-        run: sudo apt-get update || exit 0
-
-      - name: Install graphicsmagick
-        run: sudo apt-get install -y graphicsmagick
-
       - name: Checkout
         uses: actions/checkout@v7
 
@@ -117,12 +105,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Update apt
-        run: sudo apt-get update || exit 0
-
-      - name: Install graphicsmagick
-        run: sudo apt-get install -y graphicsmagick
-
       - name: Checkout
         uses: actions/checkout@v7
 
@@ -155,7 +137,7 @@ jobs:
 
       - run: npm run depcheck
   test:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     services:
       redis:
@@ -180,9 +162,6 @@ jobs:
 
       - name: Install postgresql-client
         run: sudo apt-get install -y postgresql-client
-
-      - name: Install graphicsmagick
-        run: sudo apt-get install -y graphicsmagick
 
       # Npm cache
 
@@ -262,3 +241,6 @@ jobs:
 
       - name: Run test
         run: ./scripts/run_test.sh
+        env:
+          # The cache provider tests run against the job's Redis service
+          TEST_REDIS_URL: redis://localhost:6379/15

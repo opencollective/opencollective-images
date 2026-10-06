@@ -1,7 +1,5 @@
 # Open Collective Images
 
-[![Dependency Status](https://david-dm.org/opencollective/opencollective-images/status.svg)](https://david-dm.org/opencollective/opencollective-images)
-
 ## Foreword
 
 If you see a step below that could be improved (or is outdated), please update the instructions. We rarely go through this process ourselves, so your fresh pair of eyes and your recent experience with it, makes you the best candidate to improve them for other users. Thank you!
@@ -10,14 +8,11 @@ If you see a step below that could be improved (or is outdated), please update t
 
 ### Prerequisite
 
-1. Make sure you have Node.js version >= 18. We recommend using version 18, the one used in CI and production.
+Make sure you have Node.js version 24, the one used in CI and production.
 
 - We recommend using [nvm](https://github.com/creationix/nvm): `nvm install`.
 
-2. Make sure you have [GraphicsMagick](http://www.graphicsmagick.org) installed.
-
-- On Debian/Ubuntu: `sudo apt-get install graphicsmagick`
-- On MacOS (with [Homebrew](https://brew.sh/)): `brew install graphicsmagick`
+Image processing is done with [sharp](https://sharp.pixelplumbing.com/), which is installed by `npm install` and needs no system library.
 
 ### Install
 
@@ -47,6 +42,8 @@ Following the [Sentry Node docs](https://docs.sentry.io/platforms/javascript/gui
 the SDK is initialized in `src/server/instrument.js`, which is the first import
 of the server. Traces are controlled by `SENTRY_TRACES_SAMPLE_RATE` (default `0`, disabled).
 `SENTRY_ENVIRONMENT` defaults to `OC_ENV`.
+To trigger a test event, set `DEBUG_SENTRY_KEY` and request `/debug-sentry?key=<key>`;
+without the correct key, the endpoint behaves like an unknown route.
 
 ### Start
 
@@ -68,11 +65,7 @@ You can run the tests using `npm test`.
 
 To deploy to staging or production, you need to be a core member of the Open Collective team.
 
-We're currently relying on the following Heroku buildpacks:
-
-- https://github.com/heroku/heroku-buildpack-apt
-- https://github.com/MikeKoval/heroku-buildpack-graphicsmagick
-- heroku/nodejs
+The only Heroku buildpack needed is `heroku/nodejs`.
 
 ### Staging (heroku)
 

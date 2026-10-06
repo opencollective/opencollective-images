@@ -1,70 +1,6 @@
 import crypto from 'crypto';
 import { URL } from 'url';
 
-/**
- * The image proxy fetches URLs built from user input. Rebuild the URL on a fixed origin: Cloudinary,
- * or localhost in development (where getCloudinaryUrl returns localhost URLs as-is). Returns null otherwise.
- */
-export function getProxyFetchUrl(url) {
-  let parsedURL;
-  try {
-    parsedURL = new URL(url);
-  } catch {
-    return null;
-  }
-
-  const path = `${parsedURL.pathname.slice(1)}${parsedURL.search}`;
-  if (parsedURL.origin === 'https://res.cloudinary.com') {
-    return `https://res.cloudinary.com/${path}`;
-  } else if (process.env.OC_ENV === 'development' && parsedURL.hostname === 'localhost') {
-    if (parsedURL.protocol === 'https:') {
-      return `https://localhost:${Number(parsedURL.port) || 443}/${path}`;
-    }
-    return `http://localhost:${Number(parsedURL.port) || 80}/${path}`;
-  } else {
-    return null;
-  }
-}
-
-export function getCloudinaryUrl(src, { width, height, query, style, format }) {
-  const cloudinaryHost = 'res.cloudinary.com';
-  const cloudinaryResizePath = '/opencollective/image/fetch';
-
-  if (!format) {
-    format = 'png';
-  }
-
-  if (style === 'rounded') {
-    query = `/c_thumb,r_max,h_${height},w_${height},bo_2px_solid_rgb:c4c7cc,f_${format}/`;
-  }
-
-  // We don't try to resize animated gif, svg or images already processed by cloudinary
-  const parsedURL = new URL(src); // We're supposed to have a valid URL here, so it's ok to throw if it's not
-  const isCloudinaryUrl = parsedURL.host === cloudinaryHost && parsedURL.pathname === cloudinaryResizePath;
-  if (isCloudinaryUrl || (process.env.OC_ENV === 'development' && parsedURL.hostname === 'localhost')) {
-    return src;
-  }
-
-  if (!query) {
-    let size = '';
-    if (width) {
-      size += `w_${width},`;
-    }
-    if (height) {
-      size += `h_${height},`;
-    }
-    if (size === '') {
-      size = 'w_320,';
-    }
-
-    const format = src.match(/\.png$/) ? 'png' : 'jpg';
-
-    query = `/${size}c_pad,f_${format}/`;
-  }
-
-  return `https://${cloudinaryHost}${cloudinaryResizePath}${query}${encodeURIComponent(src)}`;
-}
-
 export const queryString = {
   stringify: (obj) => {
     let str = '';
@@ -119,15 +55,6 @@ export const getUiAvatarUrl = (name, size, rounded = true, background = 'E6F3FF'
   url.searchParams.set('length', length);
 
   return url.toString();
-};
-
-export const isValidUrl = (string) => {
-  try {
-    new URL(string);
-    return true;
-  } catch (err) {
-    return false;
-  }
 };
 
 export const getWebsite = (user) => {
