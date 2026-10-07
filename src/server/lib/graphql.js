@@ -210,6 +210,7 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
       'angular-universal-pwa',
       'jquery-adaptive-backgrounds',
       'lottie-web',
+      'opencollective', // 75k+ backers, fetching them exhausts the API memory
       'postwoman',
       'react-native-camera-mlkit',
       'vsc-material-theme',
