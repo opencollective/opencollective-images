@@ -144,12 +144,12 @@ jobs:
 
     services:
       redis:
-        image: redis@sha256:6f81e8915c60b065a524e6967e0ad1c639ba6efa84d669f823683ea04d9150ee
+        image: redis@sha256:2c2dff791878316e3b083188be0d578423b24813cdda5de0e80ea4f7b3e6bfd6
         ports:
           - 6379:6379
         options: --entrypoint redis-server
       postgres:
-        image: postgres:18.6@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722
+        image: postgres:16.15@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
         env:
           POSTGRES_USER: postgres
           POSTGRES_DB: postgres
@@ -160,12 +160,6 @@ jobs:
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
-      - name: Update apt
-        run: sudo apt-get update || exit 0
-
-      - name: Install postgresql-client
-        run: sudo apt-get install -y postgresql-client
-
       # Npm cache
 
       - name: Restore .npm cache
@@ -232,8 +226,12 @@ jobs:
 
       # Prepare DB
 
+      # Run pg_restore & co from the postgres:16 image: the ubuntu-26.04 runner ships PostgreSQL 18 client
+      # tools, whose pg_restore emits `SET transaction_timeout` that a PostgreSQL 16 server rejects.
       - name: Restore DB
         working-directory: opencollective-api
+        env:
+          USE_DOCKER: true
         run: npm run db:restore
 
       - name: Migrate DB

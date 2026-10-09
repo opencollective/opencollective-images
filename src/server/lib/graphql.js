@@ -208,11 +208,24 @@ export async function fetchMembers({ collectiveSlug, tierSlug, backerType, isAct
     [
       'algorithmvisualizer',
       'angular-universal-pwa',
+      'hexo-helper-live2d',
+      'imagesharp',
       'jquery-adaptive-backgrounds',
+      'live2d-widgetjs',
       'lottie-web',
+      'material-ui',
+      'opencollective', // 75k+ backers, fetching them exhausts the API memory
+      'ory-hydra',
+      'p3x-onenote',
+      'p3x-redis-ui',
       'postwoman',
       'react-native-camera-mlkit',
+      'react-native-iap',
+      'reakit',
+      'uform',
       'vsc-material-theme',
+      'WeChatTweak-macOS',
+      'xdanangelxoqenpm',
     ].includes(collectiveSlug)
   ) {
     throw new Error('Collective not found.');
