@@ -195,9 +195,12 @@ jobs:
           path: opencollective-api/node_modules
           key: ${{ runner.os }}-api-node-modules-${{ hashFiles('opencollective-api/package-lock.json') }}
 
+      # api's postinstall would restore the DB with the runner's PostgreSQL 18 tools; the steps below restore and migrate it
       - name: Install dependencies (api)
         working-directory: opencollective-api
         if: steps.api-node-modules.outputs.cache-hit != 'true'
+        env:
+          SKIP_POSTINSTALL: 1
         run: npm ci --prefer-offline --no-audit
 
       - name: Build (api)
