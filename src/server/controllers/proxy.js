@@ -74,6 +74,8 @@ async function handleProxy(req, res) {
   const controller = new AbortController();
   let response;
   try {
+    // The URL is restricted to HTTP(S), and request-filtering-agent rejects private and metadata IPs.
+    // lgtm[js/request-forgery]
     response = await fetch(imageUrl, {
       // "request-filtering-agent" rejects private and loopback addresses
       agent: (url) => useAgent(url.href, { allowPrivateIPAddress, allowMetaIPAddress: false }),

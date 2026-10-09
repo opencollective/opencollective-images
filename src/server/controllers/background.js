@@ -5,6 +5,7 @@ import sharp from 'sharp';
 import { fetchCollectiveWithCache } from '../lib/graphql';
 import { normalizeSize } from '../lib/image-size';
 import { asyncRequest } from '../lib/request';
+import { reportErrorToSentry } from '../lib/sentry';
 import { logger } from '../logger';
 
 const getImageData = (url) => asyncRequest({ url, encoding: null }).then((result) => result[1]);
@@ -50,6 +51,7 @@ export default async function background(req, res, next) {
     image = await getImageData(imageUrl);
   } catch (err) {
     logger.error(`background: error fetching ${imageUrl} (${err.message})`);
+    reportErrorToSentry(err, { tags: { handler: 'background' }, extra: { imageUrl }, req });
     return res.status(502).send('Unable to fetch background image');
   }
 
@@ -59,6 +61,7 @@ export default async function background(req, res, next) {
     res.set('Content-Type', mime.lookup(format)).send(resizedImage);
   } catch (err) {
     logger.error(`background: error processing ${imageUrl} (${err.message})`);
+    reportErrorToSentry(err, { tags: { handler: 'background' }, extra: { imageUrl }, req });
     return res.status(500).send('Internal Server Error');
   }
 }

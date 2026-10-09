@@ -16,6 +16,10 @@ const defaults = {
   OC_APPLICATION: 'images',
   OC_ENV: process.env.NODE_ENV || 'development',
   OC_SECRET: crypto.randomBytes(16).toString('hex'),
+  DEBUG_SENTRY_KEY: '',
+  SENTRY_DSN: '',
+  SENTRY_ENVIRONMENT: '',
+  SENTRY_TRACES_SAMPLE_RATE: '0',
 };
 
 for (const key in defaults) {

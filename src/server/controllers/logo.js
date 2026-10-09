@@ -11,6 +11,7 @@ import sharp from 'sharp';
 import { MAX_AVATAR_HEIGHT } from '../lib/constants';
 import { fetchCollectiveWithCache } from '../lib/graphql';
 import { normalizeSize } from '../lib/image-size';
+import { reportErrorToSentry } from '../lib/sentry';
 import { isRemoteImageUrl, resolveBundledImagePath } from '../lib/static-image';
 import { getUiAvatarUrl } from '../lib/utils';
 import { logger } from '../logger';
@@ -205,6 +206,7 @@ export default async function logo(req, res) {
         res.set('Content-Type', mime.lookup(format)).send(finalImageBuffer);
       } catch (err) {
         logger.error(`logo: error processing ${imageUrl} (${err.message})`);
+        reportErrorToSentry(err, { tags: { handler: 'logo' }, extra: { imageUrl }, req });
         return res.status(500).send('Internal Server Error');
       }
 
