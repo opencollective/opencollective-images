@@ -7,3 +7,6 @@ yarn.lock
 .vscode/*
 dist
 *.swp
+
+# Turborepo task logs and local cache
+.turbo/

@@ -1,0 +1,208 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "tasks": {
+    "start": {
+      "cache": false,
+      "passThroughEnv": ["*"],
+      "persistent": true,
+      "dependsOn": ["build:finalize"]
+    },
+    "dev:task": {
+      "cache": false,
+      "passThroughEnv": ["*"],
+      "persistent": true
+    },
+    "build:clean": {
+      "cache": false,
+      "passThroughEnv": ["*"]
+    },
+    "build:server": {
+      "cache": false,
+      "passThroughEnv": ["*"]
+    },
+    "test:task": {
+      "cache": false,
+      "passThroughEnv": ["*"],
+      "dependsOn": ["lint:quiet:task", "prettier:check:task"]
+    },
+    "test:watch:task": {
+      "cache": false,
+      "passThroughEnv": ["*"],
+      "persistent": true
+    },
+    "test:server:task": {
+      "cache": false,
+      "passThroughEnv": ["*"]
+    },
+    "lint:task": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "package-lock.json",
+        ".env*",
+        "!dist/**",
+        "!.next/**",
+        "!coverage/**",
+        "!.nyc_output/**",
+        "!.turbo/**",
+        "!*.tsbuildinfo",
+        "!test-results.xml",
+        "!test-report.junit.xml",
+        "!junit.xml",
+        "!.eslintcache",
+        "!.prettiercache",
+        "!_sidebar.md"
+      ],
+      "env": ["CI", "NODE_ENV", "OC_ENV", "TZ", "NODE_OPTIONS", "OC_LOCKFILE_HASH_IMAGES"],
+      "outputs": [],
+      "cache": true
+    },
+    "lint:fix:task": {
+      "cache": false,
+      "passThroughEnv": ["*"]
+    },
+    "lint:quiet:task": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "package-lock.json",
+        ".env*",
+        "!dist/**",
+        "!.next/**",
+        "!coverage/**",
+        "!.nyc_output/**",
+        "!.turbo/**",
+        "!*.tsbuildinfo",
+        "!test-results.xml",
+        "!test-report.junit.xml",
+        "!junit.xml",
+        "!.eslintcache",
+        "!.prettiercache",
+        "!_sidebar.md"
+      ],
+      "env": ["CI", "NODE_ENV", "OC_ENV", "TZ", "NODE_OPTIONS", "OC_LOCKFILE_HASH_IMAGES"],
+      "outputs": [],
+      "cache": true
+    },
+    "prettier:check:task": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "package-lock.json",
+        ".env*",
+        "!dist/**",
+        "!.next/**",
+        "!coverage/**",
+        "!.nyc_output/**",
+        "!.turbo/**",
+        "!*.tsbuildinfo",
+        "!test-results.xml",
+        "!test-report.junit.xml",
+        "!junit.xml",
+        "!.eslintcache",
+        "!.prettiercache",
+        "!_sidebar.md"
+      ],
+      "env": ["CI", "NODE_ENV", "OC_ENV", "TZ", "NODE_OPTIONS", "OC_LOCKFILE_HASH_IMAGES"],
+      "outputs": [],
+      "cache": true
+    },
+    "graphql:updateV1": {
+      "cache": false,
+      "passThroughEnv": ["*"]
+    },
+    "graphql:updateV2": {
+      "cache": false,
+      "passThroughEnv": ["*"]
+    },
+    "depcheck:task": {
+      "cache": false,
+      "passThroughEnv": ["*"]
+    },
+    "format:check:task": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "package-lock.json",
+        ".env*",
+        "!dist/**",
+        "!.next/**",
+        "!coverage/**",
+        "!.nyc_output/**",
+        "!.turbo/**",
+        "!*.tsbuildinfo",
+        "!test-results.xml",
+        "!test-report.junit.xml",
+        "!junit.xml",
+        "!.eslintcache",
+        "!.prettiercache",
+        "!_sidebar.md"
+      ],
+      "env": ["CI", "NODE_ENV", "OC_ENV", "TZ", "NODE_OPTIONS", "OC_LOCKFILE_HASH_IMAGES"],
+      "outputs": [],
+      "cache": true
+    },
+    "format:task": {
+      "cache": false,
+      "passThroughEnv": ["*"]
+    },
+    "build:compile": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "package-lock.json",
+        ".env*",
+        "!dist/**",
+        "!.next/**",
+        "!coverage/**",
+        "!.nyc_output/**",
+        "!.turbo/**",
+        "!*.tsbuildinfo",
+        "!test-results.xml",
+        "!test-report.junit.xml",
+        "!junit.xml",
+        "!.eslintcache",
+        "!.prettiercache",
+        "!_sidebar.md"
+      ],
+      "env": ["CI", "NODE_ENV", "OC_ENV", "TZ", "NODE_OPTIONS", "BABEL_ENV", "OC_LOCKFILE_HASH_IMAGES"],
+      "outputs": ["dist/**", "!dist/.next/cache/**", "!dist/.next/dev/**"],
+      "cache": true,
+      "dependsOn": ["build:clean"]
+    },
+    "build:finalize": {
+      "cache": false,
+      "passThroughEnv": ["*"],
+      "dependsOn": ["build:compile"]
+    },
+    "graphql:refresh": {
+      "cache": false,
+      "passThroughEnv": ["*"],
+      "dependsOn": ["graphql:updateV1", "graphql:updateV2"]
+    },
+    "dev:environment": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": ["*"]
+    },
+    "start:built": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": ["*"]
+    },
+    "test:file:task": {
+      "cache": false,
+      "passThroughEnv": ["*"]
+    },
+    "prettier:write:task": {
+      "cache": false,
+      "passThroughEnv": ["*"]
+    },
+    "prettier:task": {
+      "cache": false,
+      "passThroughEnv": ["*"]
+    },
+    "test:file:watch:task": {
+      "cache": false,
+      "passThroughEnv": ["*"],
+      "persistent": true
+    }
+  },
+  "agentGuidance": false,
+  "cacheDir": ".turbo/cache"
+}
