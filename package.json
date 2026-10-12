@@ -40,7 +40,7 @@
   "scripts": {
     "start": "NODE_ENV=production node dist/server",
     "dev": "nodemon --exec babel-node -- src/server/index.js",
-    "build": "npm run build:clean && npm run build:server",
+    "build": "npm run turbo -- run build:finalize",
     "build:clean": "rm -rf dist",
     "build:server": "babel --copy-files src --out-dir dist",
     "test": "npm run test:server",
@@ -49,7 +49,6 @@
     "lint": "eslint \"src\" \"test\"",
     "lint:fix": "npm run lint -- --fix",
     "lint:quiet": "npm run lint -- --quiet",
-    "pretest": "npm run lint:quiet && npm run prettier:check",
     "commit": "git-cz",
     "prettier": "prettier \"src/**/*.js\" \"test/**/*.js\"",
     "prettier:write": "npm run prettier -- --write",
@@ -57,11 +56,24 @@
     "deploy:production": "./scripts/pre-deploy.sh production && git push production main",
     "deploy:staging": "./scripts/pre-deploy.sh staging && git push -f staging main",
     "graphql:update:local": "cp ../frontend/lib/graphql/*.graphql src/graphql/ && prettier src/graphql/*.graphql --write",
-    "graphql:update": "npm-run-all graphql:updateV1 graphql:updateV2",
+    "graphql:update": "npm run turbo -- run graphql:refresh",
     "graphql:updateV1": "curl https://raw.githubusercontent.com/opencollective/opencollective-frontend/main/lib/graphql/schema.graphql --output src/graphql/schema.graphql && prettier src/graphql/schema.graphql --write",
     "graphql:updateV2": "curl https://raw.githubusercontent.com/opencollective/opencollective-frontend/main/lib/graphql/schemaV2.graphql --output src/graphql/schemaV2.graphql && prettier src/graphql/schemaV2.graphql --write",
     "prepare": "husky",
-    "depcheck": "npx depcheck"
+    "depcheck": "npx depcheck",
+    "format:check": "npm run prettier:check",
+    "format": "npm run prettier:write",
+    "build:compile": "npm run build:server",
+    "build:finalize": "node -e \"\"",
+    "graphql:refresh": "node -e \"\"",
+    "graphql:sync:local": "node scripts/sync-local-schemas.cjs",
+    "dev:environment": "npm run dev -- \"$OC_DEV_ENV_IMAGES\"",
+    "start:built": "NODE_ENV=production node dist/server",
+    "turbo": "turbo --single-package --root-turbo-json=turbo.standalone.json",
+    "graphql:sync:after-frontend": "npm run graphql:sync:local",
+    "test:file": "TZ=UTC jest",
+    "test:file:watch": "TZ=UTC jest --watch",
+    "pretest": "if [ -z \"$TURBO_HASH\" ]; then npm run turbo -- run lint:quiet prettier:check; fi"
   },
   "devDependencies": {
     "@babel/cli": "^8.0.0",
@@ -85,10 +97,10 @@
     "jest": "^30.0.0",
     "lint-staged": "^17.0.0",
     "nodemon": "^3.0.1",
-    "npm-run-all2": "^9.0.0",
     "prettier": "^3.1.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.30.1"
+    "typescript-eslint": "^8.30.1",
+    "turbo": "2.11.7"
   },
   "config": {
     "commitizen": {
@@ -104,5 +116,6 @@
     "*.js": [
       "prettier --write"
     ]
-  }
+  },
+  "packageManager": "npm@11.19.0"
 }
