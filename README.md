@@ -80,3 +80,15 @@ npm run deploy:production
 ```
 
 - URL: https://images.opencollective.com/
+
+### Turborepo tasks
+
+Use the usual npm commands: `npm run build`, `npm run lint`, `npm test`,
+and `npm run format:check`. They run through Turbo by default. Development and watch commands remain uncached; checks and
+compilation use the declared cache inputs and dependency graph.
+
+Run individual image tests with `npm run test:file -- path/to/test`.
+Internal `:task` scripts contain the underlying commands and are scheduled directly
+by the parent workspace to avoid invoking Turbo recursively. For advanced Turbo
+options, use `npm run turbo -- run lint:task --dry=json`. Standalone installs
+keep this repository's own lockfile.

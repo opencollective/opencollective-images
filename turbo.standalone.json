@@ -7,14 +7,10 @@
       "persistent": true,
       "dependsOn": ["build:finalize"]
     },
-    "dev": {
+    "dev:task": {
       "cache": false,
       "passThroughEnv": ["*"],
       "persistent": true
-    },
-    "build": {
-      "cache": false,
-      "passThroughEnv": ["*"]
     },
     "build:clean": {
       "cache": false,
@@ -24,21 +20,21 @@
       "cache": false,
       "passThroughEnv": ["*"]
     },
-    "test": {
+    "test:task": {
       "cache": false,
       "passThroughEnv": ["*"],
-      "dependsOn": ["lint:quiet", "prettier:check"]
+      "dependsOn": ["lint:quiet:task", "prettier:check:task"]
     },
-    "test:watch": {
+    "test:watch:task": {
       "cache": false,
       "passThroughEnv": ["*"],
       "persistent": true
     },
-    "test:server": {
+    "test:server:task": {
       "cache": false,
       "passThroughEnv": ["*"]
     },
-    "lint": {
+    "lint:task": {
       "inputs": [
         "$TURBO_DEFAULT$",
         "package-lock.json",
@@ -60,11 +56,11 @@
       "outputs": [],
       "cache": true
     },
-    "lint:fix": {
+    "lint:fix:task": {
       "cache": false,
       "passThroughEnv": ["*"]
     },
-    "lint:quiet": {
+    "lint:quiet:task": {
       "inputs": [
         "$TURBO_DEFAULT$",
         "package-lock.json",
@@ -86,7 +82,7 @@
       "outputs": [],
       "cache": true
     },
-    "prettier:check": {
+    "prettier:check:task": {
       "inputs": [
         "$TURBO_DEFAULT$",
         "package-lock.json",
@@ -107,10 +103,6 @@
       "env": ["CI", "NODE_ENV", "OC_ENV", "TZ", "NODE_OPTIONS", "OC_LOCKFILE_HASH_IMAGES"],
       "outputs": [],
       "cache": true
-    },
-    "graphql:update": {
-      "cache": false,
-      "passThroughEnv": ["*"]
     },
     "graphql:updateV1": {
       "cache": false,
@@ -120,11 +112,11 @@
       "cache": false,
       "passThroughEnv": ["*"]
     },
-    "depcheck": {
+    "depcheck:task": {
       "cache": false,
       "passThroughEnv": ["*"]
     },
-    "format:check": {
+    "format:check:task": {
       "inputs": [
         "$TURBO_DEFAULT$",
         "package-lock.json",
@@ -146,7 +138,7 @@
       "outputs": [],
       "cache": true
     },
-    "format": {
+    "format:task": {
       "cache": false,
       "passThroughEnv": ["*"]
     },
@@ -192,6 +184,23 @@
       "cache": false,
       "persistent": true,
       "passThroughEnv": ["*"]
+    },
+    "test:file:task": {
+      "cache": false,
+      "passThroughEnv": ["*"]
+    },
+    "prettier:write:task": {
+      "cache": false,
+      "passThroughEnv": ["*"]
+    },
+    "prettier:task": {
+      "cache": false,
+      "passThroughEnv": ["*"]
+    },
+    "test:file:watch:task": {
+      "cache": false,
+      "passThroughEnv": ["*"],
+      "persistent": true
     }
   },
   "agentGuidance": false,
