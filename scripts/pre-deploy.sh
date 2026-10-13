@@ -76,8 +76,13 @@ function exit_if_push_is_noop()
 {
   # A push only creates a release when it moves the Heroku git ref. After a rollback the ref can
   # already point to origin/main while an older release runs: the push would then deploy nothing.
-  local heroku_head
-  heroku_head=$(git ls-remote $DEPLOY_ORIGIN_URL "refs/heads/$PRE_DEPLOY_BRANCH" | cut -f1)
+  local heroku_ref heroku_head
+  # Checked on its own: through a pipe, a failed lookup would read as "no ref" and the deploy would go on
+  if ! heroku_ref=$(git ls-remote $DEPLOY_ORIGIN_URL "refs/heads/$PRE_DEPLOY_BRANCH"); then
+    echo "❌  Could not read the Heroku git remote of $HEROKU_APP."
+    exit 1
+  fi
+  heroku_head=$(cut -f1 <<< "$heroku_ref")
   if [ "$heroku_head" == "$(git rev-parse $LOCAL_ORIGIN/$LOCAL_BRANCH)" ]; then
     echo "❌  The Heroku git remote already points to $LOCAL_ORIGIN/$LOCAL_BRANCH, so pushing would not create a release (was the app rolled back?)."
     echo "   Roll forward from the Heroku dashboard or with \`heroku releases:rollback <version> -a $HEROKU_APP\` (this also restores that release's config vars)."
