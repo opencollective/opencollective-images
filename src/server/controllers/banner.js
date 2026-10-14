@@ -11,7 +11,7 @@ const debugBanner = debug('banner');
 
 const oneDayInSeconds = 60 * 60 * 24;
 
-export default async function banner(req, res) {
+export default async function banner(req, res, next) {
   const { collectiveSlug, tierSlug, backerType } = req.params;
   const limit = Number(req.query.limit) || Infinity;
   const width = Number(req.query.width) || 0;
@@ -78,5 +78,6 @@ export default async function banner(req, res) {
     })
     .catch((e) => {
       logger.error('>>> collectives.banner error', e);
+      return next(e);
     });
 }

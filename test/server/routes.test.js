@@ -19,9 +19,11 @@ jest.mock('../../src/server/controllers', () => {
   };
 });
 
-let server, baseUrl;
+let server, baseUrl, savedDebugSentryKey;
 
 beforeAll(async () => {
+  savedDebugSentryKey = process.env.DEBUG_SENTRY_KEY;
+  process.env.DEBUG_SENTRY_KEY = 'shared-secret';
   const app = express();
   loadRoutes(app);
   app.use((req, res) => res.status(404).json({ controller: null }));
@@ -31,7 +33,14 @@ beforeAll(async () => {
   baseUrl = `http://127.0.0.1:${server.address().port}`;
 });
 
-afterAll(() => server.close());
+afterAll(() => {
+  if (savedDebugSentryKey === undefined) {
+    delete process.env.DEBUG_SENTRY_KEY;
+  } else {
+    process.env.DEBUG_SENTRY_KEY = savedDebugSentryKey;
+  }
+  return server.close();
+});
 
 const route = async (path) => (await fetch(`${baseUrl}${path}`)).json();
 
@@ -120,5 +129,13 @@ describe('routes.test.js', () => {
     ],
   ])('%s', async (path, expected) => {
     expect(await route(path)).toEqual(expected);
+  });
+
+  test('requires the configured key to trigger the Sentry debug error', async () => {
+    const notFound = await fetch(`${baseUrl}/debug-sentry?key=wrong-secret`);
+    expect(notFound.status).toBe(404);
+
+    const triggered = await fetch(`${baseUrl}/debug-sentry?key=shared-secret`);
+    expect(triggered.status).toBe(500);
   });
 });

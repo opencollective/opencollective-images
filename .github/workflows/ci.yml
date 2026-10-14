@@ -28,6 +28,9 @@ env:
   IMAGES_FOLDER: /home/runner/work/opencollective-images/opencollective-images
   PG_DATABASE: opencollective_dvl
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest
