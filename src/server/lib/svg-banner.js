@@ -61,6 +61,8 @@ export function generateSvgBanner(usersList, options) {
   }
 
   if (options.buttonImage) {
+    // Drop the members past the limit so the button lines up with its image request
+    users.splice(count);
     users.push({
       slug: collectiveSlug,
       website: `${WEBSITE_URL}/${collectiveSlug}#support`,
