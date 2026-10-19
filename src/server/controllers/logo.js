@@ -14,6 +14,7 @@ import { normalizeSize } from '../lib/image-size';
 import { isRemoteImageUrl, resolveBundledImagePath } from '../lib/static-image';
 import { getUiAvatarUrl } from '../lib/utils';
 import { logger } from '../logger';
+import { sendUpstreamErrorStatus } from '../middlewares';
 
 const white = 'white';
 
@@ -154,7 +155,7 @@ export default async function logo(req, res) {
             } else {
               logger.error(`logo: error processing ${imageUrl} (status=${response.status} ${response.statusText})`);
             }
-            return res.status(response.status).send(response.statusText);
+            return sendUpstreamErrorStatus(res, response.status);
           }
           image = await response.buffer();
           if (image.byteLength === 0) {
@@ -205,6 +206,7 @@ export default async function logo(req, res) {
         res.set('Content-Type', mime.lookup(format)).send(finalImageBuffer);
       } catch (err) {
         logger.error(`logo: error processing ${imageUrl} (${err.message})`);
+        res.set('Cache-Control', 'no-store');
         return res.status(500).send('Internal Server Error');
       }
 

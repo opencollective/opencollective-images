@@ -7,6 +7,7 @@ import express from 'express';
 
 import * as hyperwatch from './lib/hyperwatch';
 import { logger, loggerMiddleware } from './logger';
+import { securityHeaders } from './middlewares';
 import { loadRoutes } from './routes';
 
 const port = process.env.PORT;
@@ -14,9 +15,12 @@ const port = process.env.PORT;
 const app = express();
 const server = http.createServer(app);
 
-app.use('/static', express.static(path.join(__dirname, '..', 'static')));
+app.use('/static', securityHeaders, express.static(path.join(__dirname, '..', 'static')));
 
 hyperwatch.load(app, { server });
+
+// Registered after Hyperwatch, whose status page relies on inline scripts
+app.use(securityHeaders);
 
 loadRoutes(app);
 
