@@ -11,6 +11,7 @@ import { normalizeSize } from '../lib/image-size';
 import { imageRequest } from '../lib/request';
 import { parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
 import { logger } from '../logger';
+import { sendUpstreamErrorStatus } from '../middlewares';
 
 const debugAvatar = debug('avatar');
 
@@ -51,7 +52,7 @@ const imageAsSvg = (buffer, { maxHeight, imageHeight, imageWidth, selector, imag
 const proxyImage = async (req, res, imageUrl, { imageFormat }) => {
   const response = await imageRequest(imageUrl);
   if (response.statusCode !== 200) {
-    return res.status(response.statusCode).send(response.statusMessage);
+    return sendUpstreamErrorStatus(res, response.statusCode);
   }
   const image = response.body;
   if (image.byteLength === 0) {
@@ -159,7 +160,7 @@ export default async function avatar(req, res) {
       if (format === 'svg') {
         const response = await imageRequest(imageUrl);
         if (response.statusCode !== 200) {
-          return res.status(response.statusCode).send(response.statusMessage);
+          return sendUpstreamErrorStatus(res, response.statusCode);
         }
         const image = response.body;
         if (image.byteLength === 0) {
@@ -171,6 +172,7 @@ export default async function avatar(req, res) {
       }
     } catch (err) {
       logger.error(`avatar: unable to serve ${imageUrl} for ${user.slug}: ${err.message}`);
+      res.set('Cache-Control', 'no-store');
       return res.status(400).send('Unable to fetch image.');
     }
   }
@@ -182,7 +184,7 @@ export default async function avatar(req, res) {
     if (format === 'svg') {
       const response = await imageRequest(imageUrl);
       if (response.statusCode !== 200) {
-        return res.status(response.statusCode).send(response.statusMessage);
+        return sendUpstreamErrorStatus(res, response.statusCode);
       }
       const image = response.body;
       if (image.byteLength === 0) {
@@ -196,6 +198,7 @@ export default async function avatar(req, res) {
     }
   } catch (err) {
     logger.error(`avatar: unable to serve ${imageUrl} for ${user.slug}: ${err.message}`);
+    res.set('Cache-Control', 'no-store');
     return res.status(400).send('Unable to fetch image.');
   }
 }

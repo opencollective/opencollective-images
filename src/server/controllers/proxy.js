@@ -12,6 +12,7 @@ import {
 } from '../lib/constants';
 import { parseToBooleanDefaultFalse } from '../lib/utils';
 import { logger } from '../logger';
+import { sendUpstreamErrorStatus } from '../middlewares';
 
 const debugProxy = debug('proxy');
 
@@ -97,12 +98,7 @@ async function handleProxy(req, res) {
     } else {
       logger.error(`proxy: error processing ${imageUrl} (status=${response.status} ${response.statusText})`);
     }
-    // Server errors, timeouts and rate limits are transient: never cache them
-    if (response.status >= 500 || response.status === 408 || response.status === 429) {
-      res.set('Cache-Control', 'no-store');
-    }
-    // The upstream status text is attacker-controlled: never reflect it (Express sends strings as HTML)
-    return res.sendStatus(response.status);
+    return sendUpstreamErrorStatus(res, response.status);
   }
 
   let image;
