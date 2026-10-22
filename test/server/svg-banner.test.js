@@ -24,6 +24,7 @@ const getLinks = (svg) =>
 
 describe('svg-banner', () => {
   beforeEach(() => {
+    imageRequest.mockClear();
     imageRequest.mockResolvedValue({ statusCode: 200, headers: { 'content-type': 'image/png' }, body: png });
   });
 
@@ -49,5 +50,38 @@ describe('svg-banner', () => {
     });
 
     expect(getLinks(svg).map(({ id }) => id)).toEqual(['alice', 'bob', 'carol', 'test-collective']);
+  });
+
+  test.each([
+    ['fractional', 1.5, ['alice', 'test-collective']],
+    ['negative', -1, ['test-collective']],
+    ['zero', 0, ['test-collective']],
+    ['larger than the number of members', 10, ['alice', 'bob', 'carol', 'test-collective']],
+  ])('links the button to the collective with a %s limit', async (_, limit, expectedIds) => {
+    const svg = await generateSvgBanner(users, {
+      limit,
+      buttonImage: 'https://images.example/static/images/become_backer.svg',
+      collectiveSlug: 'test-collective',
+    });
+
+    const links = getLinks(svg);
+    expect(links.map(({ id }) => id)).toEqual(expectedIds);
+    expect(links.at(-1).href).toMatch(/\/test-collective#support$/);
+    // one image request per member drawn, plus the button
+    expect(imageRequest).toHaveBeenCalledTimes(expectedIds.length);
+  });
+
+  test('sizes the avatars by the number of members drawn, not the number of members', async () => {
+    const manyUsers = Array.from({ length: 200 }, (_, i) => ({
+      slug: `user-${i}`,
+      type: 'USER',
+      name: `User ${i}`,
+      website: `https://user-${i}.example`,
+    }));
+
+    const svg = await generateSvgBanner(manyUsers, { limit: 10 });
+
+    expect(getLinks(svg)).toHaveLength(10);
+    expect(svg).toMatch(/<image x="5" y="5" width="\d+" height="64"/);
   });
 });
