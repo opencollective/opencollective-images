@@ -5,10 +5,17 @@ import globals from 'globals';
 export default [
   ...nodeConfig,
   {
-    files: ['**/*.js'],
+    files: ['**/*.{js,ts}'],
 
     // Lint GraphQL queries embedded in `gql` / `gqlV1` tags against the schemas (see graphql.config.js)
     processor: graphqlPlugin.processor,
+
+    settings: {
+      'import/resolver': {
+        typescript: true,
+        node: true,
+      },
+    },
   },
   {
     rules: {
@@ -16,9 +23,23 @@ export default [
     },
   },
   {
-    files: ['test/**/*.js'],
+    files: ['**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-namespace': ['error', { allowDeclarations: true }],
+      '@typescript-eslint/no-unused-vars': ['error', { caughtErrors: 'none' }],
+    },
+  },
+  {
+    files: ['test/**/*.{js,ts}'],
     languageOptions: {
       globals: globals.jest,
+    },
+    rules: {
+      // Tests dynamically require modules to control their state between cases
+      '@typescript-eslint/no-require-imports': 'off',
+      // Tests require the converted modules by their extensionless path
+      'n/no-missing-require': ['error', { tryExtensions: ['.js', '.ts', '.json', '.node'] }],
     },
   },
   {
