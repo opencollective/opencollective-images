@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 import debug from 'debug';
+import type { Request, Response } from 'express';
 import sizeOf from 'image-size';
 import mime from 'mime-types';
 
@@ -13,22 +14,52 @@ import { parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/ut
 import { logger } from '../logger';
 import { sendUpstreamErrorStatus } from '../middlewares';
 
+type AvatarParams = Record<string, string> & {
+  collectiveSlug: string;
+  backerType?: string;
+  tierSlug?: string;
+  position?: string;
+  format?: string;
+  hash?: string;
+  isActive?: boolean;
+};
+
+type AvatarQuery = {
+  isActive?: string;
+  avatarHeight?: string;
+};
+
+type AvatarRequest = Request<AvatarParams, unknown, unknown, AvatarQuery>;
+
+interface ImageAsSvgOptions {
+  maxHeight?: number;
+  imageHeight?: number;
+  imageWidth?: number;
+  selector: string;
+  // TODO(finding A): callers pass `imageFormat`, but this destructures it as `imageformat` (always undefined)
+  imageFormat?: string;
+  imageformat?: string;
+}
+
 const debugAvatar = debug('avatar');
 
 const imagesUrl = process.env.IMAGES_URL;
 
-const getSvg = (svgPath) => fs.readFileSync(path.join(__dirname, svgPath), { encoding: 'utf8' });
+const getSvg = (svgPath: string): string => fs.readFileSync(path.join(__dirname, svgPath), { encoding: 'utf8' });
 
 const anonymousSvg = getSvg('../../static/images/default-anonymous-logo.svg');
 const guestSvg = getSvg('../../static/images/default-guest-logo.svg');
 
-const sendSvg = (res, svg) => {
+const sendSvg = (res: Response, svg: string): Response => {
   res.setHeader('Cache-Control', 'public, max-age=7200');
   res.setHeader('Content-Type', 'image/svg+xml;charset=utf-8');
   return res.send(svg);
 };
 
-const imageAsSvg = (buffer, { maxHeight, imageHeight, imageWidth, selector, imageformat }) => {
+const imageAsSvg = (
+  buffer: Buffer,
+  { maxHeight, imageHeight, imageWidth, selector, imageformat }: ImageAsSvgOptions,
+): string => {
   const contentType = mime.lookup(imageformat);
 
   imageHeight = imageHeight ?? Math.round(maxHeight / 2);
@@ -49,7 +80,12 @@ const imageAsSvg = (buffer, { maxHeight, imageHeight, imageWidth, selector, imag
       </svg>`;
 };
 
-const proxyImage = async (req, res, imageUrl, { imageFormat }) => {
+const proxyImage = async (
+  req: AvatarRequest,
+  res: Response,
+  imageUrl: string,
+  { imageFormat }: { imageFormat: string },
+): Promise<Response> => {
   const response = await imageRequest(imageUrl);
   if (response.statusCode !== 200) {
     return sendUpstreamErrorStatus(res, response.statusCode);
@@ -60,12 +96,12 @@ const proxyImage = async (req, res, imageUrl, { imageFormat }) => {
   }
 
   res.setHeader('Cache-Control', 'public, max-age=7200');
-  res.setHeader('Content-Type', mime.lookup(imageFormat));
+  res.setHeader('Content-Type', mime.lookup(imageFormat) as string);
 
   return res.send(image);
 };
 
-export default async function avatar(req, res) {
+export default async function avatar(req: AvatarRequest, res: Response): Promise<Response | void> {
   if (req.params.backerType && req.params.backerType === 'contributors') {
     return res.status(404).send('Not found');
   }

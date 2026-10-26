@@ -1,4 +1,5 @@
 import debug from 'debug';
+import type { Request, Response } from 'express';
 import mime from 'mime-types';
 import fetch from 'node-fetch';
 import { useAgent } from 'request-filtering-agent';
@@ -13,6 +14,14 @@ import {
 import { parseToBooleanDefaultFalse } from '../lib/utils';
 import { logger } from '../logger';
 import { sendUpstreamErrorStatus } from '../middlewares';
+
+type ProxyQuery = {
+  src?: string;
+  width?: string | string[];
+  height?: string | string[];
+};
+
+type ProxyRequest = Request<Record<string, string>, unknown, unknown, ProxyQuery>;
 
 const debugProxy = debug('proxy');
 
@@ -30,7 +39,7 @@ const allowPrivateIPAddress =
 
 // Express turns a repeated query parameter into an array, and coercing that can
 // throw, so we only ever look at scalars
-function parseDimension(value) {
+function parseDimension(value: unknown): number | undefined {
   if (typeof value !== 'string' && typeof value !== 'number') {
     return undefined;
   }
@@ -43,16 +52,16 @@ function parseDimension(value) {
 
 // A blocked address (request-filtering-agent) or an oversized download is the source's fault: a
 // cacheable 400. Anything else (timeout, reset, DNS failure) is transient and must not be cached.
-function isInvalidSourceError(err) {
+function isInvalidSourceError(err: { type?: string; message?: string }): boolean {
   return err.type === 'max-size' || /is not allowed/.test(err.message);
 }
 
-function sendUpstreamFailure(res, err) {
+function sendUpstreamFailure(res: Response, err: { type?: string }): Response {
   res.set('Cache-Control', 'no-store');
   return res.sendStatus(err.type === 'request-timeout' || err.type === 'body-timeout' ? 504 : 502);
 }
 
-async function handleProxy(req, res) {
+async function handleProxy(req: ProxyRequest, res: Response): Promise<Response | void> {
   const { src: imageUrl, width, height } = req.query;
 
   let parsedUrl;
@@ -77,7 +86,7 @@ async function handleProxy(req, res) {
   try {
     response = await fetch(imageUrl, {
       // "request-filtering-agent" rejects private and loopback addresses
-      agent: (url) => useAgent(url.href, { allowPrivateIPAddress, allowMetaIPAddress: false }),
+      agent: (url: URL) => useAgent(url.href, { allowPrivateIPAddress, allowMetaIPAddress: false }),
       timeout: PROXY_FETCH_TIMEOUT,
       size: MAX_PROXY_IMAGE_BYTES,
       signal: controller.signal,
@@ -139,14 +148,14 @@ async function handleProxy(req, res) {
       .toFormat(format)
       .toBuffer();
 
-    res.set('Content-Type', mime.lookup(format)).send(finalImageBuffer);
+    res.set('Content-Type', mime.lookup(format) as string).send(finalImageBuffer);
   } catch (err) {
     logger.error(`proxy: error processing ${imageUrl} (${err.message})`);
     return res.status(400).send('Invalid Image');
   }
 }
 
-export default async function proxy(req, res) {
+export default async function proxy(req: ProxyRequest, res: Response): Promise<void> {
   // Unexpected errors are answered here, logged as proxy errors, and a response
   // that is already being sent is left alone
   try {

@@ -3,6 +3,7 @@ import './env';
 import http from 'http';
 import path from 'path';
 
+import type { Application } from 'express';
 import express from 'express';
 
 import * as hyperwatch from './lib/hyperwatch';
@@ -12,7 +13,7 @@ import { loadRoutes } from './routes';
 
 const port = process.env.PORT;
 
-const app = express();
+const app: Application = express();
 const server = http.createServer(app);
 
 app.use('/static', securityHeaders, express.static(path.join(__dirname, '..', 'static')));

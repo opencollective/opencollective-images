@@ -1,14 +1,29 @@
+import type { Request, Response } from 'express';
 import fetch from 'node-fetch';
 
 import { fetchMembersStatsWithCache } from '../lib/graphql';
 import { logger } from '../logger';
 
-const fetchText = (path) => fetch(path).then((response) => response.text());
+const fetchText = (path: string): Promise<string> => fetch(path).then((response) => response.text());
+
+type BadgeParams = Record<string, string> & {
+  collectiveSlug: string;
+  backerType?: string;
+  tierSlug?: string;
+};
+
+type BadgeQuery = {
+  color?: string;
+  style?: string;
+  label?: string;
+};
+
+type BadgeRequest = Request<BadgeParams, unknown, unknown, BadgeQuery>;
 
 /**
  * Generates a github badge for a backerType (backers|sponsors) or for a tierSlug
  */
-export default async function badge(req, res) {
+export default async function badge(req: BadgeRequest, res: Response): Promise<Response> {
   try {
     const color = req.query.color || 'brightgreen';
     const style = req.query.style || 'flat';

@@ -1,9 +1,25 @@
 import { URL } from 'url';
 
+import type { Request, Response } from 'express';
+
 import { fetchMembersWithCache } from '../lib/graphql';
 import { getWebsite, parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
 
-export default async function website(req, res) {
+type WebsiteParams = Record<string, string> & {
+  collectiveSlug: string;
+  backerType?: string;
+  tierSlug?: string;
+  position?: string;
+  isActive?: boolean;
+};
+
+type WebsiteQuery = {
+  isActive?: string;
+};
+
+type WebsiteRequest = Request<WebsiteParams, unknown, unknown, WebsiteQuery>;
+
+export default async function website(req: WebsiteRequest, res: Response): Promise<Response> {
   if (req.params.backerType && req.params.backerType === 'contributors') {
     return res.status(404).send('Not found');
   }

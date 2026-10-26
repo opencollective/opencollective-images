@@ -1,9 +1,30 @@
 import debug from 'debug';
+import type { Request, Response } from 'express';
 
 import { fetchMembersWithCache } from '../lib/graphql';
 import { generateSvgBanner } from '../lib/svg-banner';
 import { parseToBooleanDefaultFalse, parseToBooleanDefaultTrue, randomInteger } from '../lib/utils';
 import { logger } from '../logger';
+
+type BannerParams = Record<string, string> & {
+  collectiveSlug: string;
+  tierSlug?: string;
+  backerType?: string;
+  isActive?: boolean;
+};
+
+type BannerQuery = {
+  limit?: string;
+  width?: string;
+  height?: string;
+  avatarHeight?: string;
+  margin?: string;
+  button?: string;
+  includeAnonymous?: string;
+  isActive?: string;
+};
+
+type BannerRequest = Request<BannerParams, unknown, unknown, BannerQuery>;
 
 const imagesUrl = process.env.IMAGES_URL;
 
@@ -11,7 +32,7 @@ const debugBanner = debug('banner');
 
 const oneDayInSeconds = 60 * 60 * 24;
 
-export default async function banner(req, res) {
+export default async function banner(req: BannerRequest, res: Response): Promise<Response | void> {
   const { collectiveSlug, tierSlug, backerType } = req.params;
   const limit = Number(req.query.limit) || Infinity;
   const width = Number(req.query.width) || 0;
