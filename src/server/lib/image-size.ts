@@ -3,11 +3,10 @@ import { isNil } from 'lodash';
 /**
  * Normalize the size to 8, 16, 32, 64, 128, etc. up to maxSize
  *
- * @param {number} size
- * @param {number} maxSize
- * @returns {number}
+ * @param size
+ * @param maxSize
  */
-export const normalizeSize = (size, maxSize) => {
+export const normalizeSize = (size: number, maxSize: number): number => {
   if (isNil(size)) {
     return size;
   } else if (size > maxSize) {

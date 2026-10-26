@@ -1,18 +1,21 @@
 import debug from 'debug';
+import type { RedisClientType } from 'redis';
 import { createClient } from 'redis';
 
 import { logger } from '../../logger';
 
-let redisClient;
+import type { CacheGetOptions, CacheProvider, CacheSetOptions } from './provider';
 
-async function createRedisClient() {
+let redisClient: RedisClientType | null = null;
+
+async function createRedisClient(): Promise<RedisClientType | null> {
   if (!redisClient) {
     const url = process.env.REDIS_URL;
     if (!url) {
-      return;
+      return null;
     }
 
-    const redisOptions = { url };
+    const redisOptions: { url: string; socket?: { tls: true; rejectUnauthorized: boolean } } = { url };
     if (redisOptions.url.includes('rediss://')) {
       redisOptions['socket'] = { tls: true, rejectUnauthorized: false };
     }
@@ -35,7 +38,7 @@ async function createRedisClient() {
   return redisClient;
 }
 
-const makeRedisProvider = async () => {
+const makeRedisProvider = async (): Promise<CacheProvider> => {
   const debugCache = debug('cache');
 
   const redisClient = await createRedisClient();
@@ -45,9 +48,10 @@ const makeRedisProvider = async () => {
 
   return {
     clear: async () => redisClient?.flushAll(),
-    delete: async (key) => redisClient?.del(key),
-    get: async (key, { unserialize = JSON.parse } = {}) => {
-      const value = await redisClient?.get(key);
+    delete: async (key: string) => redisClient?.del(key),
+    get: async (key: string, { unserialize = JSON.parse }: CacheGetOptions = {}) => {
+      // Redis RESP3 replies are typed as `{}` without a type mapping: the client always returns the string we set
+      const value = (await redisClient?.get(key)) as string | null;
       if (value) {
         try {
           return unserialize(value);
@@ -58,11 +62,16 @@ const makeRedisProvider = async () => {
         return undefined;
       }
     },
-    has: async (key) => {
+    has: async (key: string) => {
       const value = await redisClient?.get(key);
       return value !== null;
     },
-    set: async (key, value, expirationInSeconds, { serialize = JSON.stringify } = {}) => {
+    set: async (
+      key: string,
+      value: unknown,
+      expirationInSeconds: number,
+      { serialize = JSON.stringify }: CacheSetOptions = {},
+    ) => {
       if (value !== undefined) {
         if (expirationInSeconds) {
           return redisClient?.set(key, serialize(value), { EX: expirationInSeconds });
