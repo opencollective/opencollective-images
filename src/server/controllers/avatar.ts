@@ -36,9 +36,7 @@ interface ImageAsSvgOptions {
   imageHeight?: number;
   imageWidth?: number;
   selector: string;
-  // TODO(finding A): callers pass `imageFormat`, but this destructures it as `imageformat` (always undefined)
   imageFormat?: string;
-  imageformat?: string;
 }
 
 const debugAvatar = debug('avatar');
@@ -58,9 +56,9 @@ const sendSvg = (res: Response, svg: string): Response => {
 
 const imageAsSvg = (
   buffer: Buffer,
-  { maxHeight, imageHeight, imageWidth, selector, imageformat }: ImageAsSvgOptions,
+  { maxHeight, imageHeight, imageWidth, selector, imageFormat }: ImageAsSvgOptions,
 ): string => {
-  const contentType = mime.lookup(imageformat);
+  const contentType = mime.lookup(imageFormat);
 
   imageHeight = imageHeight ?? Math.round(maxHeight / 2);
   imageWidth = imageWidth ?? 64;
