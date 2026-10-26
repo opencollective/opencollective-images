@@ -2,13 +2,23 @@ import http from 'http';
 import https from 'https';
 
 import { pick } from 'lodash';
+import type { Response as NodeFetchResponse } from 'node-fetch';
 import nodeFetch from 'node-fetch';
 
 import { parseToBooleanDefaultTrue } from './utils';
 
-let customAgent;
+interface FetchInit {
+  agent?: http.Agent | ((parsedURL: URL) => http.Agent);
+  body?: string;
+  headers?: Record<string, string>;
+}
 
-const getCustomAgent = () => {
+// node-fetch implements the fetch API at runtime; Apollo's HttpLink is typed against the DOM one
+const asFetchResponse = (response: NodeFetchResponse | Response): Response => response as Response;
+
+let customAgent: ((parsedURL: URL) => http.Agent | https.Agent) | undefined;
+
+const getCustomAgent = (): ((parsedURL: URL) => http.Agent | https.Agent) | undefined => {
   if (!customAgent) {
     const { FETCH_AGENT_KEEP_ALIVE, FETCH_AGENT_KEEP_ALIVE_MSECS } = process.env;
     const keepAlive = FETCH_AGENT_KEEP_ALIVE !== undefined ? parseToBooleanDefaultTrue(FETCH_AGENT_KEEP_ALIVE) : true;
@@ -20,7 +30,7 @@ const getCustomAgent = () => {
   return customAgent;
 };
 
-function isInternalApiUrl(url) {
+function isInternalApiUrl(url: string | URL): boolean {
   const apiUrl = process.env.API_URL;
   const href = typeof url === 'string' ? url : url instanceof URL ? url.href : null;
   if (!apiUrl || !href) {
@@ -38,7 +48,7 @@ function isInternalApiUrl(url) {
  * Fetch for user-controlled URLs (images, proxied assets): keep-alive agent and user-agent only.
  * Never attaches the internal service headers and skips the GraphQL benchmarking.
  */
-export async function fetchExternal(url, options = {}) {
+export async function fetchExternal(url: string, options: FetchInit = {}): Promise<NodeFetchResponse> {
   return nodeFetch(url, {
     ...options,
     agent: getCustomAgent(),
@@ -46,7 +56,7 @@ export async function fetchExternal(url, options = {}) {
   });
 }
 
-async function fetch(url, options = {}) {
+async function fetch(url: string, options: FetchInit = {}): Promise<Response> {
   options.agent = getCustomAgent();
 
   // Internal service headers identify this app to the API. They must not be sent anywhere else.
@@ -94,7 +104,7 @@ async function fetch(url, options = {}) {
     }
   }
 
-  return result;
+  return asFetchResponse(result);
 }
 
 export default fetch;

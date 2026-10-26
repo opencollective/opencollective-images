@@ -15,7 +15,7 @@ module.exports = {
     graphqlV1: {
       schema: 'src/graphql/schema.graphql',
       // Files that only use `gqlV1`; everything else is checked against the V2 schema
-      documents: ['src/server/lib/graphql.js'],
+      documents: ['src/server/lib/graphql.ts'],
       extensions: {
         endpoints: {
           dev: 'http://localhost:3060/graphql/v1',

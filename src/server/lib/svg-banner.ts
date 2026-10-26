@@ -7,11 +7,32 @@ import { logger } from '../logger';
 import { imageRequest } from './request';
 import { getWebsite } from './utils';
 
+interface SvgBannerUser {
+  slug?: string;
+  name?: string;
+  type?: string;
+  image?: string;
+  website?: string;
+  twitterHandle?: string;
+  requestImageUrl?: string;
+}
+
+interface SvgBannerOptions {
+  limit: number;
+  collectiveSlug: string;
+  width: number;
+  height: number;
+  avatarHeight?: string | number;
+  margin?: string | number;
+  buttonImage?: string;
+  includeAnonymous?: boolean;
+}
+
 const WEBSITE_URL = process.env.WEBSITE_URL;
 
-const svgBannerRequestLimit = pLimit(process.env.SVG_BANNER_REQUEST_CONCURRENCY || 20);
+const svgBannerRequestLimit = pLimit(Number(process.env.SVG_BANNER_REQUEST_CONCURRENCY) || 20);
 
-const getImageUrlForUser = (user, height, options) => {
+const getImageUrlForUser = (user: SvgBannerUser, height: number, options: SvgBannerOptions): string => {
   if (!user.image && (!user.name || user.name === 'anonymous') && !options.includeAnonymous) {
     return null;
   }
@@ -23,7 +44,7 @@ const getImageUrlForUser = (user, height, options) => {
   return `${process.env.IMAGES_URL}/${user.slug}/avatar/rounded/${height}.png`;
 };
 
-export function generateSvgBanner(usersList, options) {
+export function generateSvgBanner(usersList: SvgBannerUser[], options: SvgBannerOptions): Promise<string | void> {
   // usersList might come from LRU-cache and we don't want to modify it
   const users = cloneDeep(usersList);
 
@@ -47,7 +68,7 @@ export function generateSvgBanner(usersList, options) {
   const avatarHeight = Number(options.avatarHeight) || defaultAvatarHeight;
   const margin = Number(options.margin) || defaultMargin;
 
-  const promises = [];
+  const promises: Array<Promise<Awaited<ReturnType<typeof imageRequest>> | void>> = [];
   for (let i = 0; i < count; i++) {
     const user = users[i];
 

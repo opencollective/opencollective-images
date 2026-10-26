@@ -8,12 +8,24 @@ import { isRemoteImageUrl } from './static-image';
 const CACHE_DIR = '/tmp/cached-requests';
 const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
 
-const getCachePath = (url) => {
+interface RequestResponse<TBody = Buffer | string> {
+  statusCode: number;
+  statusMessage: string;
+  headers: Record<string, string>;
+  body: TBody;
+}
+
+interface RequestOptions {
+  url: string;
+  encoding?: BufferEncoding | null;
+}
+
+const getCachePath = (url: string): string => {
   const hash = crypto.createHash('sha256').update(url).digest('hex');
   return path.join(CACHE_DIR, hash);
 };
 
-const readCache = async (url) => {
+const readCache = async (url: string): Promise<RequestResponse<Buffer> | null> => {
   try {
     const filePath = getCachePath(url);
     const stat = await fs.stat(filePath);
@@ -21,15 +33,14 @@ const readCache = async (url) => {
       await fs.unlink(filePath);
       return null;
     }
-    const cached = JSON.parse(await fs.readFile(filePath, 'utf8'));
-    cached.body = Buffer.from(cached.body, 'base64');
-    return cached;
+    const cached: RequestResponse<string> = JSON.parse(await fs.readFile(filePath, 'utf8'));
+    return { ...cached, body: Buffer.from(cached.body, 'base64') };
   } catch {
     return null;
   }
 };
 
-const writeCache = async (url, response, body) => {
+const writeCache = async (url: string, response: RequestResponse<Buffer | string>, body: Buffer): Promise<void> => {
   try {
     await fs.mkdir(CACHE_DIR, { recursive: true });
     const data = {
@@ -44,8 +55,18 @@ const writeCache = async (url, response, body) => {
   }
 };
 
-export const asyncRequest = async (requestOptions) => {
-  const { url, encoding } = typeof requestOptions === 'string' ? { url: requestOptions } : requestOptions;
+export function asyncRequest(
+  requestOptions: string | { url: string; encoding: null },
+): Promise<[RequestResponse<Buffer>, Buffer]>;
+export function asyncRequest(requestOptions: {
+  url: string;
+  encoding?: BufferEncoding;
+}): Promise<[RequestResponse<string>, string]>;
+export async function asyncRequest(
+  requestOptions: string | RequestOptions,
+): Promise<[RequestResponse<Buffer | string>, Buffer | string]> {
+  const { url, encoding }: RequestOptions =
+    typeof requestOptions === 'string' ? { url: requestOptions } : requestOptions;
 
   if (!isRemoteImageUrl(url)) {
     throw new TypeError('Image URL must be an absolute HTTP(S) URL');
@@ -75,14 +96,14 @@ export const asyncRequest = async (requestOptions) => {
 
   // Write successful responses to the file cache (like cached-request did, errors are never cached)
   if (process.env.ENABLE_CACHED_REQUEST && fetchResponse.ok) {
-    const bufferBody = encoding === null ? body : Buffer.from(body);
+    const bufferBody = Buffer.isBuffer(body) ? body : Buffer.from(body);
     await writeCache(url, response, bufferBody);
   }
 
   return [response, body];
-};
+}
 
-export const imageRequest = (url) =>
+export const imageRequest = (url: string): Promise<RequestResponse<Buffer>> =>
   asyncRequest({ url, encoding: null }).then(([response]) => {
     return response;
   });
