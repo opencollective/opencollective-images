@@ -1,10 +1,12 @@
+import type { Application } from 'express';
+
 import controllers from './controllers';
 import { maxAge } from './middlewares';
 
 const maxAgeOneDay = maxAge(24 * 60 * 60);
 const maxAgeTwoHours = maxAge(2 * 60 * 60);
 
-export const loadRoutes = (app) => {
+export const loadRoutes = (app: Application): void => {
   app.get('/', (req, res) => {
     res.send('This is the Open Collective images server.');
   });

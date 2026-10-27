@@ -3,9 +3,11 @@ import path from 'path';
 import { promisify } from 'util';
 
 import debug from 'debug';
+import type { Request, Response } from 'express';
 import { get, omit } from 'lodash';
 import mime from 'mime-types';
 import fetch from 'node-fetch';
+import type { FormatEnum } from 'sharp';
 import sharp from 'sharp';
 
 import { MAX_AVATAR_HEIGHT } from '../lib/constants';
@@ -15,6 +17,24 @@ import { isRemoteImageUrl, resolveBundledImagePath } from '../lib/static-image';
 import { getUiAvatarUrl } from '../lib/utils';
 import { logger } from '../logger';
 import { sendUpstreamErrorStatus } from '../middlewares';
+
+type LogoParams = Record<string, string> & {
+  collectiveSlug: string;
+  image?: string;
+  format?: string;
+  height?: string;
+  width?: string;
+  style?: string;
+  hash?: string;
+};
+
+type LogoQuery = {
+  height?: string;
+  width?: string;
+  style?: string;
+};
+
+type LogoRequest = Request<LogoParams, unknown, unknown, LogoQuery>;
 
 const white = 'white';
 
@@ -42,15 +62,18 @@ const DEFAULT_FUND_LOGOS = [
   '/images/default-fund-logo-4.png',
 ];
 
-const getDefaultAvatar = (collective) => {
+const getDefaultAvatar = (collective: { id: number }): string => {
   return DEFAULT_COLLECTIVE_LOGOS[collective.id % 4];
 };
 
-const getDefaultFundAvatar = (collective) => {
+const getDefaultFundAvatar = (collective: { id: number }): string => {
   return DEFAULT_FUND_LOGOS[collective.id % 4];
 };
 
-const getCollectiveImageUrl = async (collectiveSlug, { height, hash } = {}) => {
+const getCollectiveImageUrl = async (
+  collectiveSlug: string,
+  { height, hash }: { height?: number; hash?: string } = {},
+): Promise<string | undefined> => {
   const collective = await fetchCollectiveWithCache(collectiveSlug, { hash });
 
   // Handle guest & incognito
@@ -97,7 +120,7 @@ const getCollectiveImageUrl = async (collectiveSlug, { height, hash } = {}) => {
   }
 };
 
-export default async function logo(req, res) {
+export default async function logo(req: LogoRequest, res: Response): Promise<Response | void> {
   const collectiveSlug = req.params.collectiveSlug;
 
   debugLogo(
@@ -110,7 +133,7 @@ export default async function logo(req, res) {
   const width = get(req.query, 'width', get(req.params, 'width'));
   const style = get(req.query, 'style', get(req.params, 'style'));
 
-  const params = {};
+  const params: { height?: number; width?: number } = {};
 
   if (Number(height)) {
     params['height'] = Number(height);
@@ -200,10 +223,11 @@ export default async function logo(req, res) {
           const imageWithTransparency = await sharpImage.toFormat('png').toBuffer();
           finalImageBuffer = await sharp(imageWithTransparency).flatten({ background: white }).jpeg().toBuffer();
         } else {
-          finalImageBuffer = await sharpImage.toFormat(format).toBuffer();
+          // sharp accepts the `jpg` alias at runtime, but its types only declare `jpeg`
+          finalImageBuffer = await sharpImage.toFormat(format as keyof FormatEnum).toBuffer();
         }
 
-        res.set('Content-Type', mime.lookup(format)).send(finalImageBuffer);
+        res.set('Content-Type', mime.lookup(format) as string).send(finalImageBuffer);
       } catch (err) {
         logger.error(`logo: error processing ${imageUrl} (${err.message})`);
         res.set('Cache-Control', 'no-store');

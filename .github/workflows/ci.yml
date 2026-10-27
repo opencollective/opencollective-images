@@ -65,6 +65,46 @@ jobs:
 
       - run: npm run lint:quiet
 
+  typescript:
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 15
+
+    steps:
+      - name: Update apt
+        run: sudo apt-get update || exit 0
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: 'package.json'
+
+      # Npm cache
+      - name: Restore .npm cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-cache-${{ github.sha }}
+          restore-keys: |
+            - ${{ runner.os }}-npm-cache-${{ github.sha }}
+            - ${{ runner.os }}-npm-cache-
+
+      - name: Restore node_modules
+        uses: actions/cache@v6
+        id: node-modules
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.node-modules.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit
+
+      - run: npm run type:check
+
   prettier:
     runs-on: ubuntu-latest
 

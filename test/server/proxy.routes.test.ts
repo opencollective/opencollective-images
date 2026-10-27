@@ -2,6 +2,7 @@ import '../../src/server/env';
 
 import http from 'http';
 
+import type { AddressInfo } from 'net';
 import fetch from 'node-fetch';
 import sharp from 'sharp';
 
@@ -9,23 +10,25 @@ const imagesUrl = process.env.IMAGES_URL;
 const timeout = 30000;
 const cacheBurst = `cacheBurst=${Math.round(Math.random() * 100000)}`;
 
-const fetchProxy = (src, params = '') => {
+const fetchProxy = (src: string, params = '') => {
   const path = `/proxy/images?src=${encodeURIComponent(src)}${params}&${cacheBurst}`;
   return fetch(`${imagesUrl}${path}`);
 };
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<unknown> => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Serves a fixed buffer, and hands back the url to reach it */
-function createOrigin(handler) {
+function createOrigin(handler: http.RequestListener) {
   const server = http.createServer(handler);
   return {
-    listen: (path) =>
-      new Promise((resolve) => {
-        server.listen(0, '127.0.0.1', () => resolve(`http://127.0.0.1:${server.address().port}${path}`));
+    listen: (path: string) =>
+      new Promise<string>((resolve) => {
+        server.listen(0, '127.0.0.1', () =>
+          resolve(`http://127.0.0.1:${(server.address() as AddressInfo).port}${path}`),
+        );
       }),
     close: () =>
-      new Promise((resolve) => {
+      new Promise<unknown>((resolve) => {
         server.closeAllConnections?.();
         server.close(resolve);
       }),

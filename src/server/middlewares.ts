@@ -1,5 +1,7 @@
-export const maxAge = (maxAge = 60) => {
-  return (req, res, next) => {
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+
+export const maxAge = (maxAge = 60): RequestHandler => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     res.setHeader('Cache-Control', `public, max-age=${maxAge}`);
     next();
   };
@@ -11,7 +13,7 @@ export const maxAge = (maxAge = 60) => {
 export const CONTENT_SECURITY_POLICY =
   "default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox allow-popups allow-popups-to-escape-sandbox";
 
-export const securityHeaders = (req, res, next) => {
+export const securityHeaders = (req: Request, res: Response, next: NextFunction): void => {
   res.setHeader('Content-Security-Policy', CONTENT_SECURITY_POLICY);
   res.setHeader('X-Content-Type-Options', 'nosniff');
   next();
@@ -21,7 +23,7 @@ export const securityHeaders = (req, res, next) => {
  * Answers with the status of a failed upstream image request. The upstream status text is
  * never forwarded, and transient failures (server errors, timeouts, rate limits) are not cached.
  */
-export const sendUpstreamErrorStatus = (res, status) => {
+export const sendUpstreamErrorStatus = (res: Response, status: number): Response => {
   if (status >= 500 || status === 408 || status === 429) {
     res.set('Cache-Control', 'no-store');
   }

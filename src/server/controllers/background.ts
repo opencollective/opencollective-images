@@ -1,5 +1,7 @@
+import type { NextFunction, Request, Response } from 'express';
 import { get } from 'lodash';
 import mime from 'mime-types';
+import type { FormatEnum } from 'sharp';
 import sharp from 'sharp';
 
 import { fetchCollectiveWithCache } from '../lib/graphql';
@@ -7,9 +9,29 @@ import { normalizeSize } from '../lib/image-size';
 import { asyncRequest } from '../lib/request';
 import { logger } from '../logger';
 
-const getImageData = (url) => asyncRequest({ url, encoding: null }).then((result) => result[1]);
+type BackgroundParams = Record<string, string> & {
+  collectiveSlug: string;
+  hash?: string;
+  height?: string;
+  width?: string;
+  format?: string;
+};
 
-export default async function background(req, res, next) {
+type BackgroundQuery = {
+  height?: string;
+  width?: string;
+};
+
+type BackgroundRequest = Request<BackgroundParams, unknown, unknown, BackgroundQuery>;
+
+const getImageData = (url: string): Promise<Buffer> =>
+  asyncRequest({ url, encoding: null }).then((result) => result[1]);
+
+export default async function background(
+  req: BackgroundRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<Response | void> {
   const collectiveSlug = req.params.collectiveSlug;
   const hash = req.params.hash;
 
@@ -33,7 +55,7 @@ export default async function background(req, res, next) {
   const height = get(req.query, 'height', get(req.params, 'height'));
   const width = get(req.query, 'width', get(req.params, 'width'));
 
-  const params = {};
+  const params: { height?: number; width?: number } = {};
 
   // Profile page hero uses ~1800x800
   if (Number(width)) {
@@ -54,9 +76,13 @@ export default async function background(req, res, next) {
   }
 
   try {
-    const resizedImage = await sharp(image).resize(params.width, params.height).toFormat(format).toBuffer();
+    // sharp accepts the `jpg` alias at runtime, but its types only declare `jpeg`
+    const resizedImage = await sharp(image)
+      .resize(params.width, params.height)
+      .toFormat(format as keyof FormatEnum)
+      .toBuffer();
 
-    res.set('Content-Type', mime.lookup(format)).send(resizedImage);
+    res.set('Content-Type', mime.lookup(format) as string).send(resizedImage);
   } catch (err) {
     logger.error(`background: error processing ${imageUrl} (${err.message})`);
     return res.status(500).send('Internal Server Error');

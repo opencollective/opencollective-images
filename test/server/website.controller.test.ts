@@ -1,26 +1,36 @@
 import website from '../../src/server/controllers/website';
-import { fetchMembersWithCache } from '../../src/server/lib/graphql';
 
 jest.mock('../../src/server/lib/graphql', () => ({
   fetchMembersWithCache: jest.fn(),
 }));
 
-const getRequest = (params = {}) => ({
-  params: {
-    collectiveSlug: 'test-collective',
-    backerType: 'backers',
-    position: '0',
-    ...params,
-  },
-  query: {},
-});
+type WebsiteRequest = Parameters<typeof website>[0];
+type WebsiteResponse = Parameters<typeof website>[1];
 
-const getResponse = () => ({
-  redirect: jest.fn(),
-  send: jest.fn(),
-  sendStatus: jest.fn(),
-  status: jest.fn().mockReturnThis(),
-});
+const fetchMembersWithCacheMock = jest.requireMock('../../src/server/lib/graphql').fetchMembersWithCache;
+
+// Tests only implement the request and response members the controller uses
+const asRequest = (req: Partial<WebsiteRequest>): WebsiteRequest => req as WebsiteRequest;
+const asResponse = (res: Partial<WebsiteResponse>): WebsiteResponse => res as WebsiteResponse;
+
+const getRequest = (params = {}) =>
+  asRequest({
+    params: {
+      collectiveSlug: 'test-collective',
+      backerType: 'backers',
+      position: '0',
+      ...params,
+    },
+    query: {},
+  });
+
+const getResponse = () =>
+  asResponse({
+    redirect: jest.fn(),
+    send: jest.fn(),
+    sendStatus: jest.fn(),
+    status: jest.fn().mockReturnThis(),
+  });
 
 describe('website controller', () => {
   const originalWebsiteUrl = process.env.WEBSITE_URL;
@@ -35,7 +45,7 @@ describe('website controller', () => {
   });
 
   test('redirects to a valid member website with tracking parameters', async () => {
-    fetchMembersWithCache.mockResolvedValue([{ website: 'https://example.com/about?ref=profile' }]);
+    fetchMembersWithCacheMock.mockResolvedValue([{ website: 'https://example.com/about?ref=profile' }]);
     const res = getResponse();
 
     await website(getRequest(), res);
@@ -51,7 +61,7 @@ describe('website controller', () => {
     'not a URL',
     'javascript:alert(document.domain)',
   ])('returns 404 for an unsafe member website: %s', async (memberWebsite) => {
-    fetchMembersWithCache.mockResolvedValue([{ website: memberWebsite }]);
+    fetchMembersWithCacheMock.mockResolvedValue([{ website: memberWebsite }]);
     const res = getResponse();
 
     await website(getRequest(), res);
@@ -62,7 +72,7 @@ describe('website controller', () => {
 
   test('returns 404 when the support URL configuration is invalid', async () => {
     process.env.WEBSITE_URL = 'not a URL';
-    fetchMembersWithCache.mockResolvedValue([]);
+    fetchMembersWithCacheMock.mockResolvedValue([]);
     const res = getResponse();
 
     await website(getRequest(), res);

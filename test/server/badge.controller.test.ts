@@ -12,21 +12,29 @@ jest.mock('../../src/server/lib/graphql', () => ({
   fetchMembersStatsWithCache: jest.fn(),
 }));
 
-const getResponse = () => ({
-  send: jest.fn(),
-  sendStatus: jest.fn(),
-  setHeader: jest.fn(),
-  status: jest.fn().mockReturnThis(),
-});
+type BadgeRequest = Parameters<typeof badge>[0];
+type BadgeResponse = Parameters<typeof badge>[1];
 
-const getRequestedUrl = () => new URL(fetch.mock.calls[0][0]);
+const fetchMock = jest.requireMock('node-fetch').default;
+const fetchMembersStatsWithCacheMock = jest.requireMock('../../src/server/lib/graphql').fetchMembersStatsWithCache;
+
+// Tests only implement the response methods the controller uses
+const getResponse = (): BadgeResponse =>
+  ({
+    send: jest.fn(),
+    sendStatus: jest.fn(),
+    setHeader: jest.fn(),
+    status: jest.fn().mockReturnThis(),
+  }) as Partial<BadgeResponse> as BadgeResponse;
+
+const getRequestedUrl = () => new URL(fetchMock.mock.calls[0][0]);
 
 describe('badge controller', () => {
   const originalShieldsIo = process.env.SHIELDS_IO;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    fetch.mockResolvedValue({ text: () => Promise.resolve('<svg></svg>') });
+    fetchMock.mockResolvedValue({ text: () => Promise.resolve('<svg></svg>') });
     process.env.SHIELDS_IO = 'true';
   });
 
@@ -42,7 +50,7 @@ describe('badge controller', () => {
       };
       const res = getResponse();
 
-      await badge(req, res);
+      await badge(req as BadgeRequest, res);
 
       expect(fetch).toHaveBeenCalledTimes(1);
       const url = getRequestedUrl();
@@ -62,7 +70,7 @@ describe('badge controller', () => {
       };
       const res = getResponse();
 
-      await badge(req, res);
+      await badge(req as BadgeRequest, res);
 
       const url = getRequestedUrl();
       expect(url.hostname).toEqual('img.shields.io');
@@ -80,7 +88,7 @@ describe('badge controller', () => {
       };
       const res = getResponse();
 
-      await badge(req, res);
+      await badge(req as BadgeRequest, res);
 
       const url = getRequestedUrl();
       expect(Array.from(url.searchParams.keys())).toEqual(['color', 'style', 'label']);
@@ -95,14 +103,14 @@ describe('badge controller', () => {
     });
 
     test('encodes the collective name and style in the badge URL', async () => {
-      fetchMembersStatsWithCache.mockResolvedValue({ name: 'Apex Collective & Friends', count: 42 });
+      fetchMembersStatsWithCacheMock.mockResolvedValue({ name: 'Apex Collective & Friends', count: 42 });
       const req = {
         params: { collectiveSlug: 'apex' },
         query: {},
       };
       const res = getResponse();
 
-      await badge(req, res);
+      await badge(req as BadgeRequest, res);
 
       expect(fetchMembersStatsWithCache).toHaveBeenCalledWith(req.params);
       const url = getRequestedUrl();
@@ -113,14 +121,14 @@ describe('badge controller', () => {
     });
 
     test('encodes a caller-provided label in the badge filename', async () => {
-      fetchMembersStatsWithCache.mockResolvedValue({ name: 'Apex', count: 42 });
+      fetchMembersStatsWithCacheMock.mockResolvedValue({ name: 'Apex', count: 42 });
       const req = {
         params: { collectiveSlug: 'apex' },
         query: { label: 'backers?style=flat-square' },
       };
       const res = getResponse();
 
-      await badge(req, res);
+      await badge(req as BadgeRequest, res);
 
       const url = getRequestedUrl();
       expect(url.pathname).toEqual('/badge/backers%3Fstyle%3Dflat-square-42-brightgreen.svg');

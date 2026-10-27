@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 debug.enable(process.env.DEBUG);
 
-const defaults = {
+const defaults: Record<string, string | number> = {
   PORT: 3001,
   NODE_ENV: 'development',
   API_KEY: '09u624Pc9F47zoGLlkg1TBSbOl2ydSAq',
@@ -20,6 +20,6 @@ const defaults = {
 
 for (const key in defaults) {
   if (process.env[key] === undefined) {
-    process.env[key] = defaults[key];
+    process.env[key] = String(defaults[key]);
   }
 }

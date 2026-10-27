@@ -1,7 +1,8 @@
+import type { ErrorRequestHandler } from 'express';
 import expressWinston from 'express-winston';
 import winston from 'winston';
 
-function getLogLevel() {
+function getLogLevel(): string {
   if (process.env.LOG_LEVEL) {
     return process.env.LOG_LEVEL;
   } else if (
@@ -25,7 +26,7 @@ const winstonConsole = new winston.transports.Console({
 logger.add(winstonConsole);
 logger.exceptions.handle(winstonConsole);
 
-const loggerMiddleware = {
+const loggerMiddleware: { errorLogger: ErrorRequestHandler } = {
   errorLogger: expressWinston.errorLogger({
     winstonInstance: logger,
   }),

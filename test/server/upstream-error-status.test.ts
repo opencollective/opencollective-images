@@ -2,11 +2,11 @@ import http from 'http';
 import net from 'net';
 
 import express from 'express';
+import type { AddressInfo } from 'net';
 import fetch from 'node-fetch';
 
 import avatar from '../../src/server/controllers/avatar';
 import logo from '../../src/server/controllers/logo';
-import { fetchCollectiveWithCache, fetchMembersWithCache } from '../../src/server/lib/graphql';
 import { CONTENT_SECURITY_POLICY, maxAge, securityHeaders } from '../../src/server/middlewares';
 
 jest.mock('../../src/server/lib/graphql', () => ({
@@ -14,14 +14,17 @@ jest.mock('../../src/server/lib/graphql', () => ({
   fetchMembersWithCache: jest.fn(),
 }));
 
+const fetchCollectiveWithCacheMock = jest.requireMock('../../src/server/lib/graphql').fetchCollectiveWithCache;
+const fetchMembersWithCacheMock = jest.requireMock('../../src/server/lib/graphql').fetchMembersWithCache;
+
 const STATUS_TEXT = '<b>Custom status</b>';
 
-const listen = (server) =>
+const listen = (server: net.Server): Promise<string> =>
   new Promise((resolve) => {
-    server.listen(0, '127.0.0.1', () => resolve(`http://127.0.0.1:${server.address().port}`));
+    server.listen(0, '127.0.0.1', () => resolve(`http://127.0.0.1:${(server.address() as AddressInfo).port}`));
   });
 
-const close = (server) => new Promise((resolve) => server.close(resolve));
+const close = (server: net.Server): Promise<unknown> => new Promise((resolve) => server.close(resolve));
 
 /** An upstream that answers every request with the given status and a custom status text */
 const createUpstream = () => {
@@ -44,7 +47,7 @@ describe('upstream error status', () => {
   app.get('/:collectiveSlug/:backerType/:position/avatar.:format', maxAge(2 * 60 * 60), avatar);
   app.get('/ok', (req, res) => res.send('ok'));
   const server = http.createServer(app);
-  let upstreamUrl, appUrl;
+  let upstreamUrl: string, appUrl: string;
 
   beforeAll(async () => {
     upstreamUrl = await listen(upstream.server);
@@ -62,8 +65,8 @@ describe('upstream error status', () => {
     upstream.state.status = 404;
     // Avatars are served from the logo route of IMAGES_URL, here the upstream
     process.env.IMAGES_URL = upstreamUrl;
-    fetchCollectiveWithCache.mockResolvedValue({ id: 1, type: 'COLLECTIVE', image: `${upstreamUrl}/logo.png` });
-    fetchMembersWithCache.mockResolvedValue([{ type: 'USER', name: 'Jane', slug: 'jane' }]);
+    fetchCollectiveWithCacheMock.mockResolvedValue({ id: 1, type: 'COLLECTIVE', image: `${upstreamUrl}/logo.png` });
+    fetchMembersWithCacheMock.mockResolvedValue([{ type: 'USER', name: 'Jane', slug: 'jane' }]);
   });
 
   const expectStatusOnly = async (res, status) => {
