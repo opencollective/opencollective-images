@@ -43,6 +43,10 @@ jobs:
 
       # Npm cache
 
+      - name: Get Node major version
+        id: node-major
+        run: echo "version=$(node -p 'process.versions.node.split(`.`)[0]')" >> "$GITHUB_OUTPUT"
+
       - name: Restore .npm cache
         uses: actions/cache@v6
         with:
@@ -57,7 +61,7 @@ jobs:
         id: node-modules
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-node${{ steps.node-major.outputs.version }}-node-modules-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
         if: steps.node-modules.outputs.cache-hit != 'true'
@@ -83,6 +87,10 @@ jobs:
           node-version-file: 'package.json'
 
       # Npm cache
+
+      - name: Get Node major version
+        id: node-major
+        run: echo "version=$(node -p 'process.versions.node.split(`.`)[0]')" >> "$GITHUB_OUTPUT"
       - name: Restore .npm cache
         uses: actions/cache@v6
         with:
@@ -97,7 +105,7 @@ jobs:
         id: node-modules
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-node${{ steps.node-major.outputs.version }}-node-modules-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
         if: steps.node-modules.outputs.cache-hit != 'true'
@@ -119,6 +127,10 @@ jobs:
 
       # Npm cache
 
+      - name: Get Node major version
+        id: node-major
+        run: echo "version=$(node -p 'process.versions.node.split(`.`)[0]')" >> "$GITHUB_OUTPUT"
+
       - name: Restore .npm cache
         uses: actions/cache@v6
         with:
@@ -133,7 +145,7 @@ jobs:
         id: node-modules
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-node${{ steps.node-major.outputs.version }}-node-modules-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
         if: steps.node-modules.outputs.cache-hit != 'true'
@@ -155,6 +167,10 @@ jobs:
 
       # Npm cache
 
+      - name: Get Node major version
+        id: node-major
+        run: echo "version=$(node -p 'process.versions.node.split(`.`)[0]')" >> "$GITHUB_OUTPUT"
+
       - name: Restore .npm cache
         uses: actions/cache@v6
         with:
@@ -169,7 +185,7 @@ jobs:
         id: node-modules
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-node${{ steps.node-major.outputs.version }}-node-modules-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
         if: steps.node-modules.outputs.cache-hit != 'true'
@@ -227,18 +243,23 @@ jobs:
 
       # Prepare API
 
+      - name: Get Node major version
+        id: node-major
+        run: echo "version=$(node -p 'process.versions.node.split(`.`)[0]')" >> "$GITHUB_OUTPUT"
+
       - name: Restore node_modules (api)
         uses: actions/cache@v6
         id: api-node-modules
         with:
           path: opencollective-api/node_modules
-          key: ${{ runner.os }}-api-node-modules-${{ hashFiles('opencollective-api/package-lock.json') }}
+          key: ${{ runner.os }}-node${{ steps.node-major.outputs.version }}-api-node-modules-${{ hashFiles('opencollective-api/package-lock.json') }}
 
       # api's postinstall would restore the DB with the runner's PostgreSQL 18 tools; the steps below restore and migrate it
       - name: Install dependencies (api)
         working-directory: opencollective-api
         if: steps.api-node-modules.outputs.cache-hit != 'true'
         env:
+          npm_config_engine_strict: 'false'
           SKIP_POSTINSTALL: 1
         run: npm ci --prefer-offline --no-audit
 
@@ -254,7 +275,7 @@ jobs:
         id: images-node-modules
         with:
           path: node_modules
-          key: ${{ runner.os }}-images-node-modules-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-node${{ steps.node-major.outputs.version }}-images-node-modules-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies (images)
         if: steps.images-node-modules.outputs.cache-hit != 'true'
