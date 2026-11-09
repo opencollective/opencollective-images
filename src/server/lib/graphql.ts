@@ -309,6 +309,7 @@ export async function fetchMembers({
       'live2d-widgetjs',
       'lottie-web',
       'material-ui',
+      'ofitech', // Same as opencollective below
       'opencollective', // 75k+ backers, fetching them exhausts the API memory
       'ory-hydra',
       'p3x-onenote',
