@@ -1,5 +1,5 @@
 import gql from 'graphql-tag';
-import { uniqBy } from 'lodash';
+import { groupBy, uniqBy } from 'lodash';
 
 import { graphqlRequest } from './graphql-client';
 
@@ -25,30 +25,41 @@ type BackerAccount = {
   isGuest?: boolean;
 };
 
+type BackerRow = { id: string; isActive: boolean; tier: { id: string } | null; account: BackerAccount | null };
+
 type BackersResponse = {
-  account: { id: string; members: { nodes: Array<{ id: string; account: BackerAccount | null }> } } | null;
+  account: { id: string; members: { totalCount: number; nodes: BackerRow[] } } | null;
 };
 
 /**
- * The v2 API caps a page of members at 1,000. Banners and README avatar lists never need more: the
- * deepest position requested in production is under 400.
+ * At most 1,000 backers per list. Banners and README avatar lists never need more: the deepest README
+ * position requested in production is under 200.
  */
 export const MAX_BACKERS = 1000;
 
+/** The v2 API returns at most 1,000 members per page: read up to 5 pages of member rows */
+const PAGE_SIZE = 1000;
+const MAX_PAGES = 5;
+
 const backersQuery = gql /* GraphQL */ `
-  query BackersForImages($slug: String!, $accountType: [AccountType], $isActive: Boolean, $limit: Int!) {
+  query BackersForImages($slug: String!, $accountType: [AccountType], $limit: Int!, $offset: Int!) {
     account(slug: $slug) {
       id
       members(
         role: [BACKER]
         accountType: $accountType
-        isActive: $isActive
         orderByTotalContributed: DESC
         includeInherited: false
         limit: $limit
+        offset: $offset
       ) {
+        totalCount
         nodes {
           id
+          isActive
+          tier {
+            id
+          }
           account {
             slug
             name
@@ -93,13 +104,78 @@ export const toMember = (account: BackerAccount): Member => ({
   twitterHandle: account.twitterHandle,
 });
 
+type ActiveOrdersResponse = {
+  account: {
+    id: string;
+    orders: { totalCount: number; nodes: Array<{ fromAccount: { slug: string } | null }> };
+  } | null;
+};
+
+/** The accounts with a running monthly or yearly contribution to the collective, with or without a tier */
+const activeOrdersQuery = gql /* GraphQL */ `
+  query ActiveOrdersForImages($slug: String!, $limit: Int!, $offset: Int!) {
+    account(slug: $slug) {
+      id
+      orders(filter: INCOMING, status: [ACTIVE], frequency: [MONTHLY, YEARLY], limit: $limit, offset: $offset) {
+        totalCount
+        nodes {
+          fromAccount {
+            slug
+          }
+        }
+      }
+    }
+  }
+`;
+
+async function fetchActiveContributorSlugs(collectiveSlug: string): Promise<Set<string>> {
+  const slugs = new Set<string>();
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const { data, errors } = await graphqlRequest<ActiveOrdersResponse>(
+      activeOrdersQuery,
+      { slug: collectiveSlug, limit: PAGE_SIZE, offset: page * PAGE_SIZE },
+      { version: 'v2' },
+    );
+    if (errors?.length) {
+      throw new Error(errors[0].message);
+    }
+    const orders = data?.account?.orders;
+    (orders?.nodes || []).forEach((order) => order.fromAccount && slugs.add(order.fromAccount.slug));
+    if (!orders || (page + 1) * PAGE_SIZE >= orders.totalCount || orders.nodes.length < PAGE_SIZE) {
+      break;
+    }
+  }
+  return slugs;
+}
+
+/**
+ * Whether to show an account in an active-only list, from all its memberships. The intent of v1's active lists
+ * (opencollective/opencollective#972): a recurring sponsor that stopped paying isn't advertised any more.
+ * - An account with a running monthly or yearly contribution (`hasActiveContribution`, tier or not) is shown.
+ * - An account with a membership on a tier is judged on those memberships: shown if one of them is active (v2
+ *   `Member.isActive`: a recent contribution for monthly and yearly tiers, always for the others).
+ * - An account with only memberships without a tier is shown: one-off contributions don't lapse (whether they
+ *   should is opencollective/opencollective#9129).
+ *
+ * v2's `isActive` filter can't be used directly: it judges each membership separately, and a membership without a
+ * tier is always active, so a lapsed recurring sponsor with an old one-off contribution would be shown.
+ */
+export const isActiveBacker = (
+  rows: Array<Pick<BackerRow, 'isActive' | 'tier'>>,
+  hasActiveContribution = false,
+): boolean => {
+  const tierRows = rows.filter((row) => row.tier);
+  return hasActiveContribution || tierRows.length === 0 || tierRows.some((row) => row.isActive);
+};
+
 /**
  * The backers of `collectiveSlug` (`/:slug/:backerType.svg` and the per-position avatar and website
  * routes), most contributed first, like v1 `allMembers(orderBy: "totalDonations")`. Organizations
  * (and collectives and funds) for sponsor/organization backer types, individuals otherwise.
  *
- * `isActive: true` keeps active backers only; otherwise all of them, as v1 did (v2's `isActive: false`
- * would select inactive backers only).
+ * `isActive: true` keeps the accounts `isActiveBacker` accepts (one more request for the running contributions);
+ * otherwise all of them. Reads the member rows
+ * page by page (up to `MAX_PAGES`); an account's rows share its total, so they come out together.
  */
 export async function fetchBackers({
   collectiveSlug,
@@ -113,18 +189,35 @@ export async function fetchBackers({
   const accountType = /sponsor|organization/i.test(backerType)
     ? ['ORGANIZATION', 'COLLECTIVE', 'FUND']
     : ['INDIVIDUAL'];
-  const { data, errors } = await graphqlRequest<BackersResponse>(
-    backersQuery,
-    { slug: collectiveSlug, accountType, isActive: isActive === true ? true : undefined, limit: MAX_BACKERS },
-    { version: 'v2' },
-  );
-  if (errors?.length) {
-    throw new Error(errors[0].message);
+
+  const rows: BackerRow[] = [];
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const { data, errors } = await graphqlRequest<BackersResponse>(
+      backersQuery,
+      { slug: collectiveSlug, accountType, limit: PAGE_SIZE, offset: page * PAGE_SIZE },
+      { version: 'v2' },
+    );
+    if (errors?.length) {
+      throw new Error(errors[0].message);
+    }
+    if (!data?.account) {
+      throw new Error('Collective not found.');
+    }
+    rows.push(...data.account.members.nodes);
+    if (rows.length >= data.account.members.totalCount || data.account.members.nodes.length < PAGE_SIZE) {
+      break;
+    }
   }
-  if (!data?.account) {
-    throw new Error('Collective not found.');
-  }
-  const accounts = data.account.members.nodes.map((node) => node.account).filter(Boolean);
-  // An account can be a backer several times (one member per tier): keep its first, highest-ranked entry
-  return uniqBy(accounts.map(toMember), (member) => member.slug);
+
+  // Rows without a visible account (incognito backers) are left out, as v2 hides them
+  const visibleRows = rows.filter((row) => row.account);
+  const rowsByAccount = groupBy(visibleRows, (row) => row.account.slug);
+  const activeContributors = isActive === true ? await fetchActiveContributorSlugs(collectiveSlug) : null;
+  return uniqBy(visibleRows, (row) => row.account.slug)
+    .filter(
+      (row) =>
+        isActive !== true || isActiveBacker(rowsByAccount[row.account.slug], activeContributors.has(row.account.slug)),
+    )
+    .slice(0, MAX_BACKERS)
+    .map((row) => toMember(row.account));
 }
