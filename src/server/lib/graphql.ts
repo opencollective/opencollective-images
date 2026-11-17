@@ -1,9 +1,9 @@
 import debug from 'debug';
 import type { DocumentNode } from 'graphql';
 import gqlV1 from 'graphql-tag';
-import { flatten, pick, uniqBy } from 'lodash';
+import { pick } from 'lodash';
 
-import { fetchBackers, type Member } from './backers';
+import { fetchBackers, fetchTierBackers, type Member } from './backers';
 import cache from './cache';
 import { graphqlRequest } from './graphql-client';
 import { md5, queryString, randomInteger, sleep } from './utils';
@@ -52,10 +52,6 @@ type MembersStatsForTierResponse = {
     id: number;
     tiers: Array<{ id: number; slug: string; name: string; stats: { totalDistinctOrders: number } }>;
   };
-};
-
-type MembersWithTierResponse = {
-  Collective: { id: number; tiers: Array<{ id: number; orders: Array<{ id: number; fromCollective: Member }> }> };
 };
 
 type MembersStatsParams = {
@@ -240,56 +236,17 @@ export async function fetchMembers({
     throw new Error('Collective not found.');
   }
 
-  // Backer types: GraphQL v2, paginated (see backers.ts)
+  // Backer types: GraphQL v2, capped (see backers.ts)
   if (backerType) {
     return fetchBackers({ collectiveSlug, backerType, isActive });
   }
 
-  // Tiers: still GraphQL v1, which loads every order of the tier in one response. Too much for
-  // the largest accounts: `opencollective` (75k+ backers) exhausts the API memory, `ofitech` likewise.
-  if (['ofitech', 'opencollective'].includes(collectiveSlug)) {
-    throw new Error('Collective not found.');
-  }
+  // Tiers: GraphQL v2 too (see backers.ts)
   if (!tierSlug) {
     return [];
   }
-
   const tierSlugs = typeof tierSlug === 'string' ? tierSlug.split(',') : tierSlug;
-  const query = gqlV1 /* GraphQL */ `
-    query MembersWithTier($collectiveSlug: String, $tierSlug: [String], $isActive: Boolean) {
-      Collective(slug: $collectiveSlug) {
-        id
-        tiers(slugs: $tierSlug) {
-          id
-          orders(isActive: $isActive, isProcessed: true) {
-            id
-            fromCollective {
-              id
-              type
-              slug
-              name
-              isGuest
-              image
-              website
-              twitterHandle
-            }
-          }
-        }
-      }
-    }
-  `;
-
-  const { data, errors } = await graphqlRequest<MembersWithTierResponse>(query, {
-    collectiveSlug,
-    tierSlug: tierSlugs,
-    isActive,
-  });
-  if (errors?.length) {
-    throw new Error(errors[0].message);
-  }
-  const allOrders = flatten(data.Collective.tiers.map((t) => t.orders));
-  const allCollectives = allOrders.map((o) => o.fromCollective).filter(Boolean);
-  return uniqBy(allCollectives, (c) => c.slug);
+  return fetchTierBackers({ collectiveSlug, tierSlugs, isActive });
 }
 
 export async function fetchMembersWithCache(params: MembersParams): Promise<Member[]> {
