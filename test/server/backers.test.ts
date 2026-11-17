@@ -1,4 +1,12 @@
-import { fetchBackers, hasOwnImage, isActiveBacker, toMember } from '../../src/server/lib/backers';
+import {
+  fetchBackers,
+  fetchTierBackers,
+  hasOwnImage,
+  isActiveBacker,
+  isActiveTierOrder,
+  MAX_BACKERS,
+  toMember,
+} from '../../src/server/lib/backers';
 
 jest.mock('../../src/server/lib/graphql-client', () => ({
   graphqlRequest: jest.fn(),
@@ -179,6 +187,100 @@ describe('backers', () => {
       graphqlRequestMock.mockResolvedValueOnce({ data: { account: null } });
       await expect(fetchBackers({ collectiveSlug: 'nope', backerType: 'backers' })).rejects.toThrow(
         'Collective not found.',
+      );
+    });
+  });
+
+  describe('isActiveTierOrder', () => {
+    const now = new Date('2026-11-17T12:00:00Z');
+    const charged = (lastChargedAt) => ({
+      createdAt: '2020-01-01T00:00:00Z',
+      processedAt: '2020-01-01T00:00:00Z',
+      lastChargedAt,
+      fromAccount: null,
+    });
+
+    test('one-time tiers: every processed order', () => {
+      expect(isActiveTierOrder(charged(null), 'ONETIME', now)).toBe(true);
+    });
+
+    test('monthly tiers: charged within a month and 5 days', () => {
+      expect(isActiveTierOrder(charged('2026-10-13T12:00:00Z'), 'MONTHLY', now)).toBe(true);
+      expect(isActiveTierOrder(charged('2026-10-11T12:00:00Z'), 'MONTHLY', now)).toBe(false);
+      expect(isActiveTierOrder(charged(null), 'MONTHLY', now)).toBe(false);
+    });
+
+    test('yearly and flexible tiers: charged within a year and 5 days', () => {
+      expect(isActiveTierOrder(charged('2025-11-13T12:00:00Z'), 'YEARLY', now)).toBe(true);
+      expect(isActiveTierOrder(charged('2025-11-11T12:00:00Z'), 'YEARLY', now)).toBe(false);
+      expect(isActiveTierOrder(charged('2025-11-13T12:00:00Z'), 'FLEXIBLE', now)).toBe(true);
+    });
+  });
+
+  describe('fetchTierBackers', () => {
+    const order = (slug, createdAt, { processedAt = createdAt, lastChargedAt = new Date().toISOString() } = {}) => ({
+      createdAt,
+      processedAt,
+      lastChargedAt,
+      fromAccount: account({ slug }),
+    });
+    const tiersResponse = {
+      data: {
+        account: {
+          id: 'abc',
+          tiers: {
+            nodes: [
+              { id: 'tier-gold', slug: 'gold', frequency: 'MONTHLY' },
+              { id: 'tier-silver', slug: 'silver', frequency: 'ONETIME' },
+            ],
+          },
+        },
+      },
+    };
+    const ordersResponse = (orders) => ({ data: { tier: { id: 't', orders: { nodes: orders } } } });
+
+    test('reads the processed orders of the requested tiers, in the API order, unknown tiers adding nobody', async () => {
+      graphqlRequestMock
+        .mockResolvedValueOnce(tiersResponse)
+        .mockResolvedValueOnce(
+          ordersResponse([
+            order('zoe', '2024-01-01T00:00:00Z'),
+            order('never-paid', '2024-02-01T00:00:00Z', { processedAt: null }),
+            order('adam', '2023-01-01T00:00:00Z'),
+          ]),
+        )
+        .mockResolvedValueOnce(
+          ordersResponse([order('adam', '2022-01-01T00:00:00Z'), order('eve', '2022-02-01T00:00:00Z')]),
+        );
+
+      const members = await fetchTierBackers({ collectiveSlug: 'babel', tierSlugs: ['gold', 'unknown', 'silver'] });
+
+      expect(members.map((m) => m.slug)).toEqual(['zoe', 'adam', 'eve']);
+      expect(graphqlRequestMock).toHaveBeenCalledTimes(3);
+      expect(graphqlRequestMock.mock.calls[1][1]).toEqual({ tierId: 'tier-gold', limit: MAX_BACKERS });
+      expect(graphqlRequestMock.mock.calls[2][1]).toEqual({ tierId: 'tier-silver', limit: MAX_BACKERS });
+    });
+
+    test('active only: keeps active orders, oldest first', async () => {
+      graphqlRequestMock
+        .mockResolvedValueOnce(tiersResponse)
+        .mockResolvedValueOnce(
+          ordersResponse([
+            order('recent', '2024-01-01T00:00:00Z'),
+            order('lapsed', '2023-06-01T00:00:00Z', { lastChargedAt: '2020-01-01T00:00:00Z' }),
+            order('older', '2023-01-01T00:00:00Z'),
+          ]),
+        );
+
+      const members = await fetchTierBackers({ collectiveSlug: 'babel', tierSlugs: ['gold'], isActive: true });
+
+      expect(members.map((m) => m.slug)).toEqual(['older', 'recent']);
+    });
+
+    test('throws on unknown accounts', async () => {
+      graphqlRequestMock.mockResolvedValueOnce({ data: { account: null }, errors: [{ message: 'Account Not Found' }] });
+      await expect(fetchTierBackers({ collectiveSlug: 'nope', tierSlugs: ['gold'] })).rejects.toThrow(
+        'Account Not Found',
       );
     });
   });
