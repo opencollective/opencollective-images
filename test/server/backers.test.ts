@@ -1,4 +1,4 @@
-import { fetchBackers, hasOwnImage, MAX_BACKERS, toMember } from '../../src/server/lib/backers';
+import { fetchBackers, hasOwnImage, isActiveBacker, toMember } from '../../src/server/lib/backers';
 
 jest.mock('../../src/server/lib/graphql-client', () => ({
   graphqlRequest: jest.fn(),
@@ -17,8 +17,13 @@ const account = (overrides = {}) => ({
   ...overrides,
 });
 
-const response = (accounts) => ({
-  data: { account: { id: 'abc', members: { nodes: accounts.map((a, i) => ({ id: `m${i}`, account: a })) } } },
+// Member rows: an account, or [account, { tier, isActive }] for its membership details
+const row = (entry, i) => {
+  const [a, { tier = null, isActive = true } = {}] = Array.isArray(entry) ? entry : [entry];
+  return { id: `m${i}`, isActive, tier: tier ? { id: tier } : null, account: a };
+};
+const response = (entries, totalCount = entries.length) => ({
+  data: { account: { id: 'abc', members: { totalCount, nodes: entries.map(row) } } },
 });
 
 describe('backers', () => {
@@ -65,37 +70,100 @@ describe('backers', () => {
     });
   });
 
+  describe('isActiveBacker', () => {
+    test('judges an account with tier memberships on those memberships only', () => {
+      expect(isActiveBacker([{ tier: { id: 't' }, isActive: true }])).toBe(true);
+      expect(isActiveBacker([{ tier: { id: 't' }, isActive: false }])).toBe(false);
+      // A lapsed recurring sponsor with an old one-off contribution (always active without a tier) stays out
+      expect(
+        isActiveBacker([
+          { tier: { id: 't' }, isActive: false },
+          { tier: null, isActive: true },
+        ]),
+      ).toBe(false);
+      expect(
+        isActiveBacker([
+          { tier: { id: 't1' }, isActive: false },
+          { tier: { id: 't2' }, isActive: true },
+        ]),
+      ).toBe(true);
+    });
+
+    test('keeps accounts with only one-off contributions (no tier)', () => {
+      expect(isActiveBacker([{ tier: null, isActive: true }])).toBe(true);
+    });
+
+    test('keeps accounts with a running monthly or yearly contribution, even if their tier lapsed', () => {
+      expect(isActiveBacker([{ tier: { id: 't' }, isActive: false }], true)).toBe(true);
+    });
+  });
+
   describe('fetchBackers', () => {
-    test('queries v2 for individuals, most contributed first, all backers unless active only is asked', async () => {
+    test('queries v2 for individuals, or organizations, collectives and funds for sponsors', async () => {
       graphqlRequestMock.mockResolvedValue(response([account()]));
 
-      await fetchBackers({ collectiveSlug: 'babel', backerType: 'backers', isActive: false });
+      await fetchBackers({ collectiveSlug: 'babel', backerType: 'backers' });
+      await fetchBackers({ collectiveSlug: 'babel', backerType: 'sponsors' });
 
       const [, variables, options] = graphqlRequestMock.mock.calls[0];
-      expect(variables).toEqual({
-        slug: 'babel',
-        accountType: ['INDIVIDUAL'],
-        isActive: undefined,
-        limit: MAX_BACKERS,
-      });
+      expect(variables).toEqual({ slug: 'babel', accountType: ['INDIVIDUAL'], limit: 1000, offset: 0 });
       expect(options).toEqual({ version: 'v2' });
+      expect(graphqlRequestMock.mock.calls[1][1].accountType).toEqual(['ORGANIZATION', 'COLLECTIVE', 'FUND']);
     });
 
-    test('queries organizations, collectives and funds for sponsors, active only when asked', async () => {
-      graphqlRequestMock.mockResolvedValue(response([]));
+    test('reads the next pages until every row is read', async () => {
+      const page = (prefix) => Array.from({ length: 1000 }, (_, i) => account({ slug: `${prefix}-${i}` }));
+      graphqlRequestMock
+        .mockResolvedValueOnce(response(page('a'), 2500))
+        .mockResolvedValueOnce(response(page('b'), 2500))
+        .mockResolvedValueOnce(response(page('c').slice(0, 500), 2500));
 
-      await fetchBackers({ collectiveSlug: 'babel', backerType: 'sponsors', isActive: true });
+      const members = await fetchBackers({ collectiveSlug: 'babel', backerType: 'backers' });
 
-      expect(graphqlRequestMock.mock.calls[0][1]).toMatchObject({
-        accountType: ['ORGANIZATION', 'COLLECTIVE', 'FUND'],
-        isActive: true,
-      });
+      expect(graphqlRequestMock.mock.calls.map((call) => call[1].offset)).toEqual([0, 1000, 2000]);
+      // At most 1,000 backers in the list
+      expect(members).toHaveLength(1000);
     });
 
-    test('keeps the first entry of an account that backs several times', async () => {
+    test('active only: per account, a lapsed tier is not saved by a one-off contribution', async () => {
       graphqlRequestMock.mockResolvedValue(
-        response([account(), account({ slug: 'john', name: 'John' }), account(), null]),
+        response([
+          [account({ slug: 'lapsed-sponsor' }), { tier: 'monthly', isActive: false }],
+          [account({ slug: 'lapsed-sponsor' }), { isActive: true }], // An old one-off contribution
+          [account({ slug: 'one-off' }), { isActive: true }],
+          [account({ slug: 'current-sponsor' }), { tier: 'monthly', isActive: true }],
+          [account({ slug: 'lapsed-backer' }), { tier: 'yearly', isActive: false }],
+        ]),
       );
+
+      const active = await fetchBackers({ collectiveSlug: 'babel', backerType: 'sponsors', isActive: true });
+      expect(active.map((m) => m.slug)).toEqual(['one-off', 'current-sponsor']);
+
+      const all = await fetchBackers({ collectiveSlug: 'babel', backerType: 'sponsors', isActive: false });
+      expect(all.map((m) => m.slug)).toEqual(['lapsed-sponsor', 'one-off', 'current-sponsor', 'lapsed-backer']);
+    });
+
+    test('active only: a running contribution without a tier keeps an account whose tier lapsed', async () => {
+      graphqlRequestMock
+        .mockResolvedValueOnce(
+          response([
+            [account({ slug: 'gitbook' }), { tier: 'monthly', isActive: false }],
+            [account({ slug: 'gitbook' }), { isActive: true }],
+            [account({ slug: 'lapsed' }), { tier: 'monthly', isActive: false }],
+          ]),
+        )
+        .mockResolvedValueOnce({
+          data: { account: { id: 'abc', orders: { totalCount: 1, nodes: [{ fromAccount: { slug: 'gitbook' } }] } } },
+        });
+
+      const active = await fetchBackers({ collectiveSlug: 'webpack', backerType: 'sponsors', isActive: true });
+
+      expect(active.map((m) => m.slug)).toEqual(['gitbook']);
+      expect(graphqlRequestMock.mock.calls[1][1]).toEqual({ slug: 'webpack', limit: 1000, offset: 0 });
+    });
+
+    test('leaves out rows without a visible account (incognito)', async () => {
+      graphqlRequestMock.mockResolvedValue(response([account(), null, account({ slug: 'john', name: 'John' })]));
 
       const members = await fetchBackers({ collectiveSlug: 'babel', backerType: 'backers' });
 
