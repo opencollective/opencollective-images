@@ -1,25 +1,11 @@
-import { ApolloClient, ApolloLink, CombinedGraphQLErrors, HttpLink, InMemoryCache } from '@apollo/client/core';
 import debug from 'debug';
-import type { DocumentNode, GraphQLFormattedError } from 'graphql';
+import type { DocumentNode } from 'graphql';
 import gqlV1 from 'graphql-tag';
-import { flatten, pick, uniqBy } from 'lodash';
+import { pick } from 'lodash';
 
-// Apollo Client 4 only accepts the default options declared in this namespace
-declare module '@apollo/client/core/defaultOptions' {
-  namespace DeclareDefaultOptions {
-    interface WatchQuery {
-      errorPolicy: 'all';
-    }
-    interface Query {
-      errorPolicy: 'all';
-    }
-  }
-}
-
-// Alternative setup with GraphQLClient from graphql-request
-// import { GraphQLClient } from 'graphql-request';
+import { fetchBackers, fetchTierBackers, type Member } from './backers';
 import cache from './cache';
-import fetch from './fetch';
+import { graphqlRequest } from './graphql-client';
 import { md5, queryString, randomInteger, sleep } from './utils';
 
 const oneDayInSeconds = 24 * 60 * 60;
@@ -46,17 +32,6 @@ interface Collective {
   parentCollective?: ParentCollective;
 }
 
-interface Member {
-  id?: number;
-  type: string;
-  slug: string;
-  name: string;
-  isGuest?: boolean;
-  image: string;
-  website: string;
-  twitterHandle: string;
-}
-
 interface MembersStats {
   name: string;
   count: number;
@@ -79,12 +54,6 @@ type MembersStatsForTierResponse = {
   };
 };
 
-type MembersWithRoleResponse = { allMembers: Array<{ member: Member }> };
-
-type MembersWithTierResponse = {
-  Collective: { id: number; tiers: Array<{ id: number; orders: Array<{ id: number; fromCollective: Member }> }> };
-};
-
 type MembersStatsParams = {
   collectiveSlug?: string;
   backerType?: string;
@@ -97,64 +66,6 @@ type MembersParams = {
   backerType?: string;
   isActive?: boolean;
 };
-
-const getGraphqlUrl = ({ version = 'v1' }: { version?: string } = {}): string => {
-  const apiKey = process.env.API_KEY;
-  const baseApiUrl = process.env.API_URL;
-  return `${baseApiUrl}/graphql/${version}${apiKey ? `?api_key=${apiKey}` : ''}`;
-};
-
-let client: ApolloClient;
-
-/**
- * @returns {ApolloClient}
- */
-function getClient(): ApolloClient {
-  if (!client) {
-    client = new ApolloClient({
-      cache: new InMemoryCache(),
-      link: ApolloLink.from([
-        new HttpLink({
-          fetch,
-          uri: getGraphqlUrl({ version: 'v1' }),
-        }),
-      ]),
-      defaultOptions: {
-        watchQuery: {
-          fetchPolicy: 'no-cache',
-          errorPolicy: 'all',
-        },
-        query: {
-          fetchPolicy: 'no-cache',
-          errorPolicy: 'all',
-        },
-      },
-    });
-  }
-  return client;
-}
-
-async function graphqlRequest<TData>(
-  query: DocumentNode,
-  variables: Record<string, unknown>,
-): Promise<{ data: TData; errors?: readonly GraphQLFormattedError[] }> {
-  // With GraphQLClient from graphql-request
-  // return getClient().request(query, variables);
-
-  // With ApolloClient as client
-  const { data, error } = await getClient().query({ query, variables, fetchPolicy: 'no-cache' });
-  // `graphql-tag` documents are untyped: the response shape is declared by each caller
-  const result = data as TData;
-  if (!error) {
-    return { data: result };
-  }
-  // With `errorPolicy: 'all'`, Apollo Client 4 returns GraphQL errors as a single `error`:
-  // expose them as `errors` like before, and throw network errors like Apollo Client 3 did
-  if (CombinedGraphQLErrors.is(error)) {
-    return { data: result, errors: error.errors };
-  }
-  throw error;
-}
 
 /*
 Used by:
@@ -309,8 +220,6 @@ export async function fetchMembers({
       'live2d-widgetjs',
       'lottie-web',
       'material-ui',
-      'ofitech', // Same as opencollective below
-      'opencollective', // 75k+ backers, fetching them exhausts the API memory
       'ory-hydra',
       'p3x-onenote',
       'p3x-redis-ui',
@@ -327,86 +236,17 @@ export async function fetchMembers({
     throw new Error('Collective not found.');
   }
 
-  let query: DocumentNode;
-  let processResult: (result: MembersWithRoleResponse | MembersWithTierResponse) => Member[];
-  let type: string;
-  let role: string;
+  // Backer types: GraphQL v2, capped (see backers.ts)
   if (backerType) {
-    if (backerType.match(/sponsor/i) || backerType.match(/organization/i)) {
-      type = 'ORGANIZATION,COLLECTIVE,FUND';
-    } else {
-      type = 'USER';
-    }
-    role = 'BACKER';
-    query = gqlV1 /* GraphQL */ `
-      query MembersWithRole($collectiveSlug: String!, $type: String!, $role: String!, $isActive: Boolean) {
-        allMembers(
-          collectiveSlug: $collectiveSlug
-          type: $type
-          role: $role
-          isActive: $isActive
-          orderBy: "totalDonations"
-        ) {
-          member {
-            type
-            slug
-            name
-            image
-            website
-            twitterHandle
-          }
-        }
-      }
-    `;
-    processResult = (result: MembersWithRoleResponse) =>
-      uniqBy(
-        result.allMembers.map((m) => m.member),
-        (m) => m.slug,
-      );
-  } else if (tierSlug) {
-    tierSlug = typeof tierSlug === 'string' ? tierSlug.split(',') : tierSlug;
-    query = gqlV1 /* GraphQL */ `
-      query MembersWithTier($collectiveSlug: String, $tierSlug: [String], $isActive: Boolean) {
-        Collective(slug: $collectiveSlug) {
-          id
-          tiers(slugs: $tierSlug) {
-            id
-            orders(isActive: $isActive, isProcessed: true) {
-              id
-              fromCollective {
-                id
-                type
-                slug
-                name
-                isGuest
-                image
-                website
-                twitterHandle
-              }
-            }
-          }
-        }
-      }
-    `;
-    processResult = (result: MembersWithTierResponse) => {
-      const allOrders = flatten(result.Collective.tiers.map((t) => t.orders));
-      const allCollectives = allOrders.map((o) => o.fromCollective).filter(Boolean);
-      return uniqBy(allCollectives, (c) => c.slug);
-    };
+    return fetchBackers({ collectiveSlug, backerType, isActive });
   }
 
-  const { data, errors } = await graphqlRequest<MembersWithRoleResponse | MembersWithTierResponse>(query, {
-    collectiveSlug,
-    tierSlug,
-    type,
-    role,
-    isActive,
-  });
-  if (errors?.length) {
-    throw new Error(errors[0].message);
+  // Tiers: GraphQL v2 too (see backers.ts)
+  if (!tierSlug) {
+    return [];
   }
-  const members = processResult(data);
-  return members;
+  const tierSlugs = typeof tierSlug === 'string' ? tierSlug.split(',') : tierSlug;
+  return fetchTierBackers({ collectiveSlug, tierSlugs, isActive });
 }
 
 export async function fetchMembersWithCache(params: MembersParams): Promise<Member[]> {
