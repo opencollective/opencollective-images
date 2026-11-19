@@ -240,16 +240,19 @@ export async function fetchMembers({
     throw new Error('Collective not found.');
   }
 
+  // The largest accounts stay skipped: `opencollective` (75k+ backers) exhausted the API memory with the v1
+  // queries, `ofitech` likewise. Tiers still use v1; backer types are paginated now, but five pages of
+  // `opencollective` take about 20 seconds: to be lifted separately.
+  if (['ofitech', 'opencollective'].includes(collectiveSlug)) {
+    throw new Error('Collective not found.');
+  }
+
   // Backer types: GraphQL v2, paginated (see backers.ts)
   if (backerType) {
     return fetchBackers({ collectiveSlug, backerType, isActive });
   }
 
-  // Tiers: still GraphQL v1, which loads every order of the tier in one response. Too much for
-  // the largest accounts: `opencollective` (75k+ backers) exhausts the API memory, `ofitech` likewise.
-  if (['ofitech', 'opencollective'].includes(collectiveSlug)) {
-    throw new Error('Collective not found.');
-  }
+  // Tiers: still GraphQL v1, which loads every order of the tier in one response
   if (!tierSlug) {
     return [];
   }
