@@ -282,6 +282,21 @@ const tierOrdersQuery = gql /* GraphQL */ `
 const DAY = 24 * 60 * 60 * 1000;
 
 /**
+ * `date` minus `months` calendar months, clamped to the end of a shorter month (March 31 minus one
+ * month is February 28, February 29 minus a year is February 28), like v1's moment `subtract`.
+ * In UTC, the time zone of the API and of this service in production.
+ */
+const subtractMonths = (date: Date, months: number): Date => {
+  const result = new Date(date);
+  const day = result.getUTCDate();
+  result.setUTCDate(1);
+  result.setUTCMonth(result.getUTCMonth() - months);
+  const daysInMonth = new Date(Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0)).getUTCDate();
+  result.setUTCDate(Math.min(day, daysInMonth));
+  return result;
+};
+
+/**
  * v1 `Tier.orders(isActive: true)`: for a monthly tier, orders charged in the last month and 5 days;
  * for yearly and flexible tiers, the last year and 5 days; one-time tiers, every processed order.
  * (v1 looked for a non-refund transaction in that window; `lastChargedAt` is the latest charge.)
@@ -293,12 +308,7 @@ export const isActiveTierOrder = (order: TierOrder, frequency: string, now = new
   if (!order.lastChargedAt) {
     return false;
   }
-  const since = new Date(now);
-  if (frequency === 'MONTHLY') {
-    since.setMonth(since.getMonth() - 1);
-  } else {
-    since.setFullYear(since.getFullYear() - 1);
-  }
+  const since = subtractMonths(now, frequency === 'MONTHLY' ? 1 : 12);
   return new Date(order.lastChargedAt).getTime() >= since.getTime() - 5 * DAY;
 };
 

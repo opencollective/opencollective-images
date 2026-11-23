@@ -215,6 +215,17 @@ describe('backers', () => {
       expect(isActiveTierOrder(charged('2025-11-11T12:00:00Z'), 'YEARLY', now)).toBe(false);
       expect(isActiveTierOrder(charged('2025-11-13T12:00:00Z'), 'FLEXIBLE', now)).toBe(true);
     });
+
+    test('end of a shorter month: the previous month is clamped, as v1 did', () => {
+      // March 31 minus a month is February 28, so the window starts on February 23
+      const march31 = new Date('2026-03-31T12:00:00Z');
+      expect(isActiveTierOrder(charged('2026-02-24T12:00:00Z'), 'MONTHLY', march31)).toBe(true);
+      expect(isActiveTierOrder(charged('2026-02-22T12:00:00Z'), 'MONTHLY', march31)).toBe(false);
+      // February 29 minus a year is February 28, so the window starts on February 23
+      const leapDay = new Date('2028-02-29T12:00:00Z');
+      expect(isActiveTierOrder(charged('2027-02-24T12:00:00Z'), 'YEARLY', leapDay)).toBe(true);
+      expect(isActiveTierOrder(charged('2027-02-22T12:00:00Z'), 'YEARLY', leapDay)).toBe(false);
+    });
   });
 
   describe('fetchTierBackers', () => {
