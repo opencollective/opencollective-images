@@ -4,7 +4,6 @@ import {
   hasOwnImage,
   isActiveBacker,
   isActiveTierOrder,
-  MAX_BACKERS,
   toMember,
 } from '../../src/server/lib/backers';
 
@@ -248,7 +247,9 @@ describe('backers', () => {
         },
       },
     };
-    const ordersResponse = (orders) => ({ data: { tier: { id: 't', orders: { nodes: orders } } } });
+    const ordersResponse = (orders, totalCount = orders.length) => ({
+      data: { tier: { id: 't', orders: { totalCount, nodes: orders } } },
+    });
 
     test('reads the processed orders of the requested tiers, in the API order, unknown tiers adding nobody', async () => {
       graphqlRequestMock
@@ -268,8 +269,38 @@ describe('backers', () => {
 
       expect(members.map((m) => m.slug)).toEqual(['zoe', 'adam', 'eve']);
       expect(graphqlRequestMock).toHaveBeenCalledTimes(3);
-      expect(graphqlRequestMock.mock.calls[1][1]).toEqual({ tierId: 'tier-gold', limit: MAX_BACKERS });
-      expect(graphqlRequestMock.mock.calls[2][1]).toEqual({ tierId: 'tier-silver', limit: MAX_BACKERS });
+      expect(graphqlRequestMock.mock.calls[1][1]).toEqual({ tierId: 'tier-gold', limit: 1000, offset: 0 });
+      expect(graphqlRequestMock.mock.calls[2][1]).toEqual({ tierId: 'tier-silver', limit: 1000, offset: 0 });
+    });
+
+    test('large tiers: reads every page, so active orders beyond the first 1,000 are kept', async () => {
+      const lapsed = { lastChargedAt: '2020-01-01T00:00:00Z' };
+      const firstPage = Array.from({ length: 1000 }, (_, i) => order(`lapsed-${i}`, '2020-01-01T00:00:00Z', lapsed));
+      graphqlRequestMock
+        .mockResolvedValueOnce(tiersResponse)
+        .mockResolvedValueOnce(ordersResponse(firstPage, 1001))
+        .mockResolvedValueOnce(ordersResponse([order('active', '2024-01-01T00:00:00Z')], 1001));
+
+      const members = await fetchTierBackers({ collectiveSlug: 'babel', tierSlugs: ['gold'], isActive: true });
+
+      expect(members.map((m) => m.slug)).toEqual(['active']);
+      expect(graphqlRequestMock).toHaveBeenCalledTimes(3);
+      expect(graphqlRequestMock.mock.calls[2][1]).toEqual({ tierId: 'tier-gold', limit: 1000, offset: 1000 });
+    });
+
+    test('one-time tiers, active: every processed order, in the API order, as v1', async () => {
+      graphqlRequestMock
+        .mockResolvedValueOnce(tiersResponse)
+        .mockResolvedValueOnce(
+          ordersResponse([
+            order('zoe', '2024-01-01T00:00:00Z', { lastChargedAt: null }),
+            order('adam', '2023-01-01T00:00:00Z', { lastChargedAt: null }),
+          ]),
+        );
+
+      const members = await fetchTierBackers({ collectiveSlug: 'babel', tierSlugs: ['silver'], isActive: true });
+
+      expect(members.map((m) => m.slug)).toEqual(['zoe', 'adam']);
     });
 
     test('active only: keeps active orders, oldest first', async () => {

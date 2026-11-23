@@ -233,7 +233,7 @@ type TierOrder = {
   fromAccount: BackerAccount | null;
 };
 
-type TierOrdersResponse = { tier: { id: string; orders: { nodes: TierOrder[] } } | null };
+type TierOrdersResponse = { tier: { id: string; orders: { totalCount: number; nodes: TierOrder[] } } | null };
 
 /** v2 has no tier lookup by slug: list the account's tiers (as v1, whatever their type) and match the slugs */
 const tiersQuery = gql /* GraphQL */ `
@@ -254,10 +254,11 @@ const tiersQuery = gql /* GraphQL */ `
 `;
 
 const tierOrdersQuery = gql /* GraphQL */ `
-  query TierOrdersForImages($tierId: String!, $limit: Int!) {
+  query TierOrdersForImages($tierId: String!, $limit: Int!, $offset: Int!) {
     tier(tier: { id: $tierId }) {
       id
-      orders(limit: $limit) {
+      orders(limit: $limit, offset: $offset) {
+        totalCount
         nodes {
           createdAt
           processedAt
@@ -316,10 +317,12 @@ export const isActiveTierOrder = (order: TierOrder, frequency: string, now = new
  * The contributors of the tiers `tierSlugs` of `collectiveSlug` (`/:slug/tiers/:tierSlug.svg` and the
  * per-position tier routes), in the API's order, like v1 `Collective.tiers(slugs).orders(isProcessed:
  * true)`: the account of every processed order of the tier. An unknown tier slug adds nobody, as in v1.
- * At most `MAX_BACKERS` orders per tier.
+ * Orders are read by pages, up to `MAX_PAGES` pages per tier: the API doesn't sort them by date, so a
+ * large tier's active orders can be anywhere (webpack's `backer` tier has more than 2,000 orders).
  *
  * `isActive: true` keeps the orders v1 considered active (`isActiveTierOrder`), oldest first as v1 did;
- * otherwise all of them, in the API's order (the same as v1's).
+ * otherwise all of them, in the API's order (the same as v1's). For one-time tiers v1 ignored
+ * `isActive`: every processed order, in the API's order.
  * v2 `account.members(tier:)` isn't equivalent: a member keeps the tier of its first contribution.
  */
 export async function fetchTierBackers({
@@ -343,16 +346,24 @@ export async function fetchTierBackers({
 
   const accounts: BackerAccount[] = [];
   for (const tier of requestedTiers) {
-    const { data, errors } = await graphqlRequest<TierOrdersResponse>(
-      tierOrdersQuery,
-      { tierId: tier.id, limit: MAX_BACKERS },
-      { version: 'v2' },
-    );
-    if (errors?.length) {
-      throw new Error(errors[0].message);
+    const tierOrders: TierOrder[] = [];
+    for (let page = 0; page < MAX_PAGES; page++) {
+      const { data, errors } = await graphqlRequest<TierOrdersResponse>(
+        tierOrdersQuery,
+        { tierId: tier.id, limit: PAGE_SIZE, offset: page * PAGE_SIZE },
+        { version: 'v2' },
+      );
+      if (errors?.length) {
+        throw new Error(errors[0].message);
+      }
+      const nodes = data?.tier?.orders.nodes || [];
+      tierOrders.push(...nodes);
+      if (tierOrders.length >= (data?.tier?.orders.totalCount || 0) || nodes.length < PAGE_SIZE) {
+        break;
+      }
     }
-    let orders = (data?.tier?.orders.nodes || []).filter((order) => order.processedAt);
-    if (isActive === true) {
+    let orders = tierOrders.filter((order) => order.processedAt);
+    if (isActive === true && tier.frequency !== 'ONETIME') {
       // v1 returned active orders by id (its SQL grouped them by order), i.e. oldest first
       orders = orders
         .filter((order) => isActiveTierOrder(order, tier.frequency))
