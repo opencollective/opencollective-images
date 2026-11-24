@@ -9,12 +9,12 @@ import { getWebsite } from './utils';
 
 interface SvgBannerUser {
   slug?: string;
-  name?: string;
+  name?: string | null;
   type?: string;
-  image?: string;
-  website?: string;
-  twitterHandle?: string;
-  requestImageUrl?: string;
+  image?: string | null;
+  website?: string | null;
+  twitterHandle?: string | null;
+  requestImageUrl?: string | null;
 }
 
 interface SvgBannerOptions {
@@ -32,7 +32,7 @@ const WEBSITE_URL = process.env.WEBSITE_URL;
 
 const svgBannerRequestLimit = pLimit(Number(process.env.SVG_BANNER_REQUEST_CONCURRENCY) || 20);
 
-const getImageUrlForUser = (user: SvgBannerUser, height: number, options: SvgBannerOptions): string => {
+const getImageUrlForUser = (user: SvgBannerUser, height: number, options: SvgBannerOptions): string | null => {
   if (!user.image && (!user.name || user.name === 'anonymous') && !options.includeAnonymous) {
     return null;
   }

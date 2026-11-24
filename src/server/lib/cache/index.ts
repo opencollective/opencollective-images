@@ -1,6 +1,7 @@
 import debug from 'debug';
 
 import { logger } from '../../logger';
+import { getErrorMessage } from '../utils';
 
 import makeMemoryProvider from './memory';
 import type { CacheGetOptions, CacheProvider, CacheSetOptions } from './provider';
@@ -50,7 +51,7 @@ const cache = {
       const provider = await getDefaultProvider();
       return provider.clear();
     } catch (err) {
-      logger.warn(`Error while clearing cache: ${err.message}`);
+      logger.warn(`Error while clearing cache: ${getErrorMessage(err)}`);
     }
   },
   delete: async (key: string): Promise<unknown> => {
@@ -59,7 +60,7 @@ const cache = {
       const provider = await getDefaultProvider();
       return provider.delete(key);
     } catch (err) {
-      logger.warn(`Error while deleting from cache: ${err.message}`);
+      logger.warn(`Error while deleting from cache: ${getErrorMessage(err)}`);
     }
   },
   get: async <T = unknown>(key: string, options?: CacheGetOptions): Promise<T | undefined> => {
@@ -68,7 +69,7 @@ const cache = {
       const provider = await getDefaultProvider();
       return (await provider.get(key, options)) as T | undefined;
     } catch (err) {
-      logger.warn(`Error while fetching from cache: ${err.message}`);
+      logger.warn(`Error while fetching from cache: ${getErrorMessage(err)}`);
     }
   },
   has: async (key: string): Promise<boolean | null | undefined> => {
@@ -77,7 +78,7 @@ const cache = {
       const provider = await getDefaultProvider();
       return provider.has(key);
     } catch (err) {
-      logger.warn(`Error while checking from cache: ${err.message}`);
+      logger.warn(`Error while checking from cache: ${getErrorMessage(err)}`);
     }
   },
   set: async (
@@ -91,7 +92,7 @@ const cache = {
       const provider = await getDefaultProvider();
       return provider.set(key, value, expirationInSeconds, options);
     } catch (err) {
-      logger.warn(`Error while writing to cache: ${err.message}`);
+      logger.warn(`Error while writing to cache: ${getErrorMessage(err)}`);
     }
   },
 };

@@ -4,7 +4,7 @@ import debug from 'debug';
 import dotenv from 'dotenv';
 
 dotenv.config();
-debug.enable(process.env.DEBUG);
+debug.enable(process.env.DEBUG ?? '');
 
 const defaults: Record<string, string | number> = {
   PORT: 3001,

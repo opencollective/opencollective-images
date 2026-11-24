@@ -8,11 +8,11 @@ export interface Member {
   id?: number;
   type: string;
   slug: string;
-  name: string;
+  name: string | null;
   isGuest?: boolean;
-  image: string;
-  website: string;
-  twitterHandle: string;
+  image: string | null;
+  website: string | null;
+  twitterHandle: string | null;
 }
 
 type BackerAccount = {
@@ -26,6 +26,8 @@ type BackerAccount = {
 };
 
 type BackerRow = { id: string; isActive: boolean; tier: { id: string } | null; account: BackerAccount | null };
+
+type VisibleBackerRow = BackerRow & { account: BackerAccount };
 
 type BackersResponse = {
   account: { id: string; members: { totalCount: number; nodes: BackerRow[] } } | null;
@@ -210,20 +212,23 @@ export async function fetchBackers({
   }
 
   // Rows without a visible account (incognito backers) are left out, as v2 hides them
-  const visibleRows = rows.filter((row) => row.account);
+  const visibleRows = rows.filter((row): row is VisibleBackerRow => Boolean(row.account));
   const rowsByAccount = groupBy(visibleRows, (row) => row.account.slug);
   const activeContributors = isActive === true ? await fetchActiveContributorSlugs(collectiveSlug) : null;
   return uniqBy(visibleRows, (row) => row.account.slug)
     .filter(
       (row) =>
-        isActive !== true || isActiveBacker(rowsByAccount[row.account.slug], activeContributors.has(row.account.slug)),
+        activeContributors === null ||
+        isActiveBacker(rowsByAccount[row.account.slug], activeContributors.has(row.account.slug)),
     )
     .slice(0, MAX_BACKERS)
     .map((row) => toMember(row.account));
 }
 
+type BackerTier = { id: string; slug: string; frequency: string };
+
 type TiersResponse = {
-  account: { id: string; tiers?: { nodes: Array<{ id: string; slug: string; frequency: string }> } } | null;
+  account: { id: string; tiers?: { nodes: BackerTier[] } } | null;
 };
 
 type TierOrder = {
@@ -342,7 +347,9 @@ export async function fetchTierBackers({
     throw new Error('Collective not found.');
   }
   const tiers = tiersResult.data.account.tiers?.nodes || [];
-  const requestedTiers = tierSlugs.map((slug) => tiers.find((tier) => tier.slug === slug)).filter(Boolean);
+  const requestedTiers = tierSlugs
+    .map((slug) => tiers.find((tier) => tier.slug === slug))
+    .filter((tier): tier is BackerTier => Boolean(tier));
 
   const accounts: BackerAccount[] = [];
   for (const tier of requestedTiers) {
@@ -369,7 +376,9 @@ export async function fetchTierBackers({
         .filter((order) => isActiveTierOrder(order, tier.frequency))
         .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     }
-    accounts.push(...orders.map((order) => order.fromAccount).filter(Boolean));
+    accounts.push(
+      ...orders.map((order) => order.fromAccount).filter((account): account is BackerAccount => Boolean(account)),
+    );
   }
   return uniqBy(accounts.map(toMember), (member) => member.slug);
 }

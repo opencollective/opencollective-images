@@ -14,7 +14,7 @@ import { MAX_AVATAR_HEIGHT } from '../lib/constants';
 import { fetchCollectiveWithCache } from '../lib/graphql';
 import { normalizeSize } from '../lib/image-size';
 import { isRemoteImageUrl, resolveBundledImagePath } from '../lib/static-image';
-import { getUiAvatarUrl } from '../lib/utils';
+import { getErrorMessage, getUiAvatarUrl } from '../lib/utils';
 import { logger } from '../logger';
 import { sendUpstreamErrorStatus } from '../middlewares';
 
@@ -154,8 +154,8 @@ export default async function logo(req: LogoRequest, res: Response): Promise<Res
       });
     }
   } catch (err) {
-    if (!err.message.match(/No collective found/)) {
-      logger.error(`logo: ${err.message}`);
+    if (!getErrorMessage(err).match(/No collective found/)) {
+      logger.error(`logo: ${getErrorMessage(err)}`);
     }
   }
   if (!imageUrl) {
@@ -227,9 +227,9 @@ export default async function logo(req: LogoRequest, res: Response): Promise<Res
           finalImageBuffer = await sharpImage.toFormat(format as keyof FormatEnum).toBuffer();
         }
 
-        res.set('Content-Type', mime.lookup(format) as string).send(finalImageBuffer);
+        res.set('Content-Type', mime.lookup(format ?? '') as string).send(finalImageBuffer);
       } catch (err) {
-        logger.error(`logo: error processing ${imageUrl} (${err.message})`);
+        logger.error(`logo: error processing ${imageUrl} (${getErrorMessage(err)})`);
         res.set('Cache-Control', 'no-store');
         return res.status(500).send('Internal Server Error');
       }

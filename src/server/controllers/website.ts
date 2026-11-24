@@ -19,7 +19,7 @@ type WebsiteQuery = {
 
 type WebsiteRequest = Request<WebsiteParams, unknown, unknown, WebsiteQuery>;
 
-export default async function website(req: WebsiteRequest, res: Response): Promise<Response> {
+export default async function website(req: WebsiteRequest, res: Response): Promise<Response | void> {
   if (req.params.backerType && req.params.backerType === 'contributors') {
     return res.status(404).send('Not found');
   }
@@ -42,7 +42,7 @@ export default async function website(req: WebsiteRequest, res: Response): Promi
 
   const { collectiveSlug } = req.params;
 
-  const position = parseInt(req.params.position, 10);
+  const position = parseInt(req.params.position ?? '', 10);
 
   if (position > users.length) {
     return res.sendStatus(404);

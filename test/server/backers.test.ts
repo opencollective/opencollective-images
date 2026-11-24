@@ -25,11 +25,16 @@ const account = (overrides = {}) => ({
 });
 
 // Member rows: an account, or [account, { tier, isActive }] for its membership details
-const row = (entry, i) => {
-  const [a, { tier = null, isActive = true } = {}] = Array.isArray(entry) ? entry : [entry];
+type TestAccount = ReturnType<typeof account>;
+type RowDetails = { tier?: string | null; isActive?: boolean };
+type RowEntry = TestAccount | null | [TestAccount, RowDetails?];
+
+const row = (entry: RowEntry, i: number) => {
+  const [a, details]: [TestAccount | null, RowDetails?] = Array.isArray(entry) ? entry : [entry];
+  const { tier = null, isActive = true } = details ?? {};
   return { id: `m${i}`, isActive, tier: tier ? { id: tier } : null, account: a };
 };
-const response = (entries, totalCount = entries.length) => ({
+const response = (entries: RowEntry[], totalCount = entries.length) => ({
   data: { account: { id: 'abc', members: { totalCount, nodes: entries.map(row) } } },
 });
 
@@ -119,7 +124,7 @@ describe('backers', () => {
     });
 
     test('reads the next pages until every row is read', async () => {
-      const page = (prefix) => Array.from({ length: 1000 }, (_, i) => account({ slug: `${prefix}-${i}` }));
+      const page = (prefix: string) => Array.from({ length: 1000 }, (_, i) => account({ slug: `${prefix}-${i}` }));
       graphqlRequestMock
         .mockResolvedValueOnce(response(page('a'), 2500))
         .mockResolvedValueOnce(response(page('b'), 2500))
@@ -127,7 +132,9 @@ describe('backers', () => {
 
       const members = await fetchBackers({ collectiveSlug: 'babel', backerType: 'backers' });
 
-      expect(graphqlRequestMock.mock.calls.map((call) => call[1].offset)).toEqual([0, 1000, 2000]);
+      expect(graphqlRequestMock.mock.calls.map((call: [unknown, { offset: number }]) => call[1].offset)).toEqual([
+        0, 1000, 2000,
+      ]);
       // At most 1,000 backers in the list
       expect(members).toHaveLength(1000);
     });
@@ -192,7 +199,7 @@ describe('backers', () => {
 
   describe('isActiveTierOrder', () => {
     const now = new Date('2026-11-17T12:00:00Z');
-    const charged = (lastChargedAt) => ({
+    const charged = (lastChargedAt: string | null) => ({
       createdAt: '2020-01-01T00:00:00Z',
       processedAt: '2020-01-01T00:00:00Z',
       lastChargedAt,
@@ -228,7 +235,14 @@ describe('backers', () => {
   });
 
   describe('fetchTierBackers', () => {
-    const order = (slug, createdAt, { processedAt = createdAt, lastChargedAt = new Date().toISOString() } = {}) => ({
+    const order = (
+      slug: string,
+      createdAt: string,
+      {
+        processedAt = createdAt,
+        lastChargedAt = new Date().toISOString(),
+      }: { processedAt?: string | null; lastChargedAt?: string | null } = {},
+    ) => ({
       createdAt,
       processedAt,
       lastChargedAt,
@@ -247,7 +261,7 @@ describe('backers', () => {
         },
       },
     };
-    const ordersResponse = (orders, totalCount = orders.length) => ({
+    const ordersResponse = (orders: unknown[], totalCount = orders.length) => ({
       data: { tier: { id: 't', orders: { totalCount, nodes: orders } } },
     });
 

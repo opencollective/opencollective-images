@@ -9,8 +9,8 @@
     "allowJs": true,
     // Don't emit; allow Babel to transform files.
     "noEmit": true,
-    // Enable strictest settings like strictNullChecks & noImplicitAny.
-    "strict": false,
+    // Enable all strict type-checking options (strictNullChecks, noImplicitAny, ...).
+    "strict": true,
     // Import non-ES modules as default imports.
     "esModuleInterop": true,
     "checkJs": false,
