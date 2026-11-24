@@ -3,15 +3,16 @@
 # Description
 # ===========
 #
-# Pre-deploy hook. Does the following:
-#   1. Shows the commits about to be pushed
+# Deploy script. Does the following:
+#   1. Shows the commits about to be pushed (stops there if there are none)
 #   2. Ask for confirmation (exit with 1 if not confirming)
 #   3. Notify Slack
+#   4. Push origin/main to Heroku
 #
 #
 # Developing
 # ==========
-#
+# 
 # During development, the best way to test it is to call the script
 # directly with `./scripts/pre-deploy.sh staging|production`. You can also set
 # the `SLACK_CHANNEL` to your personnal channel so you don't flood the team.
@@ -31,9 +32,9 @@ fi
 # ---- Variables ----
 
 if [ "$1" == "staging" ]; then
-  DEPLOY_ORIGIN_URL="https://git.heroku.com/oc-staging-image-server.git"
+  HEROKU_APP="oc-staging-image-server"
 elif [ "$1" == "production" ]; then
-  DEPLOY_ORIGIN_URL="https://git.heroku.com/oc-prod-image-server.git"
+  HEROKU_APP="oc-prod-image-server"
 else
   echo "Unknwown remote $1"
   exit 1
@@ -41,6 +42,8 @@ fi
 
 PUSH_TO_SLACK=true # Setting this to false will echo the message instead of pushing to Slack
 SLACK_CHANNEL="CEZUS9WH3"
+
+DEPLOY_ORIGIN_URL="https://git.heroku.com/${HEROKU_APP}.git"
 
 LOCAL_ORIGIN="origin"
 PRE_DEPLOY_ORIGIN="predeploy-${1}"
@@ -50,7 +53,6 @@ PRE_DEPLOY_BRANCH="main"
 
 GIT_LOG_FORMAT_SHELL='short'
 GIT_LOG_FORMAT_SLACK='format:<https://github.com/opencollective/opencollective-images/commit/%H|[%ci]> *%an* %n_%<(80,trunc)%s_%n'
-GIT_LOG_COMPARISON="$PRE_DEPLOY_ORIGIN/$PRE_DEPLOY_BRANCH..$LOCAL_ORIGIN/$LOCAL_BRANCH"
 
 # ---- Utils ----
 
@@ -70,21 +72,95 @@ function confirm()
   return 1
 }
 
+function exit_if_push_is_noop()
+{
+  # A push only creates a release when it moves the Heroku git ref. After a rollback the ref can
+  # already point to origin/main while an older release runs: the push would then deploy nothing.
+  local heroku_ref heroku_head
+  # Checked on its own: through a pipe, a failed lookup would read as "no ref" and the deploy would go on
+  if ! heroku_ref=$(git ls-remote $DEPLOY_ORIGIN_URL "refs/heads/$PRE_DEPLOY_BRANCH"); then
+    echo "❌  Could not read the Heroku git remote of $HEROKU_APP."
+    exit 1
+  fi
+  heroku_head=$(cut -f1 <<< "$heroku_ref")
+  if [ "$heroku_head" == "$(git rev-parse $LOCAL_ORIGIN/$LOCAL_BRANCH)" ]; then
+    echo "❌  The Heroku git remote already points to $LOCAL_ORIGIN/$LOCAL_BRANCH, so pushing would not create a release (was the app rolled back?)."
+    echo "   Roll forward from the Heroku dashboard or with \`heroku releases:rollback <version> -a $HEROKU_APP\` (this also restores that release's config vars)."
+    exit 1
+  fi
+}
+
 function exit_success()
 {
   echo "🚀  Deploying now..."
-  exit 0
+  if [ "$1" == "staging" ]; then
+    PUSH_FLAGS="--force"
+  fi
+  git push $PUSH_FLAGS $DEPLOY_ORIGIN_URL "$LOCAL_ORIGIN/$LOCAL_BRANCH:refs/heads/$PRE_DEPLOY_BRANCH"
+  exit $?
 }
 
-# ---- Ensure we have a reference to the remote ----
-
-git remote add $PRE_DEPLOY_ORIGIN $DEPLOY_ORIGIN_URL &> /dev/null
+function get_deployed_commit()
+{
+  # Commit of the current Heroku release. Unlike the Heroku git remote, this is also
+  # correct when the app is deployed by the GitHub integration or rolled back.
+  # The latest release is not always the current one: a pending or failed release
+  # (release phase) leaves the previous release serving traffic.
+  # Returns 1 when the Heroku CLI is unavailable, 2 when no current release is found.
+  local token releases slug_id
+  command -v heroku &> /dev/null || return 1
+  token=$(heroku auth:token 2> /dev/null) || return 1
+  # 1000 is the largest page the Heroku API returns
+  releases=$(heroku releases -a "$HEROKU_APP" --json -n 1000 2> /dev/null) || return 1
+  slug_id=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync(0)).find(release => release.current)?.slug?.id ?? '')" <<< "$releases") || return 1
+  [ -n "$slug_id" ] || return 2
+  curl -s --fail \
+    -H "Authorization: Bearer $token" \
+    -H "Accept: application/vnd.heroku+json; version=3" \
+    "https://api.heroku.com/apps/$HEROKU_APP/slugs/$slug_id" \
+    | node -e "process.stdout.write(JSON.parse(require('fs').readFileSync(0)).commit ?? '')"
+}
 
 # ---- Show the commits about to be pushed ----
 
-# Update deploy remote
 echo "ℹ️  Fetching remote $1 state..."
-git fetch $PRE_DEPLOY_ORIGIN > /dev/null
+if ! git fetch $LOCAL_ORIGIN $LOCAL_BRANCH &> /dev/null; then
+  echo "❌  Could not fetch $LOCAL_ORIGIN/$LOCAL_BRANCH."
+  exit 1
+fi
+DEPLOYED_COMMIT=$(get_deployed_commit)
+if [ $? -eq 2 ]; then
+  # Falling back on the Heroku git remote could report "nothing to deploy" while older code runs
+  echo "❌  Could not find the current release of $HEROKU_APP in its latest 1000 releases."
+  exit 1
+fi
+
+if [ -n "$DEPLOYED_COMMIT" ] && git cat-file -e "$DEPLOYED_COMMIT^{commit}" &> /dev/null; then
+  GIT_LOG_COMPARISON="$DEPLOYED_COMMIT..$LOCAL_ORIGIN/$LOCAL_BRANCH"
+else
+  # Fallback on the Heroku git remote, which is only up to date when deploying with `git push`
+  echo "⚠️  Could not get the deployed commit from the Heroku CLI (is it installed and logged in?), using the Heroku git remote instead."
+  git remote add $PRE_DEPLOY_ORIGIN $DEPLOY_ORIGIN_URL &> /dev/null
+  if ! git fetch $PRE_DEPLOY_ORIGIN $PRE_DEPLOY_BRANCH > /dev/null; then
+    echo "❌  Could not fetch $PRE_DEPLOY_ORIGIN/$PRE_DEPLOY_BRANCH."
+    exit 1
+  fi
+  GIT_LOG_COMPARISON="$PRE_DEPLOY_ORIGIN/$PRE_DEPLOY_BRANCH..$LOCAL_ORIGIN/$LOCAL_BRANCH"
+fi
+
+# An error must not read as an empty list of commits ("nothing to deploy")
+if ! NEXT_COMMIT=$(git rev-list -n 1 $GIT_LOG_COMPARISON); then
+  echo "❌  Could not compare $GIT_LOG_COMPARISON."
+  exit 1
+fi
+
+if [ -z "$NEXT_COMMIT" ]; then
+  echo "✅  $1 is already up to date with $LOCAL_ORIGIN/$LOCAL_BRANCH ($(git rev-parse --short $LOCAL_ORIGIN/$LOCAL_BRANCH)), nothing to deploy."
+  exit 0
+fi
+
+# Before confirming and notifying Slack, so a deploy that cannot happen is not announced
+exit_if_push_is_noop
 
 echo ""
 echo "-------------- New commits --------------"
@@ -106,7 +182,7 @@ if [ -z "$OC_SLACK_DEPLOY_WEBHOOK" ]; then
   # Emit a warning as we don't want the deploy to crash just because we
   # havn't setup a Slack token. Get yours on https://api.slack.com/custom-integrations/legacy-tokens
   echo "ℹ️  OC_SLACK_DEPLOY_WEBHOOK is not set, I will not notify Slack about this deploy 😞  (please do it manually)"
-  exit_success
+  exit_success $1
 fi
 
 ESCAPED_CHANGELOG=$(
@@ -153,4 +229,4 @@ else
 fi
 
 # Always exit with 0 to continue the deploy even if slack notification failed
-exit_success
+exit_success $1

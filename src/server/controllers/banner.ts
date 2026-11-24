@@ -1,0 +1,99 @@
+import debug from 'debug';
+import type { Request, Response } from 'express';
+
+import { fetchMembersWithCache } from '../lib/graphql';
+import { generateSvgBanner } from '../lib/svg-banner';
+import { parseToBooleanDefaultFalse, parseToBooleanDefaultTrue, randomInteger } from '../lib/utils';
+
+type BannerParams = Record<string, string> & {
+  collectiveSlug: string;
+  tierSlug?: string;
+  backerType?: string;
+  isActive?: boolean;
+};
+
+type BannerQuery = {
+  limit?: string;
+  width?: string;
+  height?: string;
+  avatarHeight?: string;
+  margin?: string;
+  button?: string;
+  includeAnonymous?: string;
+  isActive?: string;
+};
+
+type BannerRequest = Request<BannerParams, unknown, unknown, BannerQuery>;
+
+const imagesUrl = process.env.IMAGES_URL;
+
+const debugBanner = debug('banner');
+
+const oneDayInSeconds = 60 * 60 * 24;
+
+export default async function banner(req: BannerRequest, res: Response): Promise<Response | void> {
+  const { collectiveSlug, tierSlug, backerType } = req.params;
+  const limit = Number(req.query.limit) || Infinity;
+  const width = Number(req.query.width) || 0;
+  const height = Number(req.query.height) || 0;
+  const { avatarHeight, margin } = req.query;
+  const showBtn = parseToBooleanDefaultTrue(req.query.button);
+
+  // handle includeAnonymous, default to true for tiers
+  let includeAnonymous;
+  if (req.query.includeAnonymous !== undefined) {
+    includeAnonymous = parseToBooleanDefaultFalse(req.query.includeAnonymous);
+  } else {
+    includeAnonymous = tierSlug ? true : false;
+  }
+
+  // handle isActive default to true for tiers
+  if (req.query.isActive !== undefined) {
+    req.params.isActive = parseToBooleanDefaultFalse(req.query.isActive);
+  } else {
+    req.params.isActive = tierSlug ? true : false;
+  }
+
+  let users;
+  try {
+    users = await fetchMembersWithCache(req.params);
+  } catch (e) {
+    return res.status(404).send('Not found');
+  }
+
+  let buttonImage;
+  if (showBtn) {
+    const selector = tierSlug || backerType;
+    if (selector.match(/sponsor/)) {
+      buttonImage = `${imagesUrl}/static/images/become_sponsor.svg`;
+    } else if (selector.match(/backer/)) {
+      buttonImage = `${imagesUrl}/static/images/become_backer.svg`;
+    } else {
+      buttonImage = `${imagesUrl}/static/images/contribute.svg`;
+    }
+  }
+
+  if (backerType) {
+    debugBanner(`generating for ${collectiveSlug} (backerType=${backerType})`);
+  } else if (tierSlug) {
+    debugBanner(`generating for ${collectiveSlug} (tierSlug=${tierSlug})`);
+  }
+
+  const maxAge = oneDayInSeconds + randomInteger(3600);
+
+  // Rejections are forwarded by Express to the error handlers (Sentry + logger)
+  return generateSvgBanner(users, {
+    limit,
+    buttonImage,
+    width,
+    height,
+    avatarHeight,
+    margin,
+    collectiveSlug,
+    includeAnonymous,
+  }).then((content) => {
+    res.setHeader('Content-Type', 'image/svg+xml;charset=utf-8');
+    res.setHeader('Cache-Control', `public, max-age=${maxAge}`);
+    res.send(content);
+  });
+}

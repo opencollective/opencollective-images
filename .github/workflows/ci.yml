@@ -28,9 +28,6 @@ env:
   IMAGES_FOLDER: /home/runner/work/opencollective-images/opencollective-images
   PG_DATABASE: opencollective_dvl
 
-permissions:
-  contents: read
-
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -46,6 +43,10 @@ jobs:
 
       # Npm cache
 
+      - name: Get Node major version
+        id: node-major
+        run: echo "version=$(node -p 'process.versions.node.split(`.`)[0]')" >> "$GITHUB_OUTPUT"
+
       - name: Restore .npm cache
         uses: actions/cache@v6
         with:
@@ -60,13 +61,57 @@ jobs:
         id: node-modules
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-node${{ steps.node-major.outputs.version }}-node-modules-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
         if: steps.node-modules.outputs.cache-hit != 'true'
         run: npm ci --prefer-offline --no-audit
 
       - run: npm run lint:quiet
+
+  typescript:
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 15
+
+    steps:
+      - name: Update apt
+        run: sudo apt-get update || exit 0
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: 'package.json'
+
+      # Npm cache
+
+      - name: Get Node major version
+        id: node-major
+        run: echo "version=$(node -p 'process.versions.node.split(`.`)[0]')" >> "$GITHUB_OUTPUT"
+      - name: Restore .npm cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-cache-${{ github.sha }}
+          restore-keys: |
+            - ${{ runner.os }}-npm-cache-${{ github.sha }}
+            - ${{ runner.os }}-npm-cache-
+
+      - name: Restore node_modules
+        uses: actions/cache@v6
+        id: node-modules
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node${{ steps.node-major.outputs.version }}-node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.node-modules.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit
+
+      - run: npm run type:check
 
   prettier:
     runs-on: ubuntu-latest
@@ -82,6 +127,10 @@ jobs:
 
       # Npm cache
 
+      - name: Get Node major version
+        id: node-major
+        run: echo "version=$(node -p 'process.versions.node.split(`.`)[0]')" >> "$GITHUB_OUTPUT"
+
       - name: Restore .npm cache
         uses: actions/cache@v6
         with:
@@ -96,7 +145,7 @@ jobs:
         id: node-modules
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-node${{ steps.node-major.outputs.version }}-node-modules-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
         if: steps.node-modules.outputs.cache-hit != 'true'
@@ -118,6 +167,10 @@ jobs:
 
       # Npm cache
 
+      - name: Get Node major version
+        id: node-major
+        run: echo "version=$(node -p 'process.versions.node.split(`.`)[0]')" >> "$GITHUB_OUTPUT"
+
       - name: Restore .npm cache
         uses: actions/cache@v6
         with:
@@ -132,7 +185,7 @@ jobs:
         id: node-modules
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-node${{ steps.node-major.outputs.version }}-node-modules-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
         if: steps.node-modules.outputs.cache-hit != 'true'
@@ -144,12 +197,11 @@ jobs:
 
     services:
       redis:
-        image: redis@sha256:2c2dff791878316e3b083188be0d578423b24813cdda5de0e80ea4f7b3e6bfd6
+        image: valkey/valkey:9.1
         ports:
           - 6379:6379
-        options: --entrypoint redis-server
       postgres:
-        image: postgres:16.15@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
+        image: postgres:16.16
         env:
           POSTGRES_USER: postgres
           POSTGRES_DB: postgres
@@ -191,16 +243,24 @@ jobs:
 
       # Prepare API
 
+      - name: Get Node major version
+        id: node-major
+        run: echo "version=$(node -p 'process.versions.node.split(`.`)[0]')" >> "$GITHUB_OUTPUT"
+
       - name: Restore node_modules (api)
         uses: actions/cache@v6
         id: api-node-modules
         with:
           path: opencollective-api/node_modules
-          key: ${{ runner.os }}-api-node-modules-${{ hashFiles('opencollective-api/package-lock.json') }}
+          key: ${{ runner.os }}-node${{ steps.node-major.outputs.version }}-api-node-modules-${{ hashFiles('opencollective-api/package-lock.json') }}
 
+      # api's postinstall would restore the DB with the runner's PostgreSQL 18 tools; the steps below restore and migrate it
       - name: Install dependencies (api)
         working-directory: opencollective-api
         if: steps.api-node-modules.outputs.cache-hit != 'true'
+        env:
+          npm_config_engine_strict: 'false'
+          SKIP_POSTINSTALL: 1
         run: npm ci --prefer-offline --no-audit
 
       - name: Build (api)
@@ -215,7 +275,7 @@ jobs:
         id: images-node-modules
         with:
           path: node_modules
-          key: ${{ runner.os }}-images-node-modules-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-node${{ steps.node-major.outputs.version }}-images-node-modules-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies (images)
         if: steps.images-node-modules.outputs.cache-hit != 'true'

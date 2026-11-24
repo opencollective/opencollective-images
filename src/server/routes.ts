@@ -1,0 +1,87 @@
+import type { Application } from 'express';
+
+import { isValidDebugSentryKey } from './lib/sentry';
+import controllers from './controllers';
+import { maxAge } from './middlewares';
+
+const maxAgeOneDay = maxAge(24 * 60 * 60);
+const maxAgeTwoHours = maxAge(2 * 60 * 60);
+
+export const loadRoutes = (app: Application): void => {
+  app.get('/', (req, res) => {
+    res.send('This is the Open Collective images server.');
+  });
+
+  /**
+   * Triggers an error to check that Sentry reporting works end-to-end. Protected by the
+   * `DEBUG_SENTRY_KEY` shared secret, behaves like an unknown route otherwise.
+   * Format: /debug-sentry?key=:key
+   */
+  app.get('/debug-sentry', (req, res, next) => {
+    if (!isValidDebugSentryKey(req.query.key)) {
+      return next();
+    }
+    throw new Error('Sentry debug error triggered via /debug-sentry');
+  });
+
+  /**
+   * Proxy images and resize them on the fly
+   * Format: /proxy/images?src=:encoded_url&width=:width
+   */
+  app.get('/proxy/images', maxAgeOneDay, controllers.proxy);
+
+  /**
+   * Prevent indexation from search engines
+   * (out of 'production' environment)
+   */
+  app.get('/robots.txt', (req, res) => {
+    res.setHeader('Content-Type', 'text/plain');
+    if (process.env.NODE_ENV !== 'production' || process.env.ROBOTS_DISALLOW) {
+      res.send('User-agent: *\nDisallow: /');
+    } else {
+      res.send('User-agent: *\nAllow: /');
+    }
+  });
+
+  // Express 5 (path-to-regexp v8) dropped optional and regex-constrained params from string patterns.
+  // These routes keep the exact Express 4 matching (optional hash, style, height and width; format
+  // whitelist) with regular expressions; named groups populate req.params like before. The `i` flag
+  // and the optional trailing slash mirror Express's default case-insensitive, non-strict routing.
+
+  // Route for user avatars or organization logos
+  app.get(
+    /^\/(?<collectiveSlug>[^/]+?)(?:\/(?<hash>[^/]+?))?\/(?<image>avatar|logo)(?:\/(?<style>rounded|square))?(?:\/(?<height>[^/]+?))?(?:\/(?<width>[^/]+?))?\.(?<format>png|jpg|svg)\/?$/i,
+    maxAgeOneDay,
+    controllers.logo,
+  );
+
+  app.get(
+    /^\/(?<collectiveSlug>[^/]+?)(?:\/(?<hash>[^/]+?))?\/background(?:\/(?<height>[^/]+?))?(?:\/(?<width>[^/]+?))?\.(?<format>png|jpg)\/?$/i,
+    maxAgeTwoHours,
+    controllers.background,
+  );
+
+  app.get('/:collectiveSlug/:backerType.svg', controllers.banner);
+
+  app.get('/:collectiveSlug/:backerType/badge.svg', controllers.badge);
+
+  app.get('/:collectiveSlug/:backerType/:position/website', controllers.website);
+
+  app.get(
+    /^\/(?<collectiveSlug>[^/]+?)\/(?<backerType>[^/]+?)\/(?<position>[^/]+?)\/avatar(?:\.(?<format>png|jpg|svg))?\/?$/i,
+    maxAgeTwoHours,
+    controllers.avatar,
+  );
+
+  app.get('/:collectiveSlug/tiers/:tierSlug.svg', controllers.banner);
+
+  app.get('/:collectiveSlug/tiers/:tierSlug/badge.svg', controllers.badge);
+
+  app.get('/:collectiveSlug/tiers/:tierSlug/:position/website', controllers.website);
+
+  app.get(
+    /^\/(?<collectiveSlug>[^/]+?)\/tiers\/(?<tierSlug>[^/]+?)\/(?<position>[^/]+?)\/avatar(?:\.(?<format>png|jpg|svg))?\/?$/i,
+    maxAgeTwoHours,
+    controllers.avatar,
+  );
+};

@@ -1,0 +1,238 @@
+import fs from 'fs';
+import path from 'path';
+
+import debug from 'debug';
+import type { Request, Response } from 'express';
+import sizeOf from 'image-size';
+import mime from 'mime-types';
+
+import { MAX_AVATAR_HEIGHT } from '../lib/constants';
+import { fetchMembersWithCache } from '../lib/graphql';
+import { normalizeSize } from '../lib/image-size';
+import { imageRequest } from '../lib/request';
+import { parseToBooleanDefaultFalse, parseToBooleanDefaultTrue } from '../lib/utils';
+import { logger } from '../logger';
+import { sendUpstreamErrorStatus } from '../middlewares';
+
+type AvatarParams = Record<string, string> & {
+  collectiveSlug: string;
+  backerType?: string;
+  tierSlug?: string;
+  position?: string;
+  format?: string;
+  hash?: string;
+  isActive?: boolean;
+};
+
+type AvatarQuery = {
+  isActive?: string;
+  avatarHeight?: string;
+};
+
+type AvatarRequest = Request<AvatarParams, unknown, unknown, AvatarQuery>;
+
+interface ImageAsSvgOptions {
+  maxHeight?: number;
+  imageHeight?: number;
+  imageWidth?: number;
+  selector: string;
+  imageFormat?: string;
+}
+
+const debugAvatar = debug('avatar');
+
+const imagesUrl = process.env.IMAGES_URL;
+
+const getSvg = (svgPath: string): string => fs.readFileSync(path.join(__dirname, svgPath), { encoding: 'utf8' });
+
+const anonymousSvg = getSvg('../../static/images/default-anonymous-logo.svg');
+const guestSvg = getSvg('../../static/images/default-guest-logo.svg');
+
+const sendSvg = (res: Response, svg: string): Response => {
+  res.setHeader('Cache-Control', 'public, max-age=7200');
+  res.setHeader('Content-Type', 'image/svg+xml;charset=utf-8');
+  return res.send(svg);
+};
+
+const imageAsSvg = (
+  buffer: Buffer,
+  { maxHeight, imageHeight, imageWidth, selector, imageFormat }: ImageAsSvgOptions,
+): string => {
+  const contentType = mime.lookup(imageFormat);
+
+  imageHeight = imageHeight ?? Math.round(maxHeight / 2);
+  imageWidth = imageWidth ?? 64;
+
+  if (selector.match(/sponsor/)) {
+    try {
+      const dimensions = sizeOf(buffer);
+      imageWidth = Math.round((dimensions.width / dimensions.height) * imageHeight);
+    } catch (err) {
+      throw new Error('Unable to get image size.', { cause: err });
+    }
+  }
+
+  const base64data = buffer.toString('base64');
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${imageWidth}" height="${imageHeight}">
+        <image width="${imageWidth}" height="${imageHeight}" xlink:href="data:${contentType};base64,${base64data}"/>
+      </svg>`;
+};
+
+const proxyImage = async (
+  req: AvatarRequest,
+  res: Response,
+  imageUrl: string,
+  { imageFormat }: { imageFormat: string },
+): Promise<Response> => {
+  const response = await imageRequest(imageUrl);
+  if (response.statusCode !== 200) {
+    return sendUpstreamErrorStatus(res, response.statusCode);
+  }
+  const image = response.body;
+  if (image.byteLength === 0) {
+    return res.status(400).send('Invalid Image');
+  }
+
+  res.setHeader('Cache-Control', 'public, max-age=7200');
+  res.setHeader('Content-Type', mime.lookup(imageFormat) as string);
+
+  return res.send(image);
+};
+
+export default async function avatar(req: AvatarRequest, res: Response): Promise<Response | void> {
+  if (req.params.backerType && req.params.backerType === 'contributors') {
+    return res.status(404).send('Not found');
+  }
+
+  if (
+    req.params.backerType &&
+    (req.params.backerType.match(/organization/i) || req.params.backerType.match(/individual/i))
+  ) {
+    req.params.isActive = parseToBooleanDefaultFalse(req.query.isActive);
+  } else {
+    req.params.isActive = parseToBooleanDefaultTrue(req.query.isActive);
+  }
+
+  let users;
+  try {
+    users = await fetchMembersWithCache(req.params);
+  } catch (err) {
+    // Invalid collectiveSlug (not found) or No collective found with slug
+    if (err.message.match(/not found/) || err.message.match(/No collective found/)) {
+      return res.status(404).send('Not found');
+    }
+    logger.error(`avatar: error while fetching members (${err.message})`);
+    return res.status(400).send('Unable to fetch avatar');
+  }
+
+  const { tierSlug, backerType } = req.params;
+
+  const format = req.params.format || 'svg';
+  const selector = tierSlug || backerType;
+  const position = parseInt(req.params.position, 10);
+  const user = position < users.length ? users[position] : {};
+
+  // Unexisting position or button
+  if (position === users.length) {
+    let buttonImage;
+    if (selector.match(/sponsor/)) {
+      buttonImage = `${imagesUrl}/static/images/become_sponsor.svg`;
+    } else if (selector.match(/backer/)) {
+      buttonImage = `${imagesUrl}/static/images/become_backer.svg`;
+    } else {
+      buttonImage = `${imagesUrl}/static/images/contribute.svg`;
+    }
+    return res.redirect(buttonImage);
+  } else if (position > users.length) {
+    return res.redirect(`${imagesUrl}/static/images/1px.png`);
+  }
+
+  let maxHeight, maxWidth;
+
+  if (req.query.avatarHeight) {
+    maxHeight = Number(req.query.avatarHeight);
+    if (maxHeight > MAX_AVATAR_HEIGHT) {
+      maxHeight = normalizeSize(maxHeight, MAX_AVATAR_HEIGHT);
+    }
+  } else {
+    maxHeight = format === 'svg' ? 128 : 64;
+    if (selector.match(/silver/)) {
+      maxHeight *= 1.25;
+    }
+    if (selector.match(/gold/)) {
+      maxHeight *= 1.5;
+    }
+    if (selector.match(/diamond/)) {
+      maxHeight *= 2;
+    }
+    maxWidth = maxHeight * 3;
+  }
+
+  const imageFormat = format === 'jpg' ? format : 'png';
+
+  // Special cases for USER
+  if (user.type === 'USER') {
+    // Anonymous
+    if (!user.name || user.name === 'anonymous') {
+      const imageHeight = Math.round(maxHeight / 2);
+      return sendSvg(
+        res,
+        anonymousSvg.replace('width="88"', `width="${imageHeight}"`).replace('height="88"', `height="${imageHeight}"`),
+      );
+    } else if (user.isGuest && user.name === 'Guest') {
+      const imageHeight = Math.round(maxHeight / 2);
+      return sendSvg(
+        res,
+        guestSvg.replace('width="96"', `width="${imageHeight}"`).replace('height="96"', `height="${imageHeight}"`),
+      );
+    }
+
+    // Normal image
+    const imageUrl = `${process.env.IMAGES_URL}/${user.slug}/avatar/rounded/${maxHeight}.${imageFormat}`;
+    debugAvatar(`Serving ${imageUrl} for ${user.slug} (type=USER)`);
+    try {
+      if (format === 'svg') {
+        const response = await imageRequest(imageUrl);
+        if (response.statusCode !== 200) {
+          return sendUpstreamErrorStatus(res, response.statusCode);
+        }
+        const image = response.body;
+        if (image.byteLength === 0) {
+          return res.status(400).send('Invalid Image');
+        }
+        return sendSvg(res, imageAsSvg(image, { selector, maxHeight, imageFormat }));
+      } else {
+        return proxyImage(req, res, imageUrl, { imageFormat });
+      }
+    } catch (err) {
+      logger.error(`avatar: unable to serve ${imageUrl} for ${user.slug}: ${err.message}`);
+      res.set('Cache-Control', 'no-store');
+      return res.status(400).send('Unable to fetch image.');
+    }
+  }
+
+  // Default case (likely Organizations)
+  const imageUrl = `${process.env.IMAGES_URL}/${user.slug}/logo/square/${maxHeight}/${maxWidth}.${imageFormat}`;
+  debugAvatar(`Serving ${imageUrl} for ${user.slug} (default)`);
+  try {
+    if (format === 'svg') {
+      const response = await imageRequest(imageUrl);
+      if (response.statusCode !== 200) {
+        return sendUpstreamErrorStatus(res, response.statusCode);
+      }
+      const image = response.body;
+      if (image.byteLength === 0) {
+        return res.status(400).send('Invalid Image');
+      }
+      const imageHeight = Math.round(maxHeight / 2);
+      const imageWidth = maxWidth ? Math.round(maxWidth / 2) : undefined;
+      return sendSvg(res, imageAsSvg(image, { selector, imageHeight, imageWidth, imageFormat }));
+    } else {
+      return proxyImage(req, res, imageUrl, { imageFormat });
+    }
+  } catch (err) {
+    logger.error(`avatar: unable to serve ${imageUrl} for ${user.slug}: ${err.message}`);
+    res.set('Cache-Control', 'no-store');
+    return res.status(400).send('Unable to fetch image.');
+  }
+}

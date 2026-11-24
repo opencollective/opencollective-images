@@ -11,6 +11,11 @@
     ]
   ],
   "plugins": [
-    "lodash"
+    [
+      "@babel/plugin-transform-typescript",
+      {
+        "allowDeclareFields": true
+      }
+    ]
   ]
 }
