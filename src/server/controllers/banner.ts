@@ -4,7 +4,6 @@ import type { Request, Response } from 'express';
 import { fetchMembersWithCache } from '../lib/graphql';
 import { generateSvgBanner } from '../lib/svg-banner';
 import { parseToBooleanDefaultFalse, parseToBooleanDefaultTrue, randomInteger } from '../lib/utils';
-import { logger } from '../logger';
 
 type BannerParams = Record<string, string> & {
   collectiveSlug: string;
@@ -82,6 +81,7 @@ export default async function banner(req: BannerRequest, res: Response): Promise
 
   const maxAge = oneDayInSeconds + randomInteger(3600);
 
+  // Rejections are forwarded by Express to the error handlers (Sentry + logger)
   return generateSvgBanner(users, {
     limit,
     buttonImage,
@@ -91,13 +91,9 @@ export default async function banner(req: BannerRequest, res: Response): Promise
     margin,
     collectiveSlug,
     includeAnonymous,
-  })
-    .then((content) => {
-      res.setHeader('Content-Type', 'image/svg+xml;charset=utf-8');
-      res.setHeader('Cache-Control', `public, max-age=${maxAge}`);
-      res.send(content);
-    })
-    .catch((e) => {
-      logger.error('>>> collectives.banner error', e);
-    });
+  }).then((content) => {
+    res.setHeader('Content-Type', 'image/svg+xml;charset=utf-8');
+    res.setHeader('Cache-Control', `public, max-age=${maxAge}`);
+    res.send(content);
+  });
 }

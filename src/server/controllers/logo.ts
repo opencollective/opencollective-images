@@ -13,6 +13,7 @@ import sharp from 'sharp';
 import { MAX_AVATAR_HEIGHT } from '../lib/constants';
 import { fetchCollectiveWithCache } from '../lib/graphql';
 import { normalizeSize } from '../lib/image-size';
+import { reportErrorToSentry } from '../lib/sentry';
 import { isRemoteImageUrl, resolveBundledImagePath } from '../lib/static-image';
 import { getUiAvatarUrl } from '../lib/utils';
 import { logger } from '../logger';
@@ -230,6 +231,10 @@ export default async function logo(req: LogoRequest, res: Response): Promise<Res
         res.set('Content-Type', mime.lookup(format) as string).send(finalImageBuffer);
       } catch (err) {
         logger.error(`logo: error processing ${imageUrl} (${err.message})`);
+        // Unreachable remote images (node-fetch's `FetchError`) are not bugs on our side
+        if (err.name !== 'FetchError') {
+          reportErrorToSentry(err, { tags: { controller: 'logo' }, extra: { imageUrl } });
+        }
         res.set('Cache-Control', 'no-store');
         return res.status(500).send('Internal Server Error');
       }

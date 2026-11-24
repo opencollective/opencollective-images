@@ -11,6 +11,7 @@ import {
   MAX_PROXY_IMAGE_PIXELS,
   PROXY_FETCH_TIMEOUT,
 } from '../lib/constants';
+import { reportErrorToSentry } from '../lib/sentry';
 import { parseToBooleanDefaultFalse } from '../lib/utils';
 import { logger } from '../logger';
 import { sendUpstreamErrorStatus } from '../middlewares';
@@ -162,6 +163,7 @@ export default async function proxy(req: ProxyRequest, res: Response): Promise<v
     await handleProxy(req, res);
   } catch (err) {
     logger.error(`proxy: unexpected error (${err.message})`);
+    reportErrorToSentry(err, { tags: { controller: 'proxy' } });
     if (!res.headersSent) {
       res.status(500).send('Internal Server Error');
     }

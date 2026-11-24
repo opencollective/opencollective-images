@@ -35,6 +35,15 @@ If case you want to connect to the Open Collective API running locally:
 - clone, install and start [opencollective-api](https://github.com/opencollective/opencollective-api)
 - in this project, copy [`.env.local`](.env.local) to `.env`.
 
+### Error tracking (Sentry)
+
+Errors are reported to Sentry when `SENTRY_DSN` is set (never in `test`). The SDK is initialized in
+[`src/server/instrument.ts`](src/server/instrument.ts), which must stay the first import of the server.
+
+- `SENTRY_ENVIRONMENT`: defaults to `OC_ENV`
+- `SENTRY_TRACES_SAMPLE_RATE`: between `0` and `1`, defaults to `0` (tracing disabled)
+- `DEBUG_SENTRY_KEY`: when set, `GET /debug-sentry?key=<key>` throws a test error. Without the right key, the endpoint behaves like an unknown route.
+
 ### Start
 
 ```

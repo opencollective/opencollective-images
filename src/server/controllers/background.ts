@@ -7,6 +7,7 @@ import sharp from 'sharp';
 import { fetchCollectiveWithCache } from '../lib/graphql';
 import { normalizeSize } from '../lib/image-size';
 import { asyncRequest } from '../lib/request';
+import { reportErrorToSentry } from '../lib/sentry';
 import { logger } from '../logger';
 
 type BackgroundParams = Record<string, string> & {
@@ -85,6 +86,7 @@ export default async function background(
     res.set('Content-Type', mime.lookup(format) as string).send(resizedImage);
   } catch (err) {
     logger.error(`background: error processing ${imageUrl} (${err.message})`);
+    reportErrorToSentry(err, { tags: { controller: 'background' }, extra: { imageUrl } });
     return res.status(500).send('Internal Server Error');
   }
 }

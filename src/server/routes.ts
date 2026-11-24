@@ -1,5 +1,6 @@
 import type { Application } from 'express';
 
+import { isValidDebugSentryKey } from './lib/sentry';
 import controllers from './controllers';
 import { maxAge } from './middlewares';
 
@@ -9,6 +10,18 @@ const maxAgeTwoHours = maxAge(2 * 60 * 60);
 export const loadRoutes = (app: Application): void => {
   app.get('/', (req, res) => {
     res.send('This is the Open Collective images server.');
+  });
+
+  /**
+   * Triggers an error to check that Sentry reporting works end-to-end. Protected by the
+   * `DEBUG_SENTRY_KEY` shared secret, behaves like an unknown route otherwise.
+   * Format: /debug-sentry?key=:key
+   */
+  app.get('/debug-sentry', (req, res, next) => {
+    if (!isValidDebugSentryKey(req.query.key)) {
+      return next();
+    }
+    throw new Error('Sentry debug error triggered via /debug-sentry');
   });
 
   /**

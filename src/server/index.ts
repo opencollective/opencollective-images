@@ -1,8 +1,10 @@
-import './env';
+// Must be the first import, see https://docs.sentry.io/platforms/javascript/guides/express/
+import './instrument';
 
 import http from 'http';
 import path from 'path';
 
+import * as Sentry from '@sentry/node';
 import type { Application } from 'express';
 import express from 'express';
 
@@ -24,6 +26,9 @@ hyperwatch.load(app, { server });
 app.use(securityHeaders);
 
 loadRoutes(app);
+
+// Reports errors passed to Express (thrown, rejected or sent with `next(err)`) with a 5xx status
+Sentry.setupExpressErrorHandler(app);
 
 app.use(loggerMiddleware.errorLogger);
 
