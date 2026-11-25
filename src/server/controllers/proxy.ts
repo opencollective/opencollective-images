@@ -11,7 +11,7 @@ import {
   MAX_PROXY_IMAGE_PIXELS,
   PROXY_FETCH_TIMEOUT,
 } from '../lib/constants';
-import { parseToBooleanDefaultFalse } from '../lib/utils';
+import { getErrorMessage, getErrorType, parseToBooleanDefaultFalse } from '../lib/utils';
 import { logger } from '../logger';
 import { sendUpstreamErrorStatus } from '../middlewares';
 
@@ -52,17 +52,22 @@ function parseDimension(value: unknown): number | undefined {
 
 // A blocked address (request-filtering-agent) or an oversized download is the source's fault: a
 // cacheable 400. Anything else (timeout, reset, DNS failure) is transient and must not be cached.
-function isInvalidSourceError(err: { type?: string; message?: string }): boolean {
-  return err.type === 'max-size' || /is not allowed/.test(err.message);
+function isInvalidSourceError(err: unknown): boolean {
+  return getErrorType(err) === 'max-size' || /is not allowed/.test(getErrorMessage(err));
 }
 
-function sendUpstreamFailure(res: Response, err: { type?: string }): Response {
+function sendUpstreamFailure(res: Response, err: unknown): Response {
+  const type = getErrorType(err);
   res.set('Cache-Control', 'no-store');
-  return res.sendStatus(err.type === 'request-timeout' || err.type === 'body-timeout' ? 504 : 502);
+  return res.sendStatus(type === 'request-timeout' || type === 'body-timeout' ? 504 : 502);
 }
 
 async function handleProxy(req: ProxyRequest, res: Response): Promise<Response | void> {
   const { src: imageUrl, width, height } = req.query;
+
+  if (imageUrl === undefined) {
+    return res.status(400).send('Invalid parameter: "src"');
+  }
 
   let parsedUrl;
   try {
@@ -94,10 +99,10 @@ async function handleProxy(req: ProxyRequest, res: Response): Promise<Response |
   } catch (err) {
     controller.abort();
     if (!isInvalidSourceError(err)) {
-      logger.warn(`proxy: unable to reach ${imageUrl} (${err.message})`);
+      logger.warn(`proxy: unable to reach ${imageUrl} (${getErrorMessage(err)})`);
       return sendUpstreamFailure(res, err);
     }
-    logger.info(`proxy: blocked or invalid ${imageUrl} (${err.message})`);
+    logger.info(`proxy: blocked or invalid ${imageUrl} (${getErrorMessage(err)})`);
     return res.status(400).send('Invalid parameter: "src"');
   }
   if (!response.ok) {
@@ -116,10 +121,10 @@ async function handleProxy(req: ProxyRequest, res: Response): Promise<Response |
   } catch (err) {
     controller.abort();
     if (!isInvalidSourceError(err)) {
-      logger.warn(`proxy: unable to download ${imageUrl} (${err.message})`);
+      logger.warn(`proxy: unable to download ${imageUrl} (${getErrorMessage(err)})`);
       return sendUpstreamFailure(res, err);
     }
-    logger.info(`proxy: unable to download ${imageUrl} (${err.message})`);
+    logger.info(`proxy: unable to download ${imageUrl} (${getErrorMessage(err)})`);
     return res.status(400).send('Invalid parameter: "src"');
   }
   if (image.byteLength === 0) {
@@ -150,7 +155,7 @@ async function handleProxy(req: ProxyRequest, res: Response): Promise<Response |
 
     res.set('Content-Type', mime.lookup(format) as string).send(finalImageBuffer);
   } catch (err) {
-    logger.error(`proxy: error processing ${imageUrl} (${err.message})`);
+    logger.error(`proxy: error processing ${imageUrl} (${getErrorMessage(err)})`);
     return res.status(400).send('Invalid Image');
   }
 }
@@ -161,7 +166,7 @@ export default async function proxy(req: ProxyRequest, res: Response): Promise<v
   try {
     await handleProxy(req, res);
   } catch (err) {
-    logger.error(`proxy: unexpected error (${err.message})`);
+    logger.error(`proxy: unexpected error (${getErrorMessage(err)})`);
     if (!res.headersSent) {
       res.status(500).send('Internal Server Error');
     }

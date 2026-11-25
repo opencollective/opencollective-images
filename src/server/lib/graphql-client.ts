@@ -1,6 +1,7 @@
 import { ApolloClient, ApolloLink, CombinedGraphQLErrors, HttpLink, InMemoryCache } from '@apollo/client/core';
 import type { DocumentNode, GraphQLFormattedError } from 'graphql';
 
+import type { FetchInit } from './fetch';
 import fetch from './fetch';
 
 // Apollo Client 4 only accepts the default options declared in this namespace
@@ -17,6 +18,12 @@ declare module '@apollo/client/core/defaultOptions' {
 
 export type GraphqlVersion = 'v1' | 'v2';
 
+// `HttpLink` is typed against the DOM `fetch`, but always calls it with the endpoint URL as a string
+const linkFetch: typeof globalThis.fetch = (input, init) => {
+  const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+  return fetch(url, init as FetchInit | undefined);
+};
+
 const getGraphqlUrl = (version: GraphqlVersion): string => {
   const apiKey = process.env.API_KEY;
   const baseApiUrl = process.env.API_URL;
@@ -29,7 +36,7 @@ function getClient(version: GraphqlVersion): ApolloClient {
   if (!clients[version]) {
     clients[version] = new ApolloClient({
       cache: new InMemoryCache(),
-      link: ApolloLink.from([new HttpLink({ fetch, uri: getGraphqlUrl(version) })]),
+      link: ApolloLink.from([new HttpLink({ fetch: linkFetch, uri: getGraphqlUrl(version) })]),
       defaultOptions: {
         watchQuery: {
           fetchPolicy: 'no-cache',

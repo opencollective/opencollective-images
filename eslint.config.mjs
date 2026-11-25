@@ -71,6 +71,6 @@ export default [
     },
   },
   {
-    ignores: ['dist/**', 'src/graphql/*.graphql'],
+    ignores: ['dist/**', 'src/graphql/*.graphql', 'src/graphql/types/'],
   },
 ];

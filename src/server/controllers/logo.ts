@@ -14,7 +14,7 @@ import { MAX_AVATAR_HEIGHT } from '../lib/constants';
 import { fetchCollectiveWithCache } from '../lib/graphql';
 import { normalizeSize } from '../lib/image-size';
 import { isRemoteImageUrl, resolveBundledImagePath } from '../lib/static-image';
-import { getUiAvatarUrl } from '../lib/utils';
+import { getErrorMessage, getUiAvatarUrl } from '../lib/utils';
 import { logger } from '../logger';
 import { sendUpstreamErrorStatus } from '../middlewares';
 
@@ -62,12 +62,13 @@ const DEFAULT_FUND_LOGOS = [
   '/images/default-fund-logo-4.png',
 ];
 
-const getDefaultAvatar = (collective: { id: number }): string => {
-  return DEFAULT_COLLECTIVE_LOGOS[collective.id % 4];
+// The V1 schema allows a null id (null % 4 is 0)
+const getDefaultAvatar = (collective: { id: number | null }): string => {
+  return DEFAULT_COLLECTIVE_LOGOS[(collective.id ?? 0) % 4];
 };
 
-const getDefaultFundAvatar = (collective: { id: number }): string => {
-  return DEFAULT_FUND_LOGOS[collective.id % 4];
+const getDefaultFundAvatar = (collective: { id: number | null }): string => {
+  return DEFAULT_FUND_LOGOS[(collective.id ?? 0) % 4];
 };
 
 const getCollectiveImageUrl = async (
@@ -89,14 +90,17 @@ const getCollectiveImageUrl = async (
     return collective.image;
   }
 
-  if (['EVENT', 'PROJECT'].includes(collective.type)) {
+  const type = collective.type ?? '';
+
+  if (['EVENT', 'PROJECT'].includes(type)) {
     const parentCollectiveImage = get(collective, 'parentCollective.image');
     if (parentCollectiveImage) {
       return parentCollectiveImage;
     }
   }
 
-  if (collective.type === 'USER') {
+  // A user without a name returned the anonymous logo above
+  if (collective.type === 'USER' && collective.name) {
     return getUiAvatarUrl(collective.name, height || defaultHeight, false);
   }
 
@@ -115,7 +119,7 @@ const getCollectiveImageUrl = async (
     return getDefaultFundAvatar(collective);
   }
 
-  if (['COLLECTIVE', 'FUND', 'EVENT', 'PROJECT'].includes(collective.type)) {
+  if (['COLLECTIVE', 'FUND', 'EVENT', 'PROJECT'].includes(type)) {
     return getDefaultAvatar(collective);
   }
 };
@@ -154,8 +158,8 @@ export default async function logo(req: LogoRequest, res: Response): Promise<Res
       });
     }
   } catch (err) {
-    if (!err.message.match(/No collective found/)) {
-      logger.error(`logo: ${err.message}`);
+    if (!getErrorMessage(err).match(/No collective found/)) {
+      logger.error(`logo: ${getErrorMessage(err)}`);
     }
   }
   if (!imageUrl) {
@@ -227,9 +231,9 @@ export default async function logo(req: LogoRequest, res: Response): Promise<Res
           finalImageBuffer = await sharpImage.toFormat(format as keyof FormatEnum).toBuffer();
         }
 
-        res.set('Content-Type', mime.lookup(format) as string).send(finalImageBuffer);
+        res.set('Content-Type', mime.lookup(format ?? '') as string).send(finalImageBuffer);
       } catch (err) {
-        logger.error(`logo: error processing ${imageUrl} (${err.message})`);
+        logger.error(`logo: error processing ${imageUrl} (${getErrorMessage(err)})`);
         res.set('Cache-Control', 'no-store');
         return res.status(500).send('Internal Server Error');
       }

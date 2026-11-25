@@ -7,7 +7,7 @@ import nodeFetch from 'node-fetch';
 
 import { parseToBooleanDefaultTrue } from './utils';
 
-interface FetchInit {
+export interface FetchInit {
   agent?: http.Agent | ((parsedURL: URL) => http.Agent);
   body?: string;
   headers?: Record<string, string>;
@@ -63,9 +63,9 @@ async function fetch(url: string, options: FetchInit = {}): Promise<Response> {
   options.headers = options.headers || {};
   options.headers['user-agent'] = 'opencollective-images/1.0';
   if (isInternalApiUrl(url)) {
-    options.headers['oc-env'] = process.env.OC_ENV;
-    options.headers['oc-secret'] = process.env.OC_SECRET;
-    options.headers['oc-application'] = process.env.OC_APPLICATION;
+    options.headers['oc-env'] = String(process.env.OC_ENV);
+    options.headers['oc-secret'] = String(process.env.OC_SECRET);
+    options.headers['oc-application'] = String(process.env.OC_APPLICATION);
   }
 
   // Start benchmarking if the request is server side
@@ -79,7 +79,7 @@ async function fetch(url: string, options: FetchInit = {}): Promise<Response> {
     const executionTime = Math.round(Number(end - start) / 1000000);
     const apiExecutionTime = result.headers.get('Execution-Time');
     const latencyTime = apiExecutionTime ? executionTime - Number(apiExecutionTime) : null;
-    const body = JSON.parse(options.body);
+    const body = JSON.parse(String(options.body));
     if (body.operationName || body.variables) {
       const pickList = [
         'CollectiveId',

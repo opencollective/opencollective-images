@@ -3,6 +3,7 @@ import net from 'net';
 
 import express from 'express';
 import type { AddressInfo } from 'net';
+import type { Response } from 'node-fetch';
 import fetch from 'node-fetch';
 
 import avatar from '../../src/server/controllers/avatar';
@@ -69,7 +70,7 @@ describe('upstream error status', () => {
     fetchMembersWithCacheMock.mockResolvedValue([{ type: 'USER', name: 'Jane', slug: 'jane' }]);
   });
 
-  const expectStatusOnly = async (res, status) => {
+  const expectStatusOnly = async (res: Response, status: number) => {
     expect(res.status).toEqual(status);
     expect(res.headers.get('content-type')).toMatch(/^text\/plain/);
     expect(await res.text()).not.toContain(STATUS_TEXT);

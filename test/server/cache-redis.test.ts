@@ -1,17 +1,31 @@
 // Runs the Redis cache provider against a real Redis server: set TEST_REDIS_URL (CI uses the job's Redis service).
 // The suite empties the database selected in the URL (FLUSHDB) before each test: point it at a disposable one.
 // It never runs FLUSHALL, which would also wipe the other databases on the server.
+import type { RedisClientType } from 'redis';
+
+import type { CacheProvider } from '../../src/server/lib/cache/provider';
+
+// The provider's `set` is called without an expiration to cover the persistent case
+type TestProvider = Omit<CacheProvider, 'set'> & {
+  set: (
+    key: string,
+    value: unknown,
+    expirationInSeconds?: number,
+    options?: Parameters<CacheProvider['set']>[3],
+  ) => Promise<unknown>;
+};
+
 const TEST_REDIS_URL = process.env.TEST_REDIS_URL;
 
 // Keep track of the clients the provider creates, so they can be inspected and closed.
 // With mockFakeClient set, the provider gets a stub that never opens a connection.
-const mockClients = [];
+const mockClients: Array<{ client: RedisClientType; options: unknown }> = [];
 let mockFakeClient = false;
 jest.mock('redis', () => {
   const actual = jest.requireActual('redis');
   return {
     ...actual,
-    createClient: (options) => {
+    createClient: (options: unknown) => {
       const client = mockFakeClient
         ? { on: () => {}, connect: async () => {}, isOpen: false }
         : actual.createClient(options);
@@ -23,13 +37,16 @@ jest.mock('redis', () => {
 
 jest.mock('../../src/server/logger');
 
-const loadProvider = async (url) => {
+const loadProvider = async (url: string | undefined): Promise<TestProvider> => {
   process.env.REDIS_URL = url;
-  let makeRedisProvider;
+  const loaded: { makeRedisProvider?: () => Promise<TestProvider> } = {};
   jest.isolateModules(() => {
-    makeRedisProvider = require('../../src/server/lib/cache/redis').default;
+    loaded.makeRedisProvider = require('../../src/server/lib/cache/redis').default;
   });
-  return makeRedisProvider();
+  if (!loaded.makeRedisProvider) {
+    throw new Error('The redis provider was not loaded');
+  }
+  return loaded.makeRedisProvider();
 };
 
 afterEach(async () => {
@@ -44,7 +61,8 @@ afterEach(async () => {
 const describeWithRedis = TEST_REDIS_URL ? describe : describe.skip;
 
 describeWithRedis('cache/redis provider', () => {
-  let cache, inspector;
+  let cache: TestProvider;
+  let inspector: RedisClientType;
 
   beforeEach(async () => {
     cache = await loadProvider(TEST_REDIS_URL);
@@ -105,9 +123,9 @@ describeWithRedis('cache/redis provider', () => {
 
   test('supports custom serialize and unserialize', async () => {
     const buffer = Buffer.from('binary image data');
-    await cache.set('image', buffer, 60, { serialize: (b) => b.toString('base64') });
+    await cache.set('image', buffer, 60, { serialize: (b) => (b as Buffer).toString('base64') });
     const result = await cache.get('image', { unserialize: (s) => Buffer.from(s, 'base64') });
-    expect(result.equals(buffer)).toBe(true);
+    expect(Buffer.isBuffer(result) && result.equals(buffer)).toBe(true);
   });
 
   test('returns undefined for a value that is not valid JSON', async () => {

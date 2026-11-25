@@ -76,7 +76,7 @@ function createEndlessOrigin() {
   };
 }
 
-function serveBuffer(buffer) {
+function serveBuffer(buffer: Buffer) {
   return createOrigin((req, res) => {
     res.writeHead(200, { 'Content-Type': 'image/jpeg' });
     res.end(buffer);
@@ -227,7 +227,7 @@ describe('proxy.routes.test.js', () => {
       'gives up on a body that drips in slowly',
       async () => {
         // Headers arrive at once, then one byte per second: the download itself must have a deadline
-        let interval;
+        let interval: NodeJS.Timeout | undefined;
         const origin = createOrigin((req, res) => {
           res.writeHead(200, { 'Content-Type': 'image/png' });
           interval = setInterval(() => res.write(Buffer.from([0])), 1000);

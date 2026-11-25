@@ -64,7 +64,7 @@ export default async function banner(req: BannerRequest, res: Response): Promise
 
   let buttonImage;
   if (showBtn) {
-    const selector = tierSlug || backerType;
+    const selector = tierSlug || backerType || '';
     if (selector.match(/sponsor/)) {
       buttonImage = `${imagesUrl}/static/images/become_sponsor.svg`;
     } else if (selector.match(/backer/)) {

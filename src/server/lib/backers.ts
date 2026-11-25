@@ -1,35 +1,34 @@
 import gql from 'graphql-tag';
-import { groupBy, uniqBy } from 'lodash';
+import { compact, groupBy, uniqBy } from 'lodash';
+
+import type {
+  ActiveOrdersForImagesQuery,
+  BackersForImagesQuery,
+  TierOrdersForImagesQuery,
+  TiersForImagesQuery,
+} from '../../graphql/types/v2/graphql';
 
 import { graphqlRequest } from './graphql-client';
+import type { MergeUnion } from './types';
 
 /** A member as the avatar, website and banner controllers read it (the v1 `Member.member` shape) */
 export interface Member {
   id?: number;
   type: string;
   slug: string;
-  name: string;
-  isGuest?: boolean;
-  image: string;
-  website: string;
-  twitterHandle: string;
-}
-
-type BackerAccount = {
-  slug: string;
   name: string | null;
-  type: string;
-  imageUrl: string | null;
+  isGuest?: boolean;
+  image: string | null;
   website: string | null;
   twitterHandle: string | null;
-  isGuest?: boolean;
-};
+}
 
-type BackerRow = { id: string; isActive: boolean; tier: { id: string } | null; account: BackerAccount | null };
+type BackerRow = NonNullable<NonNullable<NonNullable<BackersForImagesQuery['account']>['members']['nodes']>[number]>;
 
-type BackersResponse = {
-  account: { id: string; members: { totalCount: number; nodes: BackerRow[] } } | null;
-};
+// The accounts are a union of types, `isGuest` only exists on some of them
+type BackerAccount = MergeUnion<NonNullable<BackerRow['account']>>;
+
+type VisibleBackerRow = BackerRow & { account: BackerAccount };
 
 /**
  * At most 1,000 backers per list. Banners and README avatar lists never need more: the deepest README
@@ -104,13 +103,6 @@ export const toMember = (account: BackerAccount): Member => ({
   twitterHandle: account.twitterHandle,
 });
 
-type ActiveOrdersResponse = {
-  account: {
-    id: string;
-    orders: { totalCount: number; nodes: Array<{ fromAccount: { slug: string } | null }> };
-  } | null;
-};
-
 /** The accounts with a running monthly or yearly contribution to the collective, with or without a tier */
 const activeOrdersQuery = gql /* GraphQL */ `
   query ActiveOrdersForImages($slug: String!, $limit: Int!, $offset: Int!) {
@@ -131,7 +123,7 @@ const activeOrdersQuery = gql /* GraphQL */ `
 async function fetchActiveContributorSlugs(collectiveSlug: string): Promise<Set<string>> {
   const slugs = new Set<string>();
   for (let page = 0; page < MAX_PAGES; page++) {
-    const { data, errors } = await graphqlRequest<ActiveOrdersResponse>(
+    const { data, errors } = await graphqlRequest<ActiveOrdersForImagesQuery>(
       activeOrdersQuery,
       { slug: collectiveSlug, limit: PAGE_SIZE, offset: page * PAGE_SIZE },
       { version: 'v2' },
@@ -140,8 +132,9 @@ async function fetchActiveContributorSlugs(collectiveSlug: string): Promise<Set<
       throw new Error(errors[0].message);
     }
     const orders = data?.account?.orders;
-    (orders?.nodes || []).forEach((order) => order.fromAccount && slugs.add(order.fromAccount.slug));
-    if (!orders || (page + 1) * PAGE_SIZE >= orders.totalCount || orders.nodes.length < PAGE_SIZE) {
+    const nodes = compact(orders?.nodes);
+    nodes.forEach((order) => order.fromAccount && slugs.add(order.fromAccount.slug));
+    if (!orders || (page + 1) * PAGE_SIZE >= (orders.totalCount ?? 0) || nodes.length < PAGE_SIZE) {
       break;
     }
   }
@@ -192,7 +185,7 @@ export async function fetchBackers({
 
   const rows: BackerRow[] = [];
   for (let page = 0; page < MAX_PAGES; page++) {
-    const { data, errors } = await graphqlRequest<BackersResponse>(
+    const { data, errors } = await graphqlRequest<BackersForImagesQuery>(
       backersQuery,
       { slug: collectiveSlug, accountType, limit: PAGE_SIZE, offset: page * PAGE_SIZE },
       { version: 'v2' },
@@ -203,37 +196,34 @@ export async function fetchBackers({
     if (!data?.account) {
       throw new Error('Collective not found.');
     }
-    rows.push(...data.account.members.nodes);
-    if (rows.length >= data.account.members.totalCount || data.account.members.nodes.length < PAGE_SIZE) {
+    const nodes = compact(data.account.members.nodes);
+    rows.push(...nodes);
+    if (rows.length >= (data.account.members.totalCount ?? 0) || nodes.length < PAGE_SIZE) {
       break;
     }
   }
 
   // Rows without a visible account (incognito backers) are left out, as v2 hides them
-  const visibleRows = rows.filter((row) => row.account);
+  const visibleRows = rows.filter((row): row is VisibleBackerRow => Boolean(row.account));
   const rowsByAccount = groupBy(visibleRows, (row) => row.account.slug);
   const activeContributors = isActive === true ? await fetchActiveContributorSlugs(collectiveSlug) : null;
   return uniqBy(visibleRows, (row) => row.account.slug)
     .filter(
       (row) =>
-        isActive !== true || isActiveBacker(rowsByAccount[row.account.slug], activeContributors.has(row.account.slug)),
+        activeContributors === null ||
+        isActiveBacker(rowsByAccount[row.account.slug], activeContributors.has(row.account.slug)),
     )
     .slice(0, MAX_BACKERS)
     .map((row) => toMember(row.account));
 }
 
-type TiersResponse = {
-  account: { id: string; tiers?: { nodes: Array<{ id: string; slug: string; frequency: string }> } } | null;
-};
+type TiersAccount = MergeUnion<NonNullable<TiersForImagesQuery['account']>>;
 
-type TierOrder = {
-  createdAt: string;
-  processedAt: string | null;
-  lastChargedAt: string | null;
-  fromAccount: BackerAccount | null;
-};
+type BackerTier = NonNullable<NonNullable<NonNullable<TiersAccount['tiers']>['nodes']>[number]>;
 
-type TierOrdersResponse = { tier: { id: string; orders: { totalCount: number; nodes: TierOrder[] } } | null };
+type TierOrder = NonNullable<
+  NonNullable<NonNullable<NonNullable<TierOrdersForImagesQuery['tier']>['orders']['nodes']>[number]>
+>;
 
 /** v2 has no tier lookup by slug: list the account's tiers (as v1, whatever their type) and match the slugs */
 const tiersQuery = gql /* GraphQL */ `
@@ -334,21 +324,28 @@ export async function fetchTierBackers({
   tierSlugs: string[];
   isActive?: boolean;
 }): Promise<Member[]> {
-  const tiersResult = await graphqlRequest<TiersResponse>(tiersQuery, { slug: collectiveSlug }, { version: 'v2' });
+  const tiersResult = await graphqlRequest<TiersForImagesQuery>(
+    tiersQuery,
+    { slug: collectiveSlug },
+    { version: 'v2' },
+  );
   if (tiersResult.errors?.length) {
     throw new Error(tiersResult.errors[0].message);
   }
   if (!tiersResult.data?.account) {
     throw new Error('Collective not found.');
   }
-  const tiers = tiersResult.data.account.tiers?.nodes || [];
-  const requestedTiers = tierSlugs.map((slug) => tiers.find((tier) => tier.slug === slug)).filter(Boolean);
+  const account: TiersAccount = tiersResult.data.account;
+  const tiers = compact(account.tiers?.nodes);
+  const requestedTiers = tierSlugs
+    .map((slug) => tiers.find((tier) => tier.slug === slug))
+    .filter((tier): tier is BackerTier => Boolean(tier));
 
   const accounts: BackerAccount[] = [];
   for (const tier of requestedTiers) {
     const tierOrders: TierOrder[] = [];
     for (let page = 0; page < MAX_PAGES; page++) {
-      const { data, errors } = await graphqlRequest<TierOrdersResponse>(
+      const { data, errors } = await graphqlRequest<TierOrdersForImagesQuery>(
         tierOrdersQuery,
         { tierId: tier.id, limit: PAGE_SIZE, offset: page * PAGE_SIZE },
         { version: 'v2' },
@@ -356,9 +353,9 @@ export async function fetchTierBackers({
       if (errors?.length) {
         throw new Error(errors[0].message);
       }
-      const nodes = data?.tier?.orders.nodes || [];
+      const nodes = compact(data?.tier?.orders.nodes);
       tierOrders.push(...nodes);
-      if (tierOrders.length >= (data?.tier?.orders.totalCount || 0) || nodes.length < PAGE_SIZE) {
+      if (tierOrders.length >= (data?.tier?.orders.totalCount ?? 0) || nodes.length < PAGE_SIZE) {
         break;
       }
     }
@@ -369,7 +366,9 @@ export async function fetchTierBackers({
         .filter((order) => isActiveTierOrder(order, tier.frequency))
         .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     }
-    accounts.push(...orders.map((order) => order.fromAccount).filter(Boolean));
+    accounts.push(
+      ...orders.map((order) => order.fromAccount).filter((account): account is BackerAccount => Boolean(account)),
+    );
   }
   return uniqBy(accounts.map(toMember), (member) => member.slug);
 }

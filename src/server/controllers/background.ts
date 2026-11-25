@@ -7,6 +7,7 @@ import sharp from 'sharp';
 import { fetchCollectiveWithCache } from '../lib/graphql';
 import { normalizeSize } from '../lib/image-size';
 import { asyncRequest } from '../lib/request';
+import { getErrorMessage } from '../lib/utils';
 import { logger } from '../logger';
 
 type BackgroundParams = Record<string, string> & {
@@ -43,7 +44,7 @@ export default async function background(
       return res.status(404).send('Not found (no collective/parentCollective backgroundImage)');
     }
   } catch (e) {
-    if (e.message.match(/No collective found/)) {
+    if (getErrorMessage(e).match(/No collective found/)) {
       return res.status(404).send('Not found');
     }
     logger.debug('>>> collectives.background error', e);
@@ -71,7 +72,7 @@ export default async function background(
   try {
     image = await getImageData(imageUrl);
   } catch (err) {
-    logger.error(`background: error fetching ${imageUrl} (${err.message})`);
+    logger.error(`background: error fetching ${imageUrl} (${getErrorMessage(err)})`);
     return res.status(502).send('Unable to fetch background image');
   }
 
@@ -82,9 +83,9 @@ export default async function background(
       .toFormat(format as keyof FormatEnum)
       .toBuffer();
 
-    res.set('Content-Type', mime.lookup(format) as string).send(resizedImage);
+    res.set('Content-Type', mime.lookup(format ?? '') as string).send(resizedImage);
   } catch (err) {
-    logger.error(`background: error processing ${imageUrl} (${err.message})`);
+    logger.error(`background: error processing ${imageUrl} (${getErrorMessage(err)})`);
     return res.status(500).send('Internal Server Error');
   }
 }

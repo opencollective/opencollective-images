@@ -1,10 +1,13 @@
+import type { Request, Response } from 'express';
 import express from 'express';
+import type { Server } from 'http';
+import type { AddressInfo } from 'net';
 
 import { loadRoutes } from '../../src/server/routes';
 
 // Route matching only: every controller answers with the route params it received.
 jest.mock('../../src/server/controllers', () => {
-  const echo = (name) => (req, res) => res.json({ controller: name, params: req.params });
+  const echo = (name: string) => (req: Request, res: Response) => res.json({ controller: name, params: req.params });
   return {
     __esModule: true,
     default: {
@@ -19,25 +22,28 @@ jest.mock('../../src/server/controllers', () => {
   };
 });
 
-let server, baseUrl;
+let server: Server;
+let baseUrl: string;
 
 beforeAll(async () => {
   const app = express();
   loadRoutes(app);
   app.use((req, res) => res.status(404).json({ controller: null }));
-  await new Promise((resolve) => {
-    server = app.listen(0, resolve);
+  await new Promise<void>((resolve) => {
+    server = app.listen(0, () => resolve());
   });
-  baseUrl = `http://127.0.0.1:${server.address().port}`;
+  baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
 
-afterAll(() => server.close());
+afterAll(() => {
+  server.close();
+});
 
-const route = async (path) => (await fetch(`${baseUrl}${path}`)).json();
+const route = async (path: string) => (await fetch(`${baseUrl}${path}`)).json();
 
-const logo = (params) => ({ controller: 'logo', params });
-const background = (params) => ({ controller: 'background', params });
-const avatar = (params) => ({ controller: 'avatar', params });
+const logo = (params: Record<string, string>) => ({ controller: 'logo', params });
+const background = (params: Record<string, string>) => ({ controller: 'background', params });
+const avatar = (params: Record<string, string>) => ({ controller: 'avatar', params });
 
 describe('routes.test.js', () => {
   test.each([

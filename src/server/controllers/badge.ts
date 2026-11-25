@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import fetch from 'node-fetch';
 
 import { fetchMembersStatsWithCache } from '../lib/graphql';
+import { getErrorMessage } from '../lib/utils';
 import { logger } from '../logger';
 
 const fetchText = (path: string): Promise<string> => fetch(path).then((response) => response.text());
@@ -63,10 +64,10 @@ export default async function badge(req: BadgeRequest, res: Response): Promise<R
         imageUrl = url.toString();
       } catch (err) {
         // Invalid collectiveSlug (not found) or No collective found with slug
-        if (err.message.match(/not found/) || err.message.match(/No collective found/)) {
+        if (getErrorMessage(err).match(/not found/) || getErrorMessage(err).match(/No collective found/)) {
           return res.status(404).send('Not found');
         }
-        logger.error(`badge: error while fetching members stats (${err.message})`);
+        logger.error(`badge: error while fetching members stats (${getErrorMessage(err)})`);
         return res.status(400).send('Unable to fetch badge');
       }
     }
@@ -77,7 +78,7 @@ export default async function badge(req: BadgeRequest, res: Response): Promise<R
       res.setHeader('cache-control', 'max-age=600');
       return res.send(imageRequest);
     } catch (err) {
-      logger.error(`badge: error while fetching ${imageUrl} (${err.message})`);
+      logger.error(`badge: error while fetching ${imageUrl} (${getErrorMessage(err)})`);
       res.setHeader('cache-control', 'max-age=30');
       return res.status(400).send('Unable to fetch badge');
     }
@@ -88,7 +89,7 @@ export default async function badge(req: BadgeRequest, res: Response): Promise<R
     } else if (req.params.tierSlug) {
       errorParams = `tierSlug=${req.params.tierSlug}`;
     }
-    logger.error(`badge: error while processing ${req.params.collectiveSlug} ${errorParams} (${err.message})`);
+    logger.error(`badge: error while processing ${req.params.collectiveSlug} ${errorParams} (${getErrorMessage(err)})`);
     return res.status(400).send('Unable to generate badge');
   }
 }

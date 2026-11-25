@@ -64,7 +64,7 @@ export const getUiAvatarUrl = (
   return url.toString();
 };
 
-export const getWebsite = (user: { twitterHandle?: string; website?: string; slug?: string }): string => {
+export const getWebsite = (user: { twitterHandle?: string | null; website?: string | null; slug?: string }): string => {
   const twitter = user.twitterHandle ? `https://twitter.com/${user.twitterHandle}` : null;
 
   return user.website || twitter || `${process.env.WEBSITE_URL}/${user.slug}`;
@@ -76,4 +76,20 @@ export function sleep(ms = 0): Promise<void> {
 
 export function randomInteger(max: number): number {
   return Math.floor(Math.random() * max);
+}
+
+// Thrown values are `unknown` in strict mode. Errors raised by node core or third party modules are not
+// guaranteed to pass `instanceof Error` (e.g. across realms), so read `message` structurally instead.
+export function getErrorMessage(err: unknown): string {
+  if (typeof err === 'object' && err !== null && 'message' in err) {
+    return String(err.message);
+  }
+  return String(err);
+}
+
+export function getErrorType(err: unknown): string | undefined {
+  if (typeof err === 'object' && err !== null && 'type' in err && typeof err.type === 'string') {
+    return err.type;
+  }
+  return undefined;
 }

@@ -7,7 +7,7 @@ const imagesUrl = process.env.IMAGES_URL;
 const timeout = 30000;
 const cacheBurst = `cacheBurst=${Math.round(Math.random() * 100000)}`;
 
-const fetchResponse = (path) => {
+const fetchResponse = (path: string) => {
   const pathWithCacheBurst = [path, cacheBurst].join(path.indexOf('?') === -1 ? '?' : '&');
   return fetch(`${imagesUrl}${pathWithCacheBurst}`);
 };
