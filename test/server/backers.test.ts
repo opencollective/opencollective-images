@@ -1,3 +1,4 @@
+import type { AccountType } from '../../src/graphql/types/v2/graphql';
 import {
   fetchBackers,
   fetchTierBackers,
@@ -16,7 +17,7 @@ const graphqlRequestMock = jest.requireMock('../../src/server/lib/graphql-client
 const account = (overrides = {}) => ({
   slug: 'jane',
   name: 'Jane',
-  type: 'INDIVIDUAL',
+  type: 'INDIVIDUAL' as AccountType,
   imageUrl: 'https://images.opencollective.com/jane/avatar.png',
   website: null,
   twitterHandle: null,

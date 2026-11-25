@@ -3,6 +3,8 @@ import type { DocumentNode } from 'graphql';
 import gqlV1 from 'graphql-tag';
 import { pick } from 'lodash';
 
+import type { CollectiveQuery, MembersStatsForTierQuery, MembersStatsQuery } from '../../graphql/types/v1/graphql';
+
 import { fetchBackers, fetchTierBackers, type Member } from './backers';
 import cache from './cache';
 import { graphqlRequest } from './graphql-client';
@@ -16,43 +18,13 @@ const oneMinuteInSeconds = 60;
 
 const debugGraphql = debug('graphql');
 
-interface ParentCollective {
-  id: number;
-  image: string;
-  backgroundImage: string;
-}
-
-interface Collective {
-  id: number;
-  name: string;
-  type: string;
-  image: string;
-  backgroundImage: string;
-  isGuest: boolean;
-  parentCollective?: ParentCollective;
-}
+type Collective = NonNullable<CollectiveQuery['Collective']>;
 
 interface MembersStats {
   name: string;
   count: number;
   slug?: string;
 }
-
-type CollectiveResponse = { Collective: Collective };
-
-type MembersStatsResponse = {
-  Collective: {
-    id: number;
-    stats: { id: number; backers: { all: number; users: number; organizations: number } };
-  };
-};
-
-type MembersStatsForTierResponse = {
-  Collective: {
-    id: number;
-    tiers: Array<{ id: number; slug: string; name: string; stats: { totalDistinctOrders: number } }>;
-  };
-};
 
 type MembersStatsParams = {
   collectiveSlug: string;
@@ -91,9 +63,13 @@ export async function fetchCollective(collectiveSlug: string): Promise<Collectiv
     }
   `;
 
-  const { data, errors } = await graphqlRequest<CollectiveResponse>(query, { collectiveSlug });
+  const { data, errors } = await graphqlRequest<CollectiveQuery>(query, { collectiveSlug });
   if (errors?.length) {
     throw new Error(errors[0].message);
+  }
+  // Same message as the API's error for unknown collectives, matched by the controllers to return a 404
+  if (!data.Collective) {
+    throw new Error('No collective found');
   }
 
   return data.Collective;
@@ -147,16 +123,21 @@ export async function fetchMembersStats(variables: MembersStatsParams): Promise<
         }
       }
     `;
-    return requestMembersStats<MembersStatsResponse>(query, variables, (res) => {
+    return requestMembersStats<MembersStatsQuery>(query, variables, (res) => {
+      // Same message as the API's error for unknown collectives, matched by the controllers to return a 404
+      if (!res.Collective) {
+        throw new Error('No collective found');
+      }
+      const backers = res.Collective.stats?.backers;
       let name, count;
       if (backerType.match(/sponsor/i) || backerType.match(/organization/i)) {
-        count = res.Collective.stats.backers.organizations;
+        count = backers?.organizations ?? 0;
         name = backerType;
       } else if (backerType.match(/backer/i) || backerType.match(/individual/i)) {
-        count = res.Collective.stats.backers.users;
+        count = backers?.users ?? 0;
         name = backerType;
       } else {
-        count = res.Collective.stats.backers.all;
+        count = backers?.all ?? 0;
         name = 'financial contributors';
       }
       return { name, count };
@@ -177,14 +158,18 @@ export async function fetchMembersStats(variables: MembersStatsParams): Promise<
         }
       }
     `;
-    return requestMembersStats<MembersStatsForTierResponse>(query, variables, (result) => {
-      if (result.Collective.tiers.length === 0) {
+    return requestMembersStats<MembersStatsForTierQuery>(query, variables, (result) => {
+      if (!result.Collective) {
+        throw new Error('No collective found');
+      }
+      const tier = result.Collective.tiers?.[0];
+      if (!tier) {
         throw new Error('Tier not found');
       }
       return {
-        count: result.Collective.tiers[0].stats.totalDistinctOrders,
-        slug: result.Collective.tiers[0].slug,
-        name: result.Collective.tiers[0].name,
+        count: tier.stats?.totalDistinctOrders ?? 0,
+        slug: tier.slug ?? undefined,
+        name: tier.name ?? '',
       };
     });
   }

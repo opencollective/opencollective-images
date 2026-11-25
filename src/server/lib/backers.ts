@@ -1,7 +1,15 @@
 import gql from 'graphql-tag';
-import { groupBy, uniqBy } from 'lodash';
+import { compact, groupBy, uniqBy } from 'lodash';
+
+import type {
+  ActiveOrdersForImagesQuery,
+  BackersForImagesQuery,
+  TierOrdersForImagesQuery,
+  TiersForImagesQuery,
+} from '../../graphql/types/v2/graphql';
 
 import { graphqlRequest } from './graphql-client';
+import type { MergeUnion } from './types';
 
 /** A member as the avatar, website and banner controllers read it (the v1 `Member.member` shape) */
 export interface Member {
@@ -15,23 +23,12 @@ export interface Member {
   twitterHandle: string | null;
 }
 
-type BackerAccount = {
-  slug: string;
-  name: string | null;
-  type: string;
-  imageUrl: string | null;
-  website: string | null;
-  twitterHandle: string | null;
-  isGuest?: boolean;
-};
+type BackerRow = NonNullable<NonNullable<NonNullable<BackersForImagesQuery['account']>['members']['nodes']>[number]>;
 
-type BackerRow = { id: string; isActive: boolean; tier: { id: string } | null; account: BackerAccount | null };
+// The accounts are a union of types, `isGuest` only exists on some of them
+type BackerAccount = MergeUnion<NonNullable<BackerRow['account']>>;
 
 type VisibleBackerRow = BackerRow & { account: BackerAccount };
-
-type BackersResponse = {
-  account: { id: string; members: { totalCount: number; nodes: BackerRow[] } } | null;
-};
 
 /**
  * At most 1,000 backers per list. Banners and README avatar lists never need more: the deepest README
@@ -106,13 +103,6 @@ export const toMember = (account: BackerAccount): Member => ({
   twitterHandle: account.twitterHandle,
 });
 
-type ActiveOrdersResponse = {
-  account: {
-    id: string;
-    orders: { totalCount: number; nodes: Array<{ fromAccount: { slug: string } | null }> };
-  } | null;
-};
-
 /** The accounts with a running monthly or yearly contribution to the collective, with or without a tier */
 const activeOrdersQuery = gql /* GraphQL */ `
   query ActiveOrdersForImages($slug: String!, $limit: Int!, $offset: Int!) {
@@ -133,7 +123,7 @@ const activeOrdersQuery = gql /* GraphQL */ `
 async function fetchActiveContributorSlugs(collectiveSlug: string): Promise<Set<string>> {
   const slugs = new Set<string>();
   for (let page = 0; page < MAX_PAGES; page++) {
-    const { data, errors } = await graphqlRequest<ActiveOrdersResponse>(
+    const { data, errors } = await graphqlRequest<ActiveOrdersForImagesQuery>(
       activeOrdersQuery,
       { slug: collectiveSlug, limit: PAGE_SIZE, offset: page * PAGE_SIZE },
       { version: 'v2' },
@@ -142,8 +132,9 @@ async function fetchActiveContributorSlugs(collectiveSlug: string): Promise<Set<
       throw new Error(errors[0].message);
     }
     const orders = data?.account?.orders;
-    (orders?.nodes || []).forEach((order) => order.fromAccount && slugs.add(order.fromAccount.slug));
-    if (!orders || (page + 1) * PAGE_SIZE >= orders.totalCount || orders.nodes.length < PAGE_SIZE) {
+    const nodes = compact(orders?.nodes);
+    nodes.forEach((order) => order.fromAccount && slugs.add(order.fromAccount.slug));
+    if (!orders || (page + 1) * PAGE_SIZE >= (orders.totalCount ?? 0) || nodes.length < PAGE_SIZE) {
       break;
     }
   }
@@ -194,7 +185,7 @@ export async function fetchBackers({
 
   const rows: BackerRow[] = [];
   for (let page = 0; page < MAX_PAGES; page++) {
-    const { data, errors } = await graphqlRequest<BackersResponse>(
+    const { data, errors } = await graphqlRequest<BackersForImagesQuery>(
       backersQuery,
       { slug: collectiveSlug, accountType, limit: PAGE_SIZE, offset: page * PAGE_SIZE },
       { version: 'v2' },
@@ -205,8 +196,9 @@ export async function fetchBackers({
     if (!data?.account) {
       throw new Error('Collective not found.');
     }
-    rows.push(...data.account.members.nodes);
-    if (rows.length >= data.account.members.totalCount || data.account.members.nodes.length < PAGE_SIZE) {
+    const nodes = compact(data.account.members.nodes);
+    rows.push(...nodes);
+    if (rows.length >= (data.account.members.totalCount ?? 0) || nodes.length < PAGE_SIZE) {
       break;
     }
   }
@@ -225,20 +217,13 @@ export async function fetchBackers({
     .map((row) => toMember(row.account));
 }
 
-type BackerTier = { id: string; slug: string; frequency: string };
+type TiersAccount = MergeUnion<NonNullable<TiersForImagesQuery['account']>>;
 
-type TiersResponse = {
-  account: { id: string; tiers?: { nodes: BackerTier[] } } | null;
-};
+type BackerTier = NonNullable<NonNullable<NonNullable<TiersAccount['tiers']>['nodes']>[number]>;
 
-type TierOrder = {
-  createdAt: string;
-  processedAt: string | null;
-  lastChargedAt: string | null;
-  fromAccount: BackerAccount | null;
-};
-
-type TierOrdersResponse = { tier: { id: string; orders: { totalCount: number; nodes: TierOrder[] } } | null };
+type TierOrder = NonNullable<
+  NonNullable<NonNullable<NonNullable<TierOrdersForImagesQuery['tier']>['orders']['nodes']>[number]>
+>;
 
 /** v2 has no tier lookup by slug: list the account's tiers (as v1, whatever their type) and match the slugs */
 const tiersQuery = gql /* GraphQL */ `
@@ -339,14 +324,19 @@ export async function fetchTierBackers({
   tierSlugs: string[];
   isActive?: boolean;
 }): Promise<Member[]> {
-  const tiersResult = await graphqlRequest<TiersResponse>(tiersQuery, { slug: collectiveSlug }, { version: 'v2' });
+  const tiersResult = await graphqlRequest<TiersForImagesQuery>(
+    tiersQuery,
+    { slug: collectiveSlug },
+    { version: 'v2' },
+  );
   if (tiersResult.errors?.length) {
     throw new Error(tiersResult.errors[0].message);
   }
   if (!tiersResult.data?.account) {
     throw new Error('Collective not found.');
   }
-  const tiers = tiersResult.data.account.tiers?.nodes || [];
+  const account: TiersAccount = tiersResult.data.account;
+  const tiers = compact(account.tiers?.nodes);
   const requestedTiers = tierSlugs
     .map((slug) => tiers.find((tier) => tier.slug === slug))
     .filter((tier): tier is BackerTier => Boolean(tier));
@@ -355,7 +345,7 @@ export async function fetchTierBackers({
   for (const tier of requestedTiers) {
     const tierOrders: TierOrder[] = [];
     for (let page = 0; page < MAX_PAGES; page++) {
-      const { data, errors } = await graphqlRequest<TierOrdersResponse>(
+      const { data, errors } = await graphqlRequest<TierOrdersForImagesQuery>(
         tierOrdersQuery,
         { tierId: tier.id, limit: PAGE_SIZE, offset: page * PAGE_SIZE },
         { version: 'v2' },
@@ -363,9 +353,9 @@ export async function fetchTierBackers({
       if (errors?.length) {
         throw new Error(errors[0].message);
       }
-      const nodes = data?.tier?.orders.nodes || [];
+      const nodes = compact(data?.tier?.orders.nodes);
       tierOrders.push(...nodes);
-      if (tierOrders.length >= (data?.tier?.orders.totalCount || 0) || nodes.length < PAGE_SIZE) {
+      if (tierOrders.length >= (data?.tier?.orders.totalCount ?? 0) || nodes.length < PAGE_SIZE) {
         break;
       }
     }
