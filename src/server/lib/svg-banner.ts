@@ -45,14 +45,17 @@ const getImageUrlForUser = (user: SvgBannerUser, height: number, options: SvgBan
 };
 
 export function generateSvgBanner(usersList: SvgBannerUser[], options: SvgBannerOptions): Promise<string | void> {
-  // usersList might come from LRU-cache and we don't want to modify it
-  const users = cloneDeep(usersList);
-
   const { limit, collectiveSlug } = options;
+
+  // `limit` comes from the query string, so it can be fractional or negative
+  const count = Math.max(0, Math.floor(Math.min(limit, usersList.length)));
+
+  // usersList might come from LRU-cache and we don't want to modify it. Only the
+  // first `count` members are drawn, so `users` and `promises` line up by index.
+  const users = cloneDeep(usersList.slice(0, count));
 
   const imageWidth = options.width;
   const imageHeight = options.height;
-  const count = Math.min(limit, users.length);
 
   let defaultAvatarHeight = 64;
   let defaultMargin = 5;
@@ -69,7 +72,7 @@ export function generateSvgBanner(usersList: SvgBannerUser[], options: SvgBanner
   const margin = Number(options.margin) || defaultMargin;
 
   const promises: Array<Promise<Awaited<ReturnType<typeof imageRequest>> | void>> = [];
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < users.length; i++) {
     const user = users[i];
 
     // NOTE: we ask everywhere a double size quality for high resolution devices
