@@ -71,12 +71,71 @@ const getDefaultFundAvatar = (collective: { id: number | null }): string => {
   return DEFAULT_FUND_LOGOS[(collective.id ?? 0) % 4];
 };
 
+// Bundled logo served when the collective's own image can't be processed
+const getFallbackImageUrl = (collective: { id: number | null; type?: string | null }): string => {
+  switch (collective.type) {
+    case 'USER':
+      return '/images/default-guest-logo.png';
+    case 'ORGANIZATION':
+      return '/images/default-organization-logo.png';
+    case 'FUND':
+      return getDefaultFundAvatar(collective);
+    default:
+      return getDefaultAvatar(collective);
+  }
+};
+
+const resizeImage = async (
+  image: Buffer,
+  { format, height, width, style }: { format?: string; height: number; width?: number; style?: string },
+): Promise<Buffer> => {
+  let sharpImage;
+  if (style === 'rounded') {
+    const roundedCorners = Buffer.from(
+      `<svg><rect x="0" y="0" width="${height}" height="${height}" rx="${height}" ry="${height}"/></svg>`,
+    );
+    sharpImage = sharp(image)
+      .resize(height, height)
+      // about "composite"
+      // https://sharp.pixelplumbing.com/en/stable/api-composite/
+      .composite([
+        {
+          input: roundedCorners,
+          // about "dest-in"
+          // https://libvips.github.io/libvips/API/current/libvips-conversion.html#VipsBlendMode
+          // the second (input) object is removed completely
+          // the first (original) is only drawn where the second was
+          blend: 'dest-in',
+        },
+      ]);
+  } else {
+    sharpImage = sharp(image).resize(width, height, { fit: 'contain', background: transparent });
+  }
+
+  if (format === 'jpg') {
+    // We have to do this special treatment to avoid having a default black background
+    const imageWithTransparency = await sharpImage.toFormat('png').toBuffer();
+    return sharp(imageWithTransparency).flatten({ background: white }).jpeg().toBuffer();
+  } else {
+    // sharp accepts the `jpg` alias at runtime, but its types only declare `jpeg`
+    return sharpImage.toFormat(format as keyof FormatEnum).toBuffer();
+  }
+};
+
 const getCollectiveImageUrl = async (
   collectiveSlug: string,
   { height, hash }: { height?: number; hash?: string } = {},
-): Promise<string | undefined> => {
+): Promise<{ imageUrl?: string; fallbackImageUrl: string }> => {
   const collective = await fetchCollectiveWithCache(collectiveSlug, { hash });
+  const fallbackImageUrl = getFallbackImageUrl(collective);
+  const imageUrl = getImageUrl(collective, { height });
+  return { imageUrl, fallbackImageUrl };
+};
 
+const getImageUrl = (
+  collective: Awaited<ReturnType<typeof fetchCollectiveWithCache>>,
+  { height }: { height?: number },
+): string | undefined => {
   // Handle guest & incognito
   if (collective.type === 'USER') {
     if (!collective.name || collective.name === 'anonymous') {
@@ -149,13 +208,13 @@ export default async function logo(req: LogoRequest, res: Response): Promise<Res
     params.width = normalizeSize(params.width, MAX_AVATAR_HEIGHT);
   }
 
-  let imageUrl;
+  let imageUrl, fallbackImageUrl;
   try {
     if (collectiveSlug) {
-      imageUrl = await getCollectiveImageUrl(collectiveSlug, {
+      ({ imageUrl, fallbackImageUrl } = await getCollectiveImageUrl(collectiveSlug, {
         height: params.height || defaultHeight,
         hash: req.params.hash,
-      });
+      }));
     }
   } catch (err) {
     if (!getErrorMessage(err).match(/No collective found/)) {
@@ -198,43 +257,26 @@ export default async function logo(req: LogoRequest, res: Response): Promise<Res
           image = await readFile(bundledPath);
         }
 
-        let sharpImage;
-        if (style === 'rounded') {
-          const roundedCorners = Buffer.from(
-            `<svg><rect x="0" y="0" width="${height}" height="${height}" rx="${height}" ry="${height}"/></svg>`,
-          );
-          sharpImage = sharp(image)
-            .resize(height, height)
-            // about "composite"
-            // https://sharp.pixelplumbing.com/en/stable/api-composite/
-            .composite([
-              {
-                input: roundedCorners,
-                // about "dest-in"
-                // https://libvips.github.io/libvips/API/current/libvips-conversion.html#VipsBlendMode
-                // the second (input) object is removed completely
-                // the first (original) is only drawn where the second was
-                blend: 'dest-in',
-              },
-            ]);
-        } else {
-          sharpImage = sharp(image).resize(width, height, { fit: 'contain', background: transparent });
-        }
-
-        let finalImageBuffer;
-        if (format === 'jpg') {
-          // We have to do this special treatment to avoid having a default black background
-          const imageWithTransparency = await sharpImage.toFormat('png').toBuffer();
-          finalImageBuffer = await sharp(imageWithTransparency).flatten({ background: white }).jpeg().toBuffer();
-        } else {
-          // sharp accepts the `jpg` alias at runtime, but its types only declare `jpeg`
-          finalImageBuffer = await sharpImage.toFormat(format as keyof FormatEnum).toBuffer();
-        }
-
+        const finalImageBuffer = await resizeImage(image, { format, height, width, style });
         res.set('Content-Type', mime.lookup(format ?? '') as string).send(finalImageBuffer);
       } catch (err) {
         logger.error(`logo: error processing ${imageUrl} (${getErrorMessage(err)})`);
         res.set('Cache-Control', 'no-store');
+        // Serve a default logo rather than an error
+        const bundledPath = fallbackImageUrl && resolveBundledImagePath(fallbackImageUrl, staticFolder);
+        if (bundledPath) {
+          try {
+            const fallbackImage = await resizeImage(await readFile(bundledPath), {
+              format,
+              height: params.height || defaultHeight,
+              width: params.width,
+              style,
+            });
+            return res.set('Content-Type', mime.lookup(format ?? '') as string).send(fallbackImage);
+          } catch (fallbackErr) {
+            logger.error(`logo: error processing fallback ${fallbackImageUrl} (${getErrorMessage(fallbackErr)})`);
+          }
+        }
         return res.status(500).send('Internal Server Error');
       }
 
