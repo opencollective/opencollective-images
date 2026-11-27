@@ -73,7 +73,7 @@
     "@babel/preset-env": "^8.0.0",
     "@eslint/js": "^10.0.0",
     "@graphql-codegen/cli": "^8.0.0",
-    "@graphql-eslint/eslint-plugin": "^4.4.1",
+    "@graphql-eslint/eslint-plugin": "^5.0.0",
     "@graphql-typed-document-node/core": "^3.2.0",
     "@types/debug": "^4.1.13",
     "@types/express": "^5.0.6",
